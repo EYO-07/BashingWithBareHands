@@ -1,0 +1,31 @@
+# notepad__profile_self_development : profile template for Notepad--LinuxQt
+# ... this template will open files from the project itself.
+# ... be careful running arbitrary bash files, profiles should be build and managed by user, don't run profiles from others.
+# ... execute it with `bash notepad__profile_self_development` on terminal 
+# notepad__='./build/Notepad--LinuxQt' # change to absolute path of the generated binary
+
+# -- bash tips 
+# ./ current folder 
+# & means that it will detach as independent subprocess from terminal
+# use \ to break a command-line line
+
+# -- arguments 
+# --left argument will open files on the left view
+# --right argument will open files on the right view
+# --width=<value> Set application width (Minimum: 150).
+# --height=<value> Set application height (Minimum: 150).
+# --vertical argument will change the splitter separator to horizontal
+# --horizontal argument will change the splitter separator to vertical 
+
+notepad-- --auto-orientation \
+    --left \
+        ./notepad__profile \
+        readme.md \
+        _Journal \
+        ./Toolbox/mounting_tools.sh \
+        ./Toolbox/sensor_tools.sh \
+    --right \
+        ./Toolbox/git_tools.sh \
+        ./Toolbox/screenshot_tools.sh \
+        ./Toolbox/filesystem_tools.sh \
+&
