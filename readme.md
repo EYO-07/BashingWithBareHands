@@ -31,6 +31,8 @@ Just add the script above to your preferred aliases file. Executing `toolsImport
 2. `filesystem_tools.sh` : aliases and functions for filesystem operations.
 3. `sensor_tools.sh` : aliases and functions to find device sensor files (temperature, usage, etc).
 
+Some scripts needs specific tools, check the dependencies on script annotation.
+
 ### Rules for a Toolscript
 1. No more than 10 items (functions and aliases).
 2. Should point out dependencies.
