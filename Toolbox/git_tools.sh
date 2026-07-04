@@ -29,4 +29,16 @@ function gitDownload {
     echo "Usage: gitDownload <URL>"
 }
 
+function gitProjectInfo {
+    return 1
+}
+
+function gitCommit {
+    if [ "$#" -eq 0 ]; then 
+        echo "Usage: gitCommit <title> <short_description>"
+        return 1
+    fi
+    return 1
+}
+
 # END
