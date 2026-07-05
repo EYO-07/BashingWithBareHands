@@ -5,9 +5,23 @@
 # 2. sudo privileges
 
 # -- description
+
+# RED = 31 - 41
+# GREEN = 32 - 42
+# YELLOW = 33 - 43
+# BLUE = 34 - 44
+# MAGENTA = 35 - 45
+# CYAN = 36 - 46
+# WHITE = 37 - 47
+function color_echo {
+    local color=$1
+    shift
+    echo -e "\e[${color}m$@\e[0m"
+}
+
 echo ""
-echo "=== Services Tools ==="
-echo "--- Management ---"
+color_echo 33 "=== Services Tools ==="
+color_echo 36 "--- Management ---"
 echo "serviceStatus <unit>       : show detailed status and recent logs"
 echo "serviceRestart <unit>      : stop and start service immediately"
 echo "serviceReload <unit>       : reload config without dropping connections"
@@ -16,7 +30,7 @@ echo "serviceActivate <unit>     : enable AND start service immediately (--now)"
 echo "daemonReload               : reload systemd manager config (after editing unit files)"
 echo "resetFailed [unit]         : clear 'failed' state from one or all units"
 echo ""
-echo "--- Socket Activation ---"
+color_echo 36 "--- Socket Activation ---"
 echo "serviceSocketEnable <unit> : enable .socket unit (triggers service on traffic)"
 echo "serviceSocketDisable <unit>: disable .socket unit immediately"
 echo "listServiceSockets         : list ALL registered socket units (active + inactive)"
@@ -24,7 +38,7 @@ echo "listListeningSockets       : list sockets currently listening for connecti
 echo "listSocketsByService       : list sockets sorted by activated service"
 echo "listActiveSockets          : list sockets currently in memory (active)"
 echo ""
-echo "--- Inventory & Health ---"
+color_echo 36 "--- Inventory & Health ---"
 echo "listServices               : list ALL registered service unit files on disk"
 echo "listRunningServices        : list services currently in 'running' state"
 echo "listActiveServices         : list services 'active' (includes running, exited, waiting)"

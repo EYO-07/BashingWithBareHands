@@ -4,8 +4,22 @@
 # 1. 7z : compressing and extracting tools 
 
 # -- description
+
+# RED = 31 - 41
+# GREEN = 32 - 42
+# YELLOW = 33 - 43
+# BLUE = 34 - 44
+# MAGENTA = 35 - 45
+# CYAN = 36 - 46
+# WHITE = 37 - 47
+function color_echo {
+    local color=$1
+    shift
+    echo -e "\e[${color}m$@\e[0m"
+}
+
 echo ""
-echo "=== Filesystem Tools ==="
+color_echo 33 "=== Filesystem Tools ==="
 echo "createFileFromTemplate : create a template file from ~/Template folder "
 echo "getHashInfo : sha256 and other useful hashs for a file"
 echo "getSize : estimate or get metadata of filesize of folder or file"

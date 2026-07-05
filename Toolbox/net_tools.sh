@@ -4,8 +4,22 @@
 # 1. nmcli NetworkManager 
 
 # -- description
+
+# RED = 31 - 41
+# GREEN = 32 - 42
+# YELLOW = 33 - 43
+# BLUE = 34 - 44
+# MAGENTA = 35 - 45
+# CYAN = 36 - 46
+# WHITE = 37 - 47
+function color_echo {
+    local color=$1
+    shift
+    echo -e "\e[${color}m$@\e[0m"
+}
+
 echo ""
-echo "=== Networking Tools ==="
+color_echo 33 "=== Networking Tools ==="
 echo "showNetworkDevices      : Display status of all network devices"
 echo "showConnections         : List all saved connection profiles"
 echo "turnNetworkOn           : Enable all networking"

@@ -5,8 +5,22 @@
 # 2. xrandr ~ x11 environment
 
 # -- description
+
+# RED = 31 - 41
+# GREEN = 32 - 42
+# YELLOW = 33 - 43
+# BLUE = 34 - 44
+# MAGENTA = 35 - 45
+# CYAN = 36 - 46
+# WHITE = 37 - 47
+function color_echo {
+    local color=$1
+    shift
+    echo -e "\e[${color}m$@\e[0m"
+}
+
 echo ""
-echo "=== Screeshot Tools ==="
+color_echo 33 "=== Screeshot Tools ==="
 echo "takeScreenshot <MONITOR_NUMBER> : ..."
 echo ""
 

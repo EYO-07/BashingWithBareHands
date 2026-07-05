@@ -5,8 +5,15 @@
 # 2. gh ; github cli tool 
 
 # -- description
+
+function color_echo {
+    local color=$1
+    shift
+    echo -e "\e[${color}m$@\e[0m"
+}
+
 echo ""
-echo "=== Git Tools ==="
+color_echo 33 "=== Git Tools ==="
 echo "gitDownload <PROJECT_OWNER> <PROJECT_NAME> : download a repository clone"
 echo "gitDownload <URL> : download a repository clone"
 echo "gitProjectInfo : ..."

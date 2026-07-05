@@ -4,8 +4,22 @@
 # 1. udisksctl
 
 # -- description
+
+# RED = 31 - 41
+# GREEN = 32 - 42
+# YELLOW = 33 - 43
+# BLUE = 34 - 44
+# MAGENTA = 35 - 45
+# CYAN = 36 - 46
+# WHITE = 37 - 47
+function color_echo {
+    local color=$1
+    shift
+    echo -e "\e[${color}m$@\e[0m"
+}
+
 echo ""
-echo "=== Mounting Tools ==="
+color_echo 33 "=== Mounting Tools ==="
 echo "showMountPoints : show mounted units"
 echo "showStorageDevicesInfo : ..."
 echo "mountIsoFile : mount iso file"

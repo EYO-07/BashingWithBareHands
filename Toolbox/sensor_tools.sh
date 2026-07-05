@@ -4,9 +4,23 @@
 # -- dependencies
 
 # -- description
+
+# RED = 31 - 41
+# GREEN = 32 - 42
+# YELLOW = 33 - 43
+# BLUE = 34 - 44
+# MAGENTA = 35 - 45
+# CYAN = 36 - 46
+# WHITE = 37 - 47
+function color_echo {
+    local color=$1
+    shift
+    echo -e "\e[${color}m$@\e[0m"
+}
+
 echo ""
-echo "=== Sensor Tools ==="
-echo "... search sensor files"
+color_echo 33 "=== Sensor Tools ==="
+color_echo 36 "... search sensor files"
 echo "searchGeneralSensorFiles : ..."
 echo "searchCPUSensorFiles : ..."
 echo "searchGPUSensorFiles : ..."
