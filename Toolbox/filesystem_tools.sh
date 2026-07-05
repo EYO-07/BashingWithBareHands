@@ -20,6 +20,8 @@ function color_echo {
 
 echo ""
 color_echo 33 "=== Filesystem Tools ==="
+echo "create_file : create a file"
+echo "create_folder : creates a folder"
 echo "createFileFromTemplate : create a template file from ~/Template folder "
 echo "getHashInfo : sha256 and other useful hashs for a file"
 echo "getSize : estimate or get metadata of filesize of folder or file"
@@ -31,6 +33,8 @@ echo "viewBackupContents : view the contents of a compressed archive"
 echo ""
 
 # -- implementation
+alias create_file='touch'
+alias create_folder='mkdir -pv'
 function createFileFromTemplate { # create a template file from ~/Template folder 
     if [[ "$#" -ne 2 ]]; then
         ls ~/Templates -l
