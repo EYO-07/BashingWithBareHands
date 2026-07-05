@@ -1,6 +1,19 @@
 # Bashing With Bare Hands 
 
+(this project is a working progress)
+
 This repository is just a collection of aliases and helper functions to be used on linux desktop terminal. In contrast to the legacy pattern of linux and unix system, these aliases and functions should be easy to remember and be used with autocompletion, so the commands are verbose.
+
+The main goal for this project is to make minimal setup linux environments easy to manage using only terminal interface. Many of the tools still require third-party cli tools, so read it and install the necessary packages for your system.
+
+### Rules for a Toolscript
+1. No more than 10 items (functions and aliases).
+2. Should point out dependencies as comment block.
+3. Verbose Human Readable Commands.
+4. Should print an inventory of commands and short description on sourcing.
+5. Functions should be designed to be safe and user friendly.
+
+With these rules you should manage the linux system with minimal memorization of commands.
 
 ## Usage
 
@@ -27,14 +40,10 @@ Just add the script above to your preferred aliases file. Executing `toolsImport
 
 ## Toolbox Contents
 
-1. `mounting_tools.sh` : aliases and functions to mount, unmount, devices and partitions by label.
+1. `mounting_tools.sh` : aliases and functions to mount, unmount, devices and partitions by label using udiskctl.
 2. `filesystem_tools.sh` : aliases and functions for filesystem operations.
 3. `sensor_tools.sh` : aliases and functions to find device sensor files (temperature, usage, etc).
+4. `services_tools.sh` : daemons and services with systemctl.
+5. `display_tools.sh` : setup of monitor video display on xorg.
 
 Some scripts needs specific tools, check the dependencies on script annotation.
-
-### Rules for a Toolscript
-1. No more than 10 items (functions and aliases).
-2. Should point out dependencies.
-3. Verbose Human Readable Commands.
-4. Should print an inventory of commands and short description on sourcing `. <script>` or `source <script>`.
