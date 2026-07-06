@@ -36,7 +36,7 @@ function crit_echo {
 
 echo ""
 color_echo 33 "=== Pacman Package Manager Tools ==="
-color_echo 36 "... designed for pacman and yay package managers"
+color_echo 36 "... designed for pacman package manager"
 echo "checkInstalledPackages : check for upgradable packages"
 echo "systemUpdate : repository sync and update"
 echo "searchPackages <keyword1> [keyword2 ...] : search packages on official repos"
