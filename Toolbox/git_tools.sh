@@ -45,15 +45,50 @@ function gitDownload {
     echo "Usage: gitDownload <URL>"
 }
 function gitProjectInfo {
-    if [ -d .git ]; then
-        echo "Repository: $(git config --get remote.origin.url)"
-        echo "Current Branch: $(git branch --show-current)"
-        git status --short
-    else
+    # Check if inside a git repository
+    if [ ! -d .git ]; then
         echo "Error: Not a git repository."
         return 1
     fi
-}
+    # Get current branch name
+    local branch=$(git rev-parse --abbrev-ref HEAD)
+    # Check if branch is detached or has no upstream
+    if [ "$branch" = "HEAD" ] || ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+        echo "Repository: $(git config --get remote.origin.url)"
+        echo "Current Branch: $branch (No upstream tracking branch set)"
+        return 0
+    fi
+    echo "Repository: $(git config --get remote.origin.url)"
+    echo "Current Branch: $branch"
+    # Fetch latest info from remote (does not change local files)
+    git fetch --quiet
+    # Get commit hashes
+    local local_hash=$(git rev-parse @)
+    local remote_hash=$(git rev-parse @{u})
+    local base_hash=$(git merge-base @ @{u})
+    # Compare hashes to determine status
+    if [ "$local_hash" = "$remote_hash" ]; then
+        echo "Status: Up-to-date with remote"
+    elif [ "$local_hash" = "$base_hash" ]; then
+        local commits_behind=$(git rev-list --count @..@{u})
+        echo "Status: Behind remote by $commits_behind commit(s) (Run 'git pull')"
+    elif [ "$remote_hash" = "$base_hash" ]; then
+        local commits_ahead=$(git rev-list --count @{u}..@)
+        echo "Status: Ahead of remote by $commits_ahead commit(s) (Run 'git push')"
+    else
+        echo "Status: Diverged (Local and remote have different commits)"
+        echo "       Run 'git pull --rebase' or 'git pull' to resolve."
+    fi
+    # Show short status of working directory (uncommitted changes)
+    local short_status=$(git status --short)
+    if [ -n "$short_status" ]; then
+        echo "Working Directory: Has uncommitted changes"
+        # Optionally uncomment the next line to see the changes
+        # echo "$short_status"
+    else
+        echo "Working Directory: Clean"
+    fi
+}   
 function gitCommit {
     # Check for arguments
     if [ "$#" -lt 1 ]; then 
