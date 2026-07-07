@@ -26,7 +26,9 @@ echo "serviceStatus <unit>       : show detailed status and recent logs"
 echo "serviceRestart <unit>      : stop and start service immediately"
 echo "serviceReload <unit>       : reload config without dropping connections"
 echo "serviceEnable <unit>       : enable service to start at next boot"
+echo "serviceDisable <unit>      : ..."
 echo "serviceActivate <unit>     : enable AND start service immediately (--now)"
+echo "serviceDeactivate <unit>   : ..."
 echo "daemonReload               : reload systemd manager config (after editing unit files)"
 echo "resetFailed [unit]         : clear 'failed' state from one or all units"
 echo ""
@@ -150,6 +152,14 @@ function serviceEnable {
     fi
     sudo systemctl enable "$1"
 }
+function serviceDisable {
+    if [ $# -ne 1 ]; then 
+        listActiveServices
+        echo "Usage: serviceDisable <unit_name>"
+        return 1
+    fi
+    sudo systemctl disable "$1"
+}
 function serviceActivate {
     # Enables the service for boot AND starts it immediately
     if [ $# -ne 1 ]; then 
@@ -158,6 +168,15 @@ function serviceActivate {
         return 1
     fi
     sudo systemctl enable --now "$1"
+}
+function serviceDeactivate {
+    # Enables the service for boot AND starts it immediately
+    if [ $# -ne 1 ]; then 
+        listRunningServices
+        echo "Usage: serviceDeactivate <unit_name>"
+        return 1
+    fi
+    sudo systemctl disable --now "$1"
 }
 
 # -- system management (add to implementation section)
