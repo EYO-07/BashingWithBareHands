@@ -1,8 +1,8 @@
-# BEGIN
+# BEGIN : Toolbox/grub_tools.sh 
 
-# -- dependencies
+# -- dependencies 
 
-# -- description
+# -- description 
 
 # RED = 31 - 41
 # GREEN = 32 - 42
@@ -14,6 +14,7 @@
 function color_echo {
     local color=$1
     shift
+    # If arguments are provided, use them. Otherwise, read from standard input (stdin).
     if [ "$#" -gt 0 ]; then
         echo -e "\e[${color}m$@\e[0m"
     else
@@ -23,24 +24,21 @@ function color_echo {
     fi
 }
 function warn_echo {
+    # Seamlessly forwards arguments or stdin to color_echo
     color_echo 33 "$@"
 }
 function crit_echo {
+    # Seamlessly forwards arguments or stdin to color_echo
     color_echo 31 "$@"
 }
-function green_echo {
-    color_echo 32 "$@"
-}
 
 echo ""
-color_echo 33 "=== Date and Time Tools ==="
-echo "getCurrentDate : ..."
-echo ""
+color_echo 33 "=== Grub Tools ==="
+crit_echo "... not functional!"
 
 # -- implementation
-function getCurrentDate {
-    # Get system date including weekday in format: "Weekday, YYYY-MM-DD"
-    date +"%A, %Y-%m-%d" | green_echo
+function regenerateGrub {
+    return 1
 }
 
 # END

@@ -50,6 +50,9 @@ echo ""
 color_echo 36 "-- Yay Inventory --"
 echo "yay -S : install package from AUR using yay"
 echo ""
+color_echo 31 "-- Post Installation Commands --"
+echo "regenerate_initramfs : ..."
+echo ""
 
 alias checkInstalledPackages='pacman -Qu | warn_echo'
 alias systemUpdate='sudo pacman -Syu'
@@ -181,5 +184,6 @@ function cleanPackageCache {
         return 0
     fi
 }
+alias regenerate_initramfs='sudo mkinitcpio -P'
 
 # END
