@@ -54,7 +54,7 @@ color_echo 31 "-- Post Installation Commands --"
 echo "regenerate_initramfs : ..."
 echo ""
 
-alias checkInstalledPackages='pacman -Qu | warn_echo'
+alias checkInstalledPackages='sudo pacman -Sy && (pacman -Qu | warn_echo)'
 alias systemUpdate='sudo pacman -Syu'
 function searchPackages {
     if [ "$#" -eq 0 ]; then 
@@ -185,5 +185,7 @@ function cleanPackageCache {
     fi
 }
 alias regenerate_initramfs='sudo mkinitcpio -P'
+
+
 
 # END
