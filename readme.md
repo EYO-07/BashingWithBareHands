@@ -47,3 +47,22 @@ Just add the script above to your preferred aliases file. Executing `toolsImport
 5. `display_tools.sh` : setup of monitor video display on xorg.
 
 Some scripts needs specific tools, check the dependencies on script annotation.
+
+```bash 
+# other importing/sourcing alias
+alias tools_filesystem='. $TOOLBOX/filesystem_tools.sh'
+alias tools_mounting='. $TOOLBOX/mounting_tools.sh'
+alias tools_sensors='. $TOOLBOX/sensor_tools.sh'
+alias tools_git='. $TOOLBOX/git_tools.sh'
+alias tools_screenshot='. $TOOLBOX/screenshot_tools.sh'
+alias tools_date='. $TOOLBOX/date_tools.sh'
+alias tools_video_music_download='. $TOOLBOX/video_music_download_tools.sh'
+alias tools_net='. $TOOLBOX/net_tools.sh'
+alias tools_processes='. $TOOLBOX/processes_tools.sh'
+alias tools_services='. $TOOLBOX/services_tools.sh'
+alias tools_displays='. $TOOLBOX/display_tools.sh'
+alias tools_pacman='. $TOOLBOX/pacman_tools.sh'
+alias tools_chmod='. $TOOLBOX/change_mode_tools.sh'
+alias tools_audio='. $TOOLBOX/audio_tools.sh'
+```
+
