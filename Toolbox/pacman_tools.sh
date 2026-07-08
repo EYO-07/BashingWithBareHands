@@ -3,6 +3,7 @@
 
 # -- dependencies
 # 1. pacman 
+# 2. pacman-contrib : showPackageRelations
 
 # -- description
 
@@ -37,6 +38,7 @@ function crit_echo {
 echo ""
 color_echo 33 "=== Pacman Package Manager Tools ==="
 color_echo 36 "... designed for pacman package manager"
+echo "listInstalledPackages : ... you can filter by keywords"
 echo "checkInstalledPackages : check for upgradable packages"
 echo "systemUpdate : repository sync and update"
 echo "searchPackages <keyword1> [keyword2 ...] : search packages on official repos"
@@ -46,6 +48,7 @@ echo "listOrphanPackages : list orphan dependency packages"
 echo "removePackage : remove/uninstall package keeping configs"
 echo "purgePackage : remove and remove configs"
 echo "cleanPackageCache : clean the pacman cache"
+echo "packageRelations : show direct parent child dependency relations"
 echo ""
 color_echo 31 "-- Post Installation Commands --"
 echo "regenerate_initramfs : ..."
@@ -182,7 +185,72 @@ function cleanPackageCache {
     fi
 }
 alias regenerate_initramfs='sudo mkinitcpio -P'
-
-
+function packageRelations {
+    # Check argument count
+    if [ "$#" -ne 1 ]; then 
+        echo "USAGE: showPackageRelations <package_name>"
+        return 1
+    fi
+    local pkg_name="$1"
+    # Dependency check for pactree
+    if ! command -v pactree &> /dev/null; then
+        crit_echo "ERROR: 'pactree' not found. Please install 'pacman-contrib'."
+        return 1
+    fi
+    # Check if the package is installed locally
+    if ! pacman -Qi "$pkg_name" &> /dev/null; then
+        crit_echo "ERROR: Package '$pkg_name' is not installed locally."
+        return 1
+    fi
+    color_echo 33 "=== Relations for Package: $pkg_name ==="
+    # 1. Fetch Direct Dependencies
+    color_echo 36 "--- Direct Dependencies (What '$pkg_name' depends on) ---"
+    # Use local and check if pactree actually returned anything *besides* the target package
+    local deps
+    deps=$(pactree -d 1 -u "$pkg_name" 2>/dev/null | tail -n +2) 
+    if [ -z "$deps" ]; then
+        echo "None"
+    else
+        echo "$deps" | sed 's/^/  -> /'
+    fi
+    # 2. Fetch Direct Reverse Dependencies
+    color_echo 31 "--- Required By (What depends on '$pkg_name') ---"
+    local req_by
+    req_by=$(pactree -r -d 1 -u "$pkg_name" 2>/dev/null | tail -n +2)
+    if [ -z "$req_by" ] || [ "$req_by" = "$pkg_name" ]; then
+        echo "None"
+    else
+        echo "$req_by" | sed 's/^/  <- /'
+    fi
+    return 0
+}   
+function listInstalledPackages {
+    local keywords=("$@")
+    # Base command: Generate "Name : Description" for all installed packages
+    # We use a function or a subshell to start the pipeline
+    local result
+    result=$(pacman -Qi | awk '
+        /^Name/ { name=$3 } 
+        /^Description/ { print name " : " substr($0, index($0,$3)) }
+    ')
+    # If no keywords, just print the result
+    if [ ${#keywords[@]} -eq 0 ]; then
+        warn_echo "$result"
+        return 0
+    fi
+    # Apply each keyword as a separate grep filter (AND logic)
+    # We echo the stored result and pipe it through grep for each keyword
+    local cmd="echo \"\$result\""
+    for kw in "${keywords[@]}"; do
+        # Append grep to the command string safely without eval
+        # We use a while loop to pipe the output of the previous grep into the next
+        result=$(echo "$result" | grep -i "$kw")
+        # Optimization: If result is empty, no need to check further
+        if [ -z "$result" ]; then
+            return 0
+        fi
+    done
+    warn_echo "$result"
+}
 
 # END
