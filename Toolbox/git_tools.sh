@@ -6,19 +6,40 @@
 
 # -- description
 
+# RED = 31 - 41
+# GREEN = 32 - 42
+# YELLOW = 33 - 43
+# BLUE = 34 - 44
+# MAGENTA = 35 - 45
+# CYAN = 36 - 46
+# WHITE = 37 - 47
 function color_echo {
     local color=$1
     shift
-    echo -e "\e[${color}m$@\e[0m"
+    # If arguments are provided, use them. Otherwise, read from standard input (stdin).
+    if [ "$#" -gt 0 ]; then
+        echo -e "\e[${color}m$@\e[0m"
+    else
+        while IFS= read -r line; do
+            echo -e "\e[${color}m${line}\e[0m"
+        done
+    fi
+}
+function warn_echo {
+    # Seamlessly forwards arguments or stdin to color_echo
+    color_echo 33 "$@"
+}
+function crit_echo {
+    # Seamlessly forwards arguments or stdin to color_echo
+    color_echo 31 "$@"
 }
 
 echo ""
 color_echo 33 "=== Git Tools ==="
-echo "gitDownload <PROJECT_OWNER> <PROJECT_NAME> : download a repository clone"
-echo "gitDownload <URL> : download a repository clone"
-echo "gitProjectInfo : ..."
+echo "downloadProject : ... run without args to see usage"
+echo "projectInfo : ..."
 echo "gitCommit <title> [description] : local clone commit registry"
-echo "gitDownloadSync : discard local changes and sync with remote repository"
+echo "projectUpdate : discard local changes and sync with remote repository"
 echo "gitPullRequest : pull request, require gh cli tool"
 echo "listBranches : ..."
 echo "setBranch <keyword> : ..."
@@ -27,10 +48,10 @@ echo "gitStash : managing git stashes"
 echo ""
 
 # -- implementation 
-function gitDownload {
+function downloadProject {
     if [ "$#" -eq 0 ]; then 
-        echo "Usage: gitDownload <PROJECT_OWNER> <PROJECT_NAME>"
-        echo "Usage: gitDownload <URL>"
+        echo "Usage: downloadProject <PROJECT_OWNER> <PROJECT_NAME>"
+    echo "Usage: downloadProject <URL>"
         return 1
     fi
     if [ "$#" -eq 1 ]; then 
@@ -41,13 +62,13 @@ function gitDownload {
         git clone "https://github.com/$1/$2.git"
         return 0
     fi
-    echo "Usage: gitDownload <PROJECT_OWNER> <PROJECT_NAME>"
-    echo "Usage: gitDownload <URL>"
+    echo "Usage: downloadProject <PROJECT_OWNER> <PROJECT_NAME>"
+    echo "Usage: downloadProject <URL>"
 }
-function gitProjectInfo {
+function projectInfo {
     # Check if inside a git repository
     if [ ! -d .git ]; then
-        echo "Error: Not a git repository."
+        crit_echo "Error: Not a git repository."
         return 1
     fi
     # Get current branch name
@@ -68,25 +89,25 @@ function gitProjectInfo {
     local base_hash=$(git merge-base @ @{u})
     # Compare hashes to determine status
     if [ "$local_hash" = "$remote_hash" ]; then
-        echo "Status: Up-to-date with remote"
+        color_echo 32 "Status: Up-to-date with remote"
     elif [ "$local_hash" = "$base_hash" ]; then
         local commits_behind=$(git rev-list --count @..@{u})
-        echo "Status: Behind remote by $commits_behind commit(s) (Run 'git pull')"
+        warn_echo "Status: Behind remote by $commits_behind commit(s) (Run 'git pull')"
     elif [ "$remote_hash" = "$base_hash" ]; then
         local commits_ahead=$(git rev-list --count @{u}..@)
-        echo "Status: Ahead of remote by $commits_ahead commit(s) (Run 'git push')"
+        crit_echo "Status: Ahead of remote by $commits_ahead commit(s) (Run 'git push')"
     else
-        echo "Status: Diverged (Local and remote have different commits)"
+        crit_echo "Status: Diverged (Local and remote have different commits)"
         echo "       Run 'git pull --rebase' or 'git pull' to resolve."
     fi
     # Show short status of working directory (uncommitted changes)
     local short_status=$(git status --short)
     if [ -n "$short_status" ]; then
-        echo "Working Directory: Has uncommitted changes"
+        warn_echo "Working Directory: Has uncommitted changes"
         # Optionally uncomment the next line to see the changes
-        # echo "$short_status"
+        echo "$short_status"
     else
-        echo "Working Directory: Clean"
+        color_echo 32 "Working Directory: Clean"
     fi
 }   
 function gitCommit {
@@ -124,7 +145,7 @@ function gitCommit {
             ;;
     esac
 }   
-function gitDownloadSync {
+function projectUpdate {
     # Ensure we are inside a git repository
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         echo "Error: Not a git repository."
@@ -159,7 +180,7 @@ function gitDownloadSync {
     git reset --hard @{u}
     echo "Cleaning untracked files..."
     git clean -fd
-    echo "✓ Sync complete. Local clone matches remote exactly."
+    color_echo 32 "Sync complete. Local clone matches remote exactly."
 }   
 function gitPullRequest {
     # 1. Check for GitHub CLI
@@ -383,8 +404,6 @@ function gitStash {
             ;;
     esac
 }
-
-
 
 
 # END

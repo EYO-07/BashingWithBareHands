@@ -68,10 +68,9 @@ function deleteConnection {
         echo "Usage: deleteConnection <CONNECTION_NAME>"
         return 1
     fi
-    nmcli connection delete "$1"
+    # "$*" combines all arguments into a single string separated by spaces
+    nmcli connection delete "$*"
 }
-
-# Deactivate a connection (disconnect)
 function turnConnectionDown {
     if [[ -z "$1" ]]; then
         echo "Error: Connection name required."
@@ -82,8 +81,6 @@ function turnConnectionDown {
     # FIXED: Added missing "$1" argument
     nmcli connection down "$1"
 }
-
-# Disable IPv6 for a specific connection profile
 function disable_ipv6 {
     if [[ -z "$1" ]]; then
         echo "Error: Connection name required."
@@ -99,8 +96,6 @@ function disable_ipv6 {
     echo "Verification for '$1':"
     nmcli connection show "$1" | grep ipv6.method
 }
-
-# Enable IPv6 (Auto) for a specific connection profile
 function enable_ipv6 {
     if [[ -z "$1" ]]; then
         echo "Error: Connection name required."
