@@ -65,6 +65,7 @@ alias tools_pacman='. $TOOLBOX/pacman_tools.sh'
 alias tools_chmod='. $TOOLBOX/change_mode_tools.sh'
 alias tools_audio='. $TOOLBOX/audio_tools.sh'
 alias tools_sockets='. $TOOLBOX/socket_tools.sh'
+alias tools_errors='. $TOOLBOX/errors_tools.sh'
 ```
 
 Add these to your preferred aliases script and use `tools_NAME.sh` to source in your terminal session.
