@@ -31,6 +31,7 @@ echo "getSystemErrorMessages [ <keyword> [<fileoutput>] ] : Scan kernel log for 
 echo "getDeviceErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve hardware/device errors"
 echo "getDriverErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve kernel module/driver failures"
 echo "getApplicationErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve user-space application errors"
+echo "systemInformation : ..."
 echo ""
 
 # -- Helper: Safe Output Handler
@@ -47,7 +48,10 @@ function _write_output {
             return 1
         fi
         # Write to file
-        cat > "$outfile"
+        systemInformation > "$outfile"
+        echo "" >> "$outfile"
+        echo "=== Error Messages ===" >> "$outfile"
+        cat >> "$outfile"
         info_echo "Output written to: $outfile"
     else
         # Write to stdout
@@ -144,5 +148,62 @@ function getApplicationErrorMessages {
     fi
     return 0
 }
+function systemInformation {
+    # show a short system hardware and operational system info
+    # to constraint the solution based on current system 
+    echo "=== System Information ==="
+    # 1. Show the Linux OS
+    # Uses /etc/os-release for broad compatibility across distros
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        echo "OS: $PRETTY_NAME"
+    else
+        echo "OS: $(uname -o) $(uname -r)"
+    fi
+    # 2. Show kernel version
+    echo "Kernel: $(uname -r)"
+    # 3. Show CPU
+    # Extracts the first model name found in /proc/cpuinfo
+    cpu_model=$(grep -m 1 "model name" /proc/cpuinfo | cut -d ':' -f2 | xargs)
+    cpu_cores=$(grep -c "^processor" /proc/cpuinfo)
+    echo "CPU: $cpu_model ($cores cores)"
+    # 4. Show GPU
+    # Tries lspci first (works without sudo), falls back to lshw if needed
+    gpu_info=$(lspci | grep -i vga | cut -d ':' -f3 | xargs)
+    if [ -z "$gpu_info" ]; then
+        gpu_info="No VGA controller found (Headless or Integrated?)"
+    fi
+    echo "GPU: $gpu_info"
+    # 5. Show Motherboard
+    # Tries reading from /sys first (no sudo), then dmidecode (needs sudo)
+    mobo_model=""
+    if [ -f /sys/class/dmi/id/board_name ]; then
+        mobo_vendor=$(cat /sys/class/dmi/id/board_vendor 2>/dev/null)
+        mobo_model=$(cat /sys/class/dmi/id/board_name 2>/dev/null)
+    fi
+    if [ -z "$mobo_model" ] || [ "$mobo_model" == "Not Available" ]; then
+        if command -v dmidecode &> /dev/null; then
+            mobo_vendor=$(sudo dmidecode -s baseboard-manufacturer 2>/dev/null)
+            mobo_model=$(sudo dmidecode -s baseboard-product-name 2>/dev/null)
+        fi
+    fi
+    echo "Motherboard: $mobo_vendor $mobo_model"
+    # 6. Additional Useful Info
+    # RAM
+    ram_total=$(free -h | awk '/^Mem:/ {print $2}')
+    echo "RAM: $ram_total"
+    # Architecture
+    arch=$(uname -m)
+    echo "Architecture: $arch"
+    # Disk Space (Root partition)
+    disk_avail=$(df -h / | awk 'NR==2 {print $4}')
+    echo "Available Disk (Root): $disk_avail"
+    # Virtualization Check (Simple heuristic)
+    if grep -q hypervisor /proc/cpuinfo 2>/dev/null; then
+        echo "Environment: Virtual Machine"
+    else
+        echo "Environment: Physical/Bare Metal"
+    fi
+}   
 
 # END   
