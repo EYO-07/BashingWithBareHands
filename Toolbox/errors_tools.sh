@@ -1,4 +1,5 @@
 # BEGIN : Toolbox/errors_tools.sh
+# {TextMarker|red:|cyan:}
 
 # -- dependencies
 # Requires: dmesg (util-linux), journalctl (systemd)
@@ -26,12 +27,16 @@ function info_echo { color_echo 36 "$@"; }
 
 # -- Header Display
 echo ""
-color_echo 33 "=== Change Mode Tools ==="
+color_echo 33 "=== Error/Issues Tools ==="
+info_echo '... use `<application> "" <fileoutput>` to save to file without keywords'
+crit_echo "... don't try to fix everything, some errors are just warnings, trying to fix them could make it worse!"
 echo "getSystemErrorMessages [ <keyword> [<fileoutput>] ] : Scan kernel log for critical system failures"
 echo "getDeviceErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve hardware/device errors"
 echo "getDriverErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve kernel module/driver failures"
-echo "getApplicationErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve user-space application errors"
-echo "systemInformation : ..."
+echo "getUserErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve user-space application errors"
+echo "getX11ErrorMessages [ <keyword> [<fileoutput>] : x11/xorg specific errors"
+echo "getGraphicCardErrorMessages [ <keyword> [<fileoutput>] : ..."
+echo "systemInformation : ... info attached to fileoutputs"
 echo ""
 
 # -- Helper: Safe Output Handler
@@ -62,16 +67,19 @@ function _write_output {
 
 # -- implementation
 # variables
+_general_error_filter="panic|oom|out.of.memory|segfault|general.protection.fault|machine.check.exception|filesystem.corruption|critical|bug|kernel.bug"
 _device_filter="device|hardware|I/O"
 _device_error_filter="error|reset|failed|warning"
 _driver_filter="driver|module|firmware"
 _driver_error_filter="error|fail|refused|missing|warning"
+_gpu_drivers="nvidia|nouveau|amdgpu|radeon|i915|xe|drm|vgaarb|gpu"
+_gpu_errors="error|fail|corrupt|reset|timeout|hang|fallback|vram|flip_done|crtc|invalid"
 # functions
 function getSystemErrorMessages {
     # USAGE: getSystemErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
-    local pattern="panic|oom|out.of.memory|segfault|general.protection.fault|machine.check.exception|filesystem.corruption|critical|bug|kernel.bug"
+    local pattern="$_general_error_filter"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
         return 1
@@ -123,7 +131,7 @@ function getDriverErrorMessages {
     fi
     return 0
 }
-function getApplicationErrorMessages {
+function getUserErrorMessages {
     # USAGE: getApplicationErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -166,7 +174,7 @@ function systemInformation {
     # Extracts the first model name found in /proc/cpuinfo
     cpu_model=$(grep -m 1 "model name" /proc/cpuinfo | cut -d ':' -f2 | xargs)
     cpu_cores=$(grep -c "^processor" /proc/cpuinfo)
-    echo "CPU: $cpu_model ($cores cores)"
+    echo "CPU: $cpu_model ($cpu_cores cores)"
     # 4. Show GPU
     # Tries lspci first (works without sudo), falls back to lshw if needed
     gpu_info=$(lspci | grep -i vga | cut -d ':' -f3 | xargs)
@@ -205,5 +213,73 @@ function systemInformation {
         echo "Environment: Physical/Bare Metal"
     fi
 }   
+function getX11ErrorMessages {
+    # USAGE: getX11ErrorMessages [ <keyword> [<fileoutput>] ]
+    local keyword="$1"
+    local outfile="$2"
+    info_echo "--- Scanning via X11 Core Logs & Tools ---"
+    # 1. Verify if the X Server is currently responsive
+    if command -v xset &> /dev/null; then
+        if ! xset q &>/dev/null; then
+            crit_echo "Warning: Cannot connect to X server (DISPLAY=$DISPLAY)."
+        fi
+    fi
+    # 2. Define traditional Xorg log paths
+    local xorg_logs=(
+        "$HOME/.local/share/xorg/Xorg.0.log"
+        "/var/log/Xorg.0.log"
+        "/var/log/Xorg.1.log"
+    )
+    # Collect errors using Xorg-specific markers:
+    # (EE) = Error, (WW) = Warning, (NI) = Not Implemented
+    local buffer
+    buffer=$(
+        for log in "${xorg_logs[@]}"; do
+            if [[ -f "$log" ]]; then
+                echo "=== Xorg Log File: $log ==="
+                # Extract lines containing the X11 error/warning signatures
+                grep -E "\[\s*[0-9.]+\s*\] \((EE|WW|NI)\)" "$log"
+            fi
+        done
+    )
+    # 3. Filter and Output
+    if [[ -z "$buffer" ]]; then
+        warn_echo "No X11 errors or warnings found in standard log paths."
+        return 0
+    fi
+    if [[ -n "$keyword" ]]; then
+        echo "$buffer" | grep -i "$keyword" | _write_output "$outfile"
+    else
+        echo "$buffer" | _write_output "$outfile"
+    fi   
+    return 0
+}
+function getGraphicCardErrorMessages {
+    # USAGE: getGraphicCardErrorMessages [ <keyword> [<fileoutput>] ]
+    local keyword="$1"
+    local outfile="$2"
+    if ! command -v dmesg &> /dev/null; then
+        crit_echo "Error: 'dmesg' command not found."
+        return 1
+    fi
+    info_echo "--- Scanning Kernel Logs (dmesg) for Graphics/GPU errors ---"
+    # Define graphics drivers and error patterns to cross-reference    
+    local buffer
+    buffer=$(
+        # Filter lines that mention a graphics driver AND an error keyword
+        sudo dmesg -T | grep -iE "$_gpu_drivers" | grep -iE "$_gpu_errors" || true
+    )
+    # Filter and Output
+    if [[ -z "$buffer" ]]; then
+        warn_echo "No specific Graphics Card/GPU errors detected in dmesg."
+        return 0
+    fi
+    if [[ -n "$keyword" ]]; then
+        echo "$buffer" | grep -i "$keyword" | _write_output "$outfile"
+    else
+        echo "$buffer" | _write_output "$outfile"
+    fi
+    return 0
+}
 
 # END   
