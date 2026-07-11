@@ -37,6 +37,7 @@ echo "getUserErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve user-space ap
 echo "getX11ErrorMessages [ <keyword> [<fileoutput>] : x11/xorg specific errors"
 echo "getGraphicCardErrorMessages [ <keyword> [<fileoutput>] : ..."
 echo "systemInformation : ... info attached to fileoutputs"
+echo "queryMessagesByUnit <unit> : query journalctl by unit name"
 echo ""
 
 # -- Helper: Safe Output Handler
@@ -280,6 +281,13 @@ function getGraphicCardErrorMessages {
         echo "$buffer" | _write_output "$outfile"
     fi
     return 0
+}
+function queryMessagesByUnit {
+    if [ $# -ne 1 ]; then
+        echo "Usage: queryMessagesByUnit <unit_name>"
+        return 1
+    fi
+    journalctl -u "$1"
 }
 
 # END   

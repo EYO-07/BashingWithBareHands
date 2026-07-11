@@ -20,18 +20,19 @@ function color_echo {
 
 echo ""
 color_echo 33 "=== Networking Tools ==="
-echo "showNetworkDevices      : Display status of all network devices"
-echo "showConnections         : List all saved connection profiles"
-echo "turnNetworkOn           : Enable all networking"
-echo "turnNetworkOff          : Disable all networking"
-echo "wifiList                : Scan and list available WiFi networks"
-echo "turnWifiOff             : Disable WiFi radio only"
-echo "turnWifiOn              : Enable WiFi radio only"
-echo "wifiConnect <SSID>      : Connect to a WiFi network by SSID"
-echo "deleteConnection <NAME> : Delete a connection profile"
+echo "showNetworkDevices       : Display status of all network devices"
+echo "showConnections          : List all saved connection profiles"
+echo "turnNetworkOn            : Enable all networking"
+echo "turnNetworkOff           : Disable all networking"
+echo "wifiList                 : Scan and list available WiFi networks"
+echo "turnWifiOff              : Disable WiFi radio only"
+echo "turnWifiOn               : Enable WiFi radio only"
+echo "wifiConnect <SSID>       : Connect to a WiFi network by SSID"
+echo "deleteConnection <NAME>  : Delete a connection profile"
 echo "turnConnectionDown <NAME>: Deactivate a specific connection"
-echo "disable_ipv6 <NAME>     : Disable IPv6 for a specific connection"
-echo "enable_ipv6 <NAME>      : Enable IPv6 (auto) for a specific connection"
+echo "turnConnectionUp <NAME>  : Activate a specific connection"
+echo "disable_ipv6 <NAME>      : Disable IPv6 for a specific connection"
+echo "enable_ipv6 <NAME>       : Enable IPv6 (auto) for a specific connection"
 echo ""
 
 # -- implementation
@@ -78,8 +79,16 @@ function turnConnectionDown {
         echo "Usage: turnConnectionDown <CONNECTION_NAME>"
         return 1
     fi
-    # FIXED: Added missing "$1" argument
     nmcli connection down "$1"
+}
+function turnConnectionUp {
+    if [[ -z "$1" ]]; then
+        echo "Error: Connection name required."
+        showConnections
+        echo "Usage: turnConnectionUp <CONNECTION_NAME>"
+        return 1
+    fi
+    nmcli connection up "$1"
 }
 function disable_ipv6 {
     if [[ -z "$1" ]]; then
