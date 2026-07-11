@@ -55,6 +55,8 @@ function checkLocalFileSharingBridge {
     local target_host
     local ssh_user
     local resolved_ip
+    local interface_name
+    local gateway_ip
     if [ -z "$remote_host" ]; then
         crit_echo "Error: No remote hostname provided."
         echo "Usage: checkLocalFileSharingBridge <remotehostname> [ <username> ]"
@@ -74,7 +76,6 @@ function checkLocalFileSharingBridge {
     # 2. Check Name Resolution (Forward Lookup)
     color_echo 33 "Resolving hostname: ${target_host}..."
     resolved_ip=$(avahi-resolve -n -4 "$target_host" 2>/dev/null | awk '{print $2}')
-
     if [ -z "$resolved_ip" ]; then
         crit_echo "FAILED: Could not resolve ${target_host} to an IP address."
         warn_echo "Ensure the remote machine is on the same network and running avahi-daemon."
@@ -95,7 +96,27 @@ function checkLocalFileSharingBridge {
         if [ -z "$ssh_user" ]; then
             ssh_user="$default_suggest"
         fi
-        color_echo 34 "Using username: ${ssh_user}"
+        color_echo 33 "Using username: ${ssh_user}"
+    fi    
+    # 3.5 Check Connection Interface (NEW)
+    color_echo 33 "Checking network route to ${resolved_ip}..."
+    # 'ip route get' returns the interface (dev) and gateway (via) used for the IP
+    local route_info
+    route_info=$(ip route get "$resolved_ip" 2>/dev/null)
+    if [ -n "$route_info" ]; then
+        # Extract interface name (after 'dev')
+        interface_name=$(echo "$route_info" | grep -oP 'dev \K\S+')
+        # Extract gateway if present (after 'via')
+        gateway_ip=$(echo "$route_info" | grep -oP 'via \K\S+')
+        
+        color_echo 32 "[OK] Interface: ${interface_name}"
+        if [ -n "$gateway_ip" ]; then
+            color_echo 33 "      Gateway: ${gateway_ip}"
+        else
+            color_echo 33 "      Network: Direct (Local Subnet)"
+        fi
+    else
+        warn_echo "WARNING: Could not determine route interface."
     fi
     # 4. Check SSH Connectivity (Auth Prompt Enabled)
     color_echo 33 "Testing SSH connectivity to ${resolved_ip} as ${ssh_user}..."
@@ -123,6 +144,7 @@ function checkLocalFileSharingBridge {
     color_echo 32 "=== Bridge Check Complete: ${target_host} is reachable as ${ssh_user} ==="
     return 0
 }
+
 function remoteShell {
     # USAGE: remoteShell <remoteusername> <remotehostname>
     # Opens an interactive remote terminal session
@@ -150,7 +172,6 @@ function remoteShell {
     ssh -t "${ssh_user}@${resolved_ip}"
     return $?
 }   
-
 function leftload { 
     # USAGE: leftload <remoteusername> <remotehostname> <remotepath> [ <localpath> ] 
     # 1. leftload <remoteusername> <remotehostname> <remotepath> 
