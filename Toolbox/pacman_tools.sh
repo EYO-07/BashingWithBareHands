@@ -34,11 +34,14 @@ function crit_echo {
     # Seamlessly forwards arguments or stdin to color_echo
     color_echo 31 "$@"
 }
+function info_echo { color_echo 36 "$@"; }
 
 echo ""
 color_echo 33 "=== Pacman Package Manager Tools ==="
 color_echo 36 "... designed for pacman package manager"
 echo "listInstalledPackages : ... you can filter by keywords"
+echo " 1. listInstalledPackages [ <kw1> <kw2> ... ] : filter search"
+echo ' 2. listInstalledPackages "<kw1>|<kw2>|..." : combined search'
 echo "checkInstalledPackages : check for upgradable packages"
 echo "systemUpdate : repository sync and update"
 echo "searchPackages <keyword1> [keyword2 ...] : search packages on official repos"
@@ -103,6 +106,7 @@ function searchPackages {
         fi
     fi
     # Case 3: Under the threshold or user chose not to filter -> Print everything
+    color_echo 32 "--- search results ---"
     echo "$search_results"
 }
 function installPackage {
@@ -244,7 +248,7 @@ function listInstalledPackages {
     for kw in "${keywords[@]}"; do
         # Append grep to the command string safely without eval
         # We use a while loop to pipe the output of the previous grep into the next
-        result=$(echo "$result" | grep -i "$kw")
+        result=$(echo "$result" | grep -iE "$kw")
         # Optimization: If result is empty, no need to check further
         if [ -z "$result" ]; then
             return 0
