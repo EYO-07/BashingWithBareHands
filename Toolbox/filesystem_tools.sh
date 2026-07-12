@@ -22,6 +22,7 @@ echo ""
 color_echo 33 "=== Filesystem Tools ==="
 echo "create_file : create a file"
 echo "create_folder : creates a folder"
+echo "deleteFolder <path> : recursively deletes a folder after confirming with a random token."
 echo "createFileFromTemplate : create a template file from ~/Template folder "
 echo "getHashInfo : sha256 and other useful hashs for a file"
 echo "getSize : estimate or get metadata of filesize of folder or file"
@@ -217,6 +218,57 @@ function viewBackupContents { # view the contents of a compressed archive
         *.tar.gz|*.tgz) tar -tf "$archive" ;;
         *)           echo "Error: Unsupported archive format." ;;
     esac
+}
+function deleteFolder { 
+    # USAGE: deleteFolder <path>
+    # Recursively deletes a folder after confirming with a random token.
+    local target_path="${1:-}"
+    # 1. Validate Input
+    if [ -z "$target_path" ]; then
+        crit_echo "Error: No path provided."
+        echo "Usage: deleteFolder <path>"
+        return 1
+    fi
+    # 2. Check Existence
+    if [ ! -d "$target_path" ]; then
+        crit_echo "Error: Directory '$target_path' does not exist or is not a directory."
+        return 1
+    fi
+    # 3. Gather Information (Size & Contents)
+    # Get human-readable size
+    local dir_size
+    dir_size=$(du -sh "$target_path" 2>/dev/null | cut -f1)
+    # Count items
+    local item_count
+    item_count=$(find "$target_path" -mindepth 1 | wc -l | tr -d ' ')
+    color_echo 33 "--- Deletion Preview ---"
+    color_echo 36 "Target: $target_path"
+    color_echo 36 "Total Size: $dir_size"
+    color_echo 36 "Items to delete: $item_count"
+    color_echo 31 "WARNING: This action is irreversible!"
+    # 4. Generate Random Token (6 characters, alphanumeric)
+    # Uses /dev/urandom for cryptographic security
+    local confirm_token
+    confirm_token=$(tr -dc 'A-Z0-9' < /dev/urandom | head -c 6)
+    # 5. Prompt User
+    color_echo 35 "To confirm deletion, type the following token exactly:"
+    color_echo 32 ">>> $confirm_token <<<"
+    read -p "Enter token: " user_input
+    # 6. Verify and Execute
+    if [ "$user_input" == "$confirm_token" ]; then
+        color_echo 35 "Token matched. Deleting..."
+        rm -rf "$target_path"
+        if [ $? -eq 0 ]; then
+            color_echo 32 "=== Deletion Successful ==="
+            return 0
+        else
+            crit_echo "=== Deletion Failed (Permission error?) ==="
+            return 1
+        fi
+    else
+        crit_echo "=== Deletion Cancelled: Token mismatch ==="
+        return 1
+    fi
 }
 
 # END

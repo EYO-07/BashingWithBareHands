@@ -144,7 +144,6 @@ function checkLocalFileSharingBridge {
     color_echo 32 "=== Bridge Check Complete: ${target_host} is reachable as ${ssh_user} ==="
     return 0
 }
-
 function remoteShell {
     # USAGE: remoteShell <remoteusername> <remotehostname>
     # Opens an interactive remote terminal session
@@ -240,8 +239,11 @@ function leftload {
     color_echo 33 "Local Dest: ${local_dest}"
     color_echo 35 "Starting transfer (Ctrl+C to cancel)..."
     # Standard rsync download
-    rsync -avzP -e "ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new" \
-        "${ssh_user}@${resolved_ip}:${remote_path}" "${local_dest}"
+    #rsync -avzP -e "ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new" \
+    #    "${ssh_user}@${resolved_ip}:${remote_path}" "${local_dest}"
+    # Modified rsync command for maximum local usability
+    rsync -avzP --no-owner --no-group --no-perms -e "ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new" \
+        "${ssh_user}@${resolved_ip}:${remote_path}" "${local_dest}"       
     local exit_code=$?
     if [ $exit_code -eq 0 ]; then
         color_echo 32 "=== Leftload Complete ==="
