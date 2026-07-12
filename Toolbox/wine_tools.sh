@@ -5,7 +5,6 @@
 # 2. winetricks
 
 # -- description 
-# A toolbox for managing file permissions with colored output.
 
 # RED = 31 - 41
 # GREEN = 32 - 42
@@ -38,6 +37,11 @@ function info_echo {
 echo ""
 color_echo 33 "=== Wine Tools ==="
 echo "makeWineKissable : remove all the bloat to follow the 'Keep It Simple, Stupid' arch-linux's standart."
+echo "createWineDirectory : create a wine directory git style"
+echo "wineDirectoryInfo : information of a valid wine directory (created with above function)"
+echo "wineInstallWinetricksPackage : install winetricks package"
+echo "wineRun : run using the wineprefix from the wine directory"
+echo "exportWinePrefix : export the prefix to the terminal session"
 echo ""
 
 # -- helpers
@@ -91,12 +95,153 @@ function makeWineKissable {
     info_echo "    Also, run: winecfg -> Libraries -> Type: winemenubuilder.exe -> Add Edit Disable and Apply"
 }
 
-function createWineLauncherScript {
-    # USAGE: createWineLauncherScript <name> [ <wineprefixpath> [ <winetricks_packages> ... ] ]
-    # createWineLauncherScript <name> : creates a default wine launcher script on current directory with dummies and commented-out lines to prevent accidental usage before setup. The <name> is the name of the script.
-    # createWineLauncherScript <name> <path> : creates a wine launcher script on current directory with path pointing to wineprefix (where the data will be stored).
-    # createWineLauncherScript <name> <path> [ <winetricks_packages> ... ] : creates a wine launcher script on current directory with path pointing to wineprefix and with a initial installing process using winetricks writed on this generated script. Use a .wine_setup file on wineprefix folder to indicate that the packages are already installed and to make the script skip the installation and go directly to execution.
-    return 1
+# -- Implementation: Directory-Based Wine Management
+function createWineDirectory {
+    # createWineDirectory <path>
+    # 1. Creates a folder based on <path> with a wine prefix folder inside it
+    # 2. Creates a tracking file .wineprefix_id to store the absolute wine prefix path
+    local target_dir="$1"
+    if [ -z "$target_dir" ]; then
+        crit_echo "Error: Target directory path is required."
+        info_echo "Usage: createWineDirectory <path/to/project>"
+        return 1
+    fi
+    # Resolve absolute path
+    if [[ "$target_dir" != /* ]]; then
+        target_dir="$(pwd)/$target_dir"
+    fi
+    local prefix_path="$target_dir/wine_prefix"
+    local id_file="$target_dir/.wineprefix_id"
+    local error_file="$target_dir/errors.txt"
+    if [ -d "$target_dir" ]; then
+        warn_echo "Directory '$target_dir' already exists."
+        if [ -f "$id_file" ]; then
+            crit_echo "Error: This directory is already initialized as a Wine environment."
+            return 1
+        fi
+    else
+        info_echo ">>> Creating project directory: $target_dir"
+        mkdir -p "$target_dir"
+    fi
+    info_echo ">>> Initializing Wine Prefix inside: $prefix_path"
+    # Create the actual prefix
+    #WINEPREFIX="$prefix_path" wineboot --init &> "$error_file"
+    WINEDLLOVERRIDES="winemenubuilder.exe=d" \
+        WINEPREFIX="$prefix_path" \
+        winecfg &> "$error_file"
+    if [ $? -ne 0 ]; then
+        crit_echo "Error: Failed to initialize Wine prefix."
+        return 1
+    fi
+    # Write the tracking file (stores the absolute path of the prefix)
+    echo "$prefix_path" > "$id_file"
+    info_echo ">>> Success! Wine environment linked to: $target_dir"
+    info_echo "    Run 'cd $target_dir && wineDirectoryInfo' to view status."
+}
+function wineDirectoryInfo {
+    # Shows info only if .wineprefix_id exists in CURRENT directory.
+    local id_file="./.wineprefix_id"
+    if [ ! -f "$id_file" ]; then
+        crit_echo "Error: Not a Wine-managed directory."
+        crit_echo "    File '.wineprefix_id' not found in current directory."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "$id_file")
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Prefix directory missing at '$prefix_path'!"
+        return 1
+    fi
+    info_echo "=== Wine Environment Info ==="
+    info_echo "    Prefix Path: $prefix_path"
+    local wine_ver
+    wine_ver=$(WINEPREFIX="$prefix_path" wine --version 2>/dev/null | head -n1)
+    info_echo "    Wine Version: $wine_ver"
+    echo ""
+    info_echo "    Installed Winetricks Packages:"
+    if command -v winetricks &> /dev/null; then
+        local installed_pkgs
+        installed_pkgs=$(WINEPREFIX="$prefix_path" winetricks list-installed 2>/dev/null)
+        
+        if [ -n "$installed_pkgs" ]; then
+            echo "$installed_pkgs" | while read -r line; do
+                echo "      - $line"
+            done
+        else
+            warn_echo "      (No winetricks packages installed)"
+        fi
+    else
+        warn_echo "      (Winetricks not found)"
+    fi
+}
+function wineInstallWinetricksPackage {
+    # Install winetricks package only if .wineprefix_id exists in the CURRENT directory.
+    # No Git dependency, no parent directory search.
+    if [ "$#" -eq 0 ]; then
+        crit_echo "Error: Package name required."
+        info_echo "Usage: wineInstallWinetricksPackage <package1> [package2...]"
+        return 1
+    fi
+    local packages=("$@")
+    local id_file="./.wineprefix_id"
+    # Simple check: Does the file exist right here?
+    if [ ! -f "$id_file" ]; then
+        crit_echo "Error: Not a Wine-managed directory."
+        crit_echo "    File '.wineprefix_id' not found in current directory."
+        info_echo "    Run 'createWineDirectory .' to initialize this folder."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "$id_file")
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Target prefix not found at '$prefix_path'."
+        crit_echo "    The path stored in '.wineprefix_id' does not exist."
+        return 1
+    fi
+    if ! command -v winetricks &> /dev/null; then
+        crit_echo "Error: 'winetricks' command not found."
+        return 1
+    fi
+    info_echo ">>> Installing packages in: $prefix_path"
+    info_echo "    Packages: ${packages[*]}"
+    # Execute winetricks with the specific prefix
+    WINEPREFIX="$prefix_path" winetricks "${packages[@]}"
+    if [ $? -eq 0 ]; then
+        info_echo ">>> Installation complete."
+    else
+        crit_echo ">>> Installation failed or was interrupted."
+        return 1
+    fi
+}
+function wineRun {
+    # Run a wine command in the current directory's prefix.
+    if [ ! -f "./.wineprefix_id" ]; then
+        crit_echo "Error: '.wineprefix_id' not found in current directory."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "./.wineprefix_id")
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Prefix not found at '$prefix_path'."
+        return 1
+    fi
+    echo "-- Session $(date '+%Y-%m-%d %H:%M:%S') --" >> ./errors.txt
+    WINEPREFIX="$prefix_path" wine "$@" &>> ./errors.txt
+}
+function exportWinePrefix {
+    # Run a wine command in the current directory's prefix.
+    if [ ! -f "./.wineprefix_id" ]; then
+        crit_echo "Error: '.wineprefix_id' not found in current directory."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "./.wineprefix_id")
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Prefix not found at '$prefix_path'."
+        return 1
+    fi
+    echo "Wine Prefix : $prefix_path"
+    export WINEPREFIX="$prefix_path"
 }
 
 # END 
