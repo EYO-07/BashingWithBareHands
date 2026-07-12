@@ -36,16 +36,15 @@ function info_echo {
 
 echo ""
 color_echo 33 "=== Wine Tools ==="
-echo "makeWineKissable : remove all the bloat to follow the 'Keep It Simple, Stupid' arch-linux's standart."
-echo "createWineDirectory : create a wine directory git style"
-echo "wineDirectoryInfo : information of a valid wine directory (created with above function)"
-echo "wineInstallWinetricksPackage : install winetricks package"
-echo "wineRun : run using the wineprefix from the wine directory"
+echo "createWineDirectory : creates a wine directory git style"
+echo "wineDirectoryInfo : information of a valid git style wine directory (created with above function)"
+echo "wineSessionInfo : information on current environment variables, instead of git style wine directory logic"
+echo "wineInstallWinetricksPackage : install winetricks package on wine directory"
+echo "wineRun : run using the wineprefix from the wine directory root"
+echo "... wineRun winecfg ; run the winecfg using the directory prefix"
 echo "exportWinePrefix : export the prefix to the terminal session"
+echo "makeWineKissable : remove all the bloat to follow the 'Keep It Simple, Stupid' arch-linux's standart."
 echo ""
-
-# -- helpers
-# helpers begin with underscore _name()
 
 # -- implementation
 function makeWineKissable {
@@ -94,8 +93,6 @@ function makeWineKissable {
     info_echo "    To permanently prevent this, run: winecfg -> Desktop Integration -> Uncheck 'Manage File Associations'"
     info_echo "    Also, run: winecfg -> Libraries -> Type: winemenubuilder.exe -> Add Edit Disable and Apply"
 }
-
-# -- Implementation: Directory-Based Wine Management
 function createWineDirectory {
     # createWineDirectory <path>
     # 1. Creates a folder based on <path> with a wine prefix folder inside it
@@ -138,42 +135,6 @@ function createWineDirectory {
     info_echo ">>> Success! Wine environment linked to: $target_dir"
     info_echo "    Run 'cd $target_dir && wineDirectoryInfo' to view status."
 }
-function wineDirectoryInfo {
-    # Shows info only if .wineprefix_id exists in CURRENT directory.
-    local id_file="./.wineprefix_id"
-    if [ ! -f "$id_file" ]; then
-        crit_echo "Error: Not a Wine-managed directory."
-        crit_echo "    File '.wineprefix_id' not found in current directory."
-        return 1
-    fi
-    local prefix_path
-    prefix_path=$(cat "$id_file")
-    if [ ! -d "$prefix_path" ]; then
-        crit_echo "Error: Prefix directory missing at '$prefix_path'!"
-        return 1
-    fi
-    info_echo "=== Wine Environment Info ==="
-    info_echo "    Prefix Path: $prefix_path"
-    local wine_ver
-    wine_ver=$(WINEPREFIX="$prefix_path" wine --version 2>/dev/null | head -n1)
-    info_echo "    Wine Version: $wine_ver"
-    echo ""
-    info_echo "    Installed Winetricks Packages:"
-    if command -v winetricks &> /dev/null; then
-        local installed_pkgs
-        installed_pkgs=$(WINEPREFIX="$prefix_path" winetricks list-installed 2>/dev/null)
-        
-        if [ -n "$installed_pkgs" ]; then
-            echo "$installed_pkgs" | while read -r line; do
-                echo "      - $line"
-            done
-        else
-            warn_echo "      (No winetricks packages installed)"
-        fi
-    else
-        warn_echo "      (Winetricks not found)"
-    fi
-}
 function wineInstallWinetricksPackage {
     # Install winetricks package only if .wineprefix_id exists in the CURRENT directory.
     # No Git dependency, no parent directory search.
@@ -213,6 +174,127 @@ function wineInstallWinetricksPackage {
         return 1
     fi
 }
+
+# -- implementation | info
+function _showWineEnvVariables {
+    # Helper to print specific Wine & Graphics environment variables if set
+    local vars=(
+        # Wine Renderers / Backends
+        "WINE_D3D_CONFIG" "WINE_D3D_CUSTOM_MATRIX" "WINEGYLE" 
+        # DXVK / VKD3D / Vulkan
+        "DXVK_HUD" "DXVK_LOG_LEVEL" "DXVK_CONFIG_FILE" "DXVK_FILTER_DEVICE_NAME"
+        "VKD3D_DEBUG" "VKD3D_SHADER_DEBUG" "VK_INSTANCE_LAYERS"
+        # Gamescope / Proton-related Graphics
+        "gamescope" "MESA_GL_VERSION_OVERRIDE" "__GLX_VENDOR_LIBRARY_NAME" 
+        "__NV_PRIME_RENDER_OFFLOAD" "__VK_LAYER_NV_optimus"
+        # General Wine Behavior
+        "WINEDEBUG" "WINEARCH" "WINELLDB" "WINEDLLOVERRIDES"
+    )
+    info_echo "    Relevant Environment Variables:"
+    local found_any=false
+    for var in "${vars[@]}"; do
+        if [ -n "${!var}" ]; then
+            echo "      - $var=${!var}"
+            found_any=true
+        fi
+    done
+    if [ "$found_any" = false ]; then
+        warn_echo "      (None of the tracked graphics/Wine variables are currently set)"
+    fi
+}
+function _confirmWinetricks {
+    # Helper to prompt user before running winetricks list-installed
+    local prefix_path="$1"
+    echo ""
+    # -p allows a prompt string, -n1 reads exactly 1 character
+    read -p "    List installed Winetricks packages? (y/N): " -n 1 -r
+    echo "" # Move to a new line
+    if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
+        info_echo "      (Skipped Winetricks package listing)"
+        return 0
+    fi
+    info_echo "      Fetching installed packages..."
+    if command -v winetricks &> /dev/null; then
+        local installed_pkgs
+        installed_pkgs=$(WINEPREFIX="$prefix_path" winetricks list-installed 2>/dev/null)
+        if [ -n "$installed_pkgs" ]; then
+            echo "$installed_pkgs" | while read -r line; do
+                [[ -z "$line" ]] && continue
+                echo "      - $line"
+            done
+        else
+            warn_echo "      (No winetricks packages installed)"
+        fi
+    else
+        warn_echo "      (Winetricks command not found in PATH)"
+    fi
+}
+function wineDirectoryInfo {
+    # Shows info only if .wineprefix_id exists in CURRENT directory.
+    local id_file="./.wineprefix_id"
+    if [ ! -f "$id_file" ]; then
+        crit_echo "Error: Not a Wine-managed directory."
+        crit_echo "    File '.wineprefix_id' not found in current directory."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "$id_file")
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Prefix directory missing at '$prefix_path'!"
+        return 1
+    fi
+    info_echo "=== Wine Environment Info ==="
+    echo "    Prefix Path: $prefix_path"
+    local wine_ver
+    wine_ver=$(WINEPREFIX="$prefix_path" wine --version 2>/dev/null | head -n1)
+    echo "    Wine Version: $wine_ver"
+    # Show active graphics & Wine variables
+    _showWineEnvVariables
+    # Prompt for Winetricks
+    _confirmWinetricks "$prefix_path"
+}
+function wineSessionInfo {
+    # Checks active Wine session variables and environment status.
+    local prefix_path
+    local is_default=false
+    if [ -n "$WINEPREFIX" ]; then
+        prefix_path="$WINEPREFIX"
+    else
+        prefix_path="$HOME/.wine"
+        is_default=true
+    fi
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Active Wine prefix directory missing at '$prefix_path'!"
+        if [ "$is_default" = true ]; then
+            warn_echo "    (WINEPREFIX variable is not set; using default location)"
+        else
+            echo "    (WINEPREFIX is set to: $WINEPREFIX)"
+        fi
+        return 1
+    fi
+    info_echo "=== Active Wine Session Info ==="
+    if [ "$is_default" = true ]; then
+        echo "    Source: Default (WINEPREFIX variable not set)"
+    else
+        echo "    Source: Environment Variable (WINEPREFIX)"
+        echo "    Variable Value: $WINEPREFIX"
+    fi    
+    echo "    Resolved Prefix Path: $prefix_path"
+    local wine_ver
+    wine_ver=$(WINEPREFIX="$prefix_path" wine --version 2>/dev/null | head -n1)
+    if [ -n "$wine_ver" ]; then
+        echo "    Wine Version: $wine_ver"
+    else
+        warn_echo "    Wine Version: (Unable to detect - Wine binary missing or not executable)"
+    fi
+    # Show active graphics & Wine variables
+    _showWineEnvVariables   
+    # Prompt for Winetricks
+    _confirmWinetricks "$prefix_path"
+    return 0
+}
+
+# -- implementation | run
 function wineRun {
     # Run a wine command in the current directory's prefix.
     if [ ! -f "./.wineprefix_id" ]; then
@@ -242,6 +324,9 @@ function exportWinePrefix {
     fi
     echo "Wine Prefix : $prefix_path"
     export WINEPREFIX="$prefix_path"
+}
+function createWineScript {
+    return 1
 }
 
 # END 

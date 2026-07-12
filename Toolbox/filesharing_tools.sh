@@ -41,6 +41,8 @@ echo "leftload <remoteusername> <remotehostname> <remotepath> [ <localpath> ] : 
 echo " 1. leftload <remoteusername> <remotehostname> <remotepath> : Lists remote files (Dry Run / Preview)"
 echo " 2. leftload <remoteusername> <remotehostname> <remotepath> . : Starts the download to current directory"
 echo " 3. leftload <remoteusername> <remotehostname> <remotepath> /some/path : Starts the download to specific path"
+echo "activateFileSharingServices : ... "
+echo "    deactivateFileSharingServices : ..."
 echo ""
 
 # -- implementation 
@@ -254,5 +256,61 @@ function leftload {
     fi
     return $exit_code
 }   
+function activateFileSharingServices {
+    warn_echo "--- filesharing services ---"
+    color_echo 36 "... note those units are not exclusive for filesharing"
+    systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"
+    # -- Generate Random Token (6 characters, alphanumeric)
+    local confirm_token user_input
+    confirm_token=$(tr -dc 'A-Z0-9' < /dev/urandom | head -c 6)
+    # -- Prompt User
+    color_echo 35 "To confirm activation of filesharing units : avahi-daemon, sshd"
+    color_echo 32 ">>> $confirm_token <<<"
+    read -p "Enter token: " user_input
+    if [ "$user_input" == "$confirm_token" ]; then
+        color_echo 35 "Token matched ..."
+        sudo systemctl enable --now avahi-daemon.service 
+        sudo systemctl enable --now sshd.service 
+        if [ $? -eq 0 ]; then
+            color_echo 32 "=== Activation Successful ==="
+            echo "... could be necessary to reboot the system"
+            return 0
+        else
+            crit_echo "=== Activation Failed (Permission error?) ==="
+            return 1
+        fi
+    else
+        crit_echo "=== Cancelled: Token mismatch ==="
+        return 1
+    fi    
+}
+function deactivateFileSharingServices {
+    warn_echo "--- filesharing services ---"
+    color_echo 36 "... note those units are not exclusive for filesharing"
+    systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"
+    # -- Generate Random Token (6 characters, alphanumeric)
+    local confirm_token user_input
+    confirm_token=$(tr -dc 'A-Z0-9' < /dev/urandom | head -c 6)
+    # -- Prompt User
+    color_echo 35 "To confirm deactivation of filesharing units : avahi-daemon, sshd"
+    color_echo 32 ">>> $confirm_token <<<"
+    read -p "Enter token: " user_input
+    if [ "$user_input" == "$confirm_token" ]; then
+        color_echo 35 "Token matched ..."
+        sudo systemctl disable --now avahi-daemon.service 
+        sudo systemctl disable --now sshd.service 
+        if [ $? -eq 0 ]; then
+            color_echo 32 "=== Deactivation Successful ==="
+            echo "... could be necessary to reboot the system"
+            return 0
+        else
+            crit_echo "=== Deactivation Failed (Permission error?) ==="
+            return 1
+        fi
+    else
+        crit_echo "=== Cancelled: Token mismatch ==="
+        return 1
+    fi    
+}
 
 # END   
