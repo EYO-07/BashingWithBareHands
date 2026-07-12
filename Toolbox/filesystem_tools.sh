@@ -22,6 +22,7 @@ echo ""
 color_echo 33 "=== Filesystem Tools ==="
 echo "create_file : create a file"
 echo "create_folder : creates a folder"
+echo "deleteFile <path> : safely deletes a file after confirming with a random token."
 echo "deleteFolder <path> : recursively deletes a folder after confirming with a random token."
 echo "createFileFromTemplate : create a template file from ~/Template folder "
 echo "getHashInfo : sha256 and other useful hashs for a file"
@@ -270,5 +271,54 @@ function deleteFolder {
         return 1
     fi
 }
+function deleteFile { 
+    # USAGE: deleteFile <path>
+    # Deletes a single file after confirming with a random token.
+    local target_path="${1:-}"
+    # 1. Validate Input
+    if [ -z "$target_path" ]; then
+        crit_echo "Error: No path provided."
+        echo "Usage: deleteFile <path>"
+        return 1
+    fi
+    # 2. Check Existence (Ensure it is a file, not a directory)
+    if [ ! -f "$target_path" ]; then
+        if [ -d "$target_path" ]; then
+            crit_echo "Error: '$target_path' is a directory. Use deleteFolder instead."
+        else
+            crit_echo "Error: File '$target_path' does not exist."
+        fi
+        return 1
+    fi
+    # 3. Gather Information (Size)
+    local file_size
+    file_size=$(du -h "$target_path" 2>/dev/null | cut -f1)
+    color_echo 33 "--- Deletion Preview ---"
+    color_echo 36 "Target: $target_path"
+    color_echo 36 "Size: $file_size"
+    color_echo 31 "WARNING: This action is irreversible!"
+    # 4. Generate Random Token (6 characters, alphanumeric)
+    local confirm_token
+    confirm_token=$(tr -dc 'A-Z0-9' < /dev/urandom | head -c 6)
+    # 5. Prompt User
+    color_echo 35 "To confirm deletion, type the following token exactly:"
+    color_echo 32 ">>> $confirm_token <<<"
+    read -p "Enter token: " user_input
+    # 6. Verify and Execute
+    if [ "$user_input" == "$confirm_token" ]; then
+        color_echo 35 "Token matched. Deleting..."
+        rm -f "$target_path"
+        if [ $? -eq 0 ]; then
+            color_echo 32 "=== Deletion Successful ==="
+            return 0
+        else
+            crit_echo "=== Deletion Failed (Permission error?) ==="
+            return 1
+        fi
+    else
+        crit_echo "=== Deletion Cancelled: Token mismatch ==="
+        return 1
+    fi
+}   
 
 # END
