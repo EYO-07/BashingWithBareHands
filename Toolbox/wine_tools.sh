@@ -386,13 +386,27 @@ function wineDesktop {
 
 # -- implementation | environment settings
 function exportWineNvidiaSetup {
-    # 1. Direct 3D apps to offload rendering to the NVIDIA GPU
-    echo "... Direct 3D apps to offload rendering to the NVIDIA GPU"
+    info_echo "... Enabling NVIDIA PRIME Render Offload"
+    # 1. Direct OpenGL applications to render on the NVIDIA GPU.
     export __NV_PRIME_RENDER_OFFLOAD=1
-    # 2. Force GLX to use the NVIDIA driver instead of Mesa/AMD
-    echo "... Force GLX to use the NVIDIA driver instead of Mesa/AMD"
+    # 2. Force GLX to use the NVIDIA vendor library.
     export __GLX_VENDOR_LIBRARY_NAME=nvidia
-    warn_echo "Exported NVIDIA Prime Environment Variable Settings"
+    # 3. Prefer the NVIDIA GPU for Vulkan applications.
+    export __VK_LAYER_NV_optimus=NVIDIA_only
+    # 4. Force Vulkan to use the NVIDIA ICD (optional).
+    # Uncomment if multiple Vulkan ICDs cause problems.
+    # export VK_ICD_FILENAMES="/usr/share/vulkan/icd.d/nvidia_icd.json"
+    # 5. Prefer NVIDIA EGL implementation (usually not needed).
+    # Uncomment only if you have EGL issues.
+    # export __EGL_VENDOR_LIBRARY_FILENAMES="/usr/share/glvnd/egl_vendor.d/10_nvidia.json"
+    # 6. Enable NVIDIA shader disk cache.
+    #export __GL_SHADER_DISK_CACHE=1
+    #export __GL_SHADER_DISK_CACHE_PATH="${HOME}/.nv_shader_cache"
+    # 7. DXVK HUD (optional, useful for verifying GPU usage).
+    # export DXVK_HUD="devinfo,fps"
+    # 8. VKD3D debug output (optional).
+    # export VKD3D_DEBUG=none
+    warn_echo "Exported NVIDIA PRIME environment variables."
     return 0
 }
 
