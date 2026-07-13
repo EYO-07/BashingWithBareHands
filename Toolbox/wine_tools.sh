@@ -40,7 +40,9 @@ info_echo "                               -> Example: wineRun winecfg  OR  wineR
 echo "wineDesktop                  : Explore the wineprefix via an emulated desktop window"
 echo "exportWinePrefix             : Export this local prefix to your active terminal session"
 echo "makeWineKissable             : De-bloat Wine's forced Linux desktop & MIME integrations"
-echo "exportWineNvidiaSetup        : Bind NVIDIA GPU stubs"
+echo "exportWineNvidiaSetup        : Bind NVIDIA GPU stubs (terminal session only)"
+# echo "saveWineDirectory            : Creates a .wine_environment file saving environment variables"
+# info_echo "                               -> delete .wine_environment to reset"
 echo ""
 
 # -- implementation
@@ -409,5 +411,31 @@ function exportWineNvidiaSetup {
     warn_echo "Exported NVIDIA PRIME environment variables."
     return 0
 }
+
+function _load_wine_directory_env {
+    return 1
+}
+
+function saveWineDirectory {
+    return 1
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # END 
