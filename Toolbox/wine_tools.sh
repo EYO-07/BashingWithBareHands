@@ -24,30 +24,23 @@ function color_echo {
         done
     fi
 }
-function warn_echo {
-    color_echo 33 "$@"
-}
-function crit_echo {
-    color_echo 31 "$@"
-}
-function info_echo {
-    color_echo 36 "$@" 
-}
+function warn_echo { color_echo 33 "$@"; }
+function crit_echo { color_echo 31 "$@"; }
+function info_echo { color_echo 36 "$@"; }
 
 echo ""
 color_echo 33 "=== Wine Tools ==="
-echo "createWineDirectory : creates a wine directory git style"
-info_echo "... after creation use cd to go inside the directory, these functions works only if they can find '.wineprefix_id' file."
-info_echo "... use wineRun or exportWinePrefix to use the prefix of this directory."
-info_echo "... use wineDesktop to explore the wine directory with desktop emulator."
-echo "wineDirectoryInfo : information of a valid git style wine directory (created with above function)"
-echo "wineSessionInfo : information on current environment variables, instead of git style wine directory logic"
-echo "wineInstallWinetricksPackage : install winetricks package on wine directory"
-echo "wineRun : run using the wineprefix from the wine directory root"
-echo "... wineRun winecfg ; run the winecfg using the directory prefix"
-echo "wineDesktop : explore the wineprefix with windows explorer desktop emulator"
-echo "exportWinePrefix : export the prefix to the terminal session"
-echo "makeWineKissable : remove all the bloat to follow the 'Keep It Simple, Stupid' arch-linux's standart."
+echo "createWineDirectory          : Creates a isolated Wine directory (Git-like layout)"
+info_echo "                               -> Use 'cd' into it; functions look for local '.wineprefix_id'."
+echo "wineDirectoryInfo            : Information on the current local Wine environment"
+echo "wineSessionInfo              : Current global terminal environment variables"
+echo "wineInstallWinetricksPackage : Install winetricks packages locally"
+echo "wineDirectoryRun             : Run commands using the local directory's prefix (works on subdirectories)"
+info_echo "                               -> Example: wineRun winecfg  OR  wineRun application.exe"
+echo "wineDesktop                  : Explore the wineprefix via an emulated desktop window"
+echo "exportWinePrefix             : Export this local prefix to your active terminal session"
+echo "makeWineKissable             : De-bloat Wine's forced Linux desktop & MIME integrations"
+echo "exportWineNvidiaSetup        : Bind NVIDIA GPU stubs"
 echo ""
 
 # -- implementation
@@ -299,20 +292,43 @@ function wineSessionInfo {
 }
 
 # -- implementation | run
-function wineRun {
-    # Run a wine command in the current directory's prefix.
-    if [ ! -f "./.wineprefix_id" ]; then
-        crit_echo "Error: '.wineprefix_id' not found in current directory."
+function wineDirectoryRun {
+    local current_dir="$PWD"
+    local id_file=""
+    local project_root=""
+    # Traverse upwards to find the .wineprefix_id file
+    while [ "$current_dir" != "/" ]; do
+        if [ -f "$current_dir/.wineprefix_id" ]; then
+            id_file="$current_dir/.wineprefix_id"
+            project_root="$current_dir"
+            break
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    # Fail out if we couldn't find the anchor file anywhere up the tree
+    if [ -z "$id_file" ]; then
+        crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
         return 1
     fi
     local prefix_path
-    prefix_path=$(cat "./.wineprefix_id")
+    prefix_path=$(cat "$id_file")
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Prefix not found at '$prefix_path'."
         return 1
     fi
-    echo "-- Session $(date '+%Y-%m-%d %H:%M:%S') --" >> ./errors.txt
-    WINEPREFIX="$prefix_path" wine "$@" &>> ./errors.txt
+    # Log errors to the project root directory instead of the active subdirectory
+    local log_file="$project_root/errors.txt"
+    echo "" >> "$log_file"
+    echo "======================================================================" >> "$log_file"
+    echo "Session $(date '+%Y-%m-%d %H:%M:%S') " >> "$log_file"
+    echo "" >> "$log_file"
+    # Smart wrapper: Handles direct command passing (winecfg) or wrapper fallbacks
+    _showWineEnvVariables
+    if [[ "$1" == wine* || "$1" == winetricks ]]; then
+        WINEPREFIX="$prefix_path" "$@" &>> "$log_file"
+    else
+        WINEPREFIX="$prefix_path" wine "$@" &>> "$log_file"
+    fi
 }
 function exportWinePrefix {
     # Run a wine command in the current directory's prefix.
@@ -362,9 +378,22 @@ function wineDesktop {
     echo "======================================================================" >> ./errors.txt
     echo "Session [ $name $resolution ] $(date '+%Y-%m-%d %H:%M:%S') " >> ./errors.txt
     echo "" >> ./errors.txt
+    _showWineEnvVariables
     WINEPREFIX="$prefix_path" wine explorer "/desktop=${name},${resolution}" explorer &>> ./errors.txt &
     # Optional: Disown the process so it survives if the script exits immediately
     disown
+}
+
+# -- implementation | environment settings
+function exportWineNvidiaSetup {
+    # 1. Direct 3D apps to offload rendering to the NVIDIA GPU
+    echo "... Direct 3D apps to offload rendering to the NVIDIA GPU"
+    export __NV_PRIME_RENDER_OFFLOAD=1
+    # 2. Force GLX to use the NVIDIA driver instead of Mesa/AMD
+    echo "... Force GLX to use the NVIDIA driver instead of Mesa/AMD"
+    export __GLX_VENDOR_LIBRARY_NAME=nvidia
+    warn_echo "Exported NVIDIA Prime Environment Variable Settings"
+    return 0
 }
 
 # END 
