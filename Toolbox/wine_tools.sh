@@ -37,11 +37,15 @@ function info_echo {
 echo ""
 color_echo 33 "=== Wine Tools ==="
 echo "createWineDirectory : creates a wine directory git style"
+info_echo "... after creation use cd to go inside the directory, these functions works only if they can find '.wineprefix_id' file."
+info_echo "... use wineRun or exportWinePrefix to use the prefix of this directory."
+info_echo "... use wineDesktop to explore the wine directory with desktop emulator."
 echo "wineDirectoryInfo : information of a valid git style wine directory (created with above function)"
 echo "wineSessionInfo : information on current environment variables, instead of git style wine directory logic"
 echo "wineInstallWinetricksPackage : install winetricks package on wine directory"
 echo "wineRun : run using the wineprefix from the wine directory root"
 echo "... wineRun winecfg ; run the winecfg using the directory prefix"
+echo "wineDesktop : explore the wineprefix with windows explorer desktop emulator"
 echo "exportWinePrefix : export the prefix to the terminal session"
 echo "makeWineKissable : remove all the bloat to follow the 'Keep It Simple, Stupid' arch-linux's standart."
 echo ""
@@ -325,8 +329,42 @@ function exportWinePrefix {
     echo "Wine Prefix : $prefix_path"
     export WINEPREFIX="$prefix_path"
 }
-function createWineScript {
-    return 1
+function wineDesktop {
+    # Open just the Wine desktop environment (Explorer) in a virtual window.
+    # USAGE: wineDesktop <resolution> <name>
+    # Example: wineDesktop 1280x720 mysession
+    # 1. Validate arguments
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        crit_echo "Error: Missing arguments."
+        echo "Usage: wineDesktop <resolution> <name>"
+        echo "Example: wineDesktop 1280x720 mysession"
+        echo "... 1600x900 1366x768 1280x720 800x600"
+        return 1
+    fi
+    local resolution="$1"
+    local name="$2"
+    # 2. Validate Prefix ID file
+    if [ ! -f "./.wineprefix_id" ]; then
+        crit_echo "Error: '.wineprefix_id' not found in current directory."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "./.wineprefix_id")
+    # 3. Validate Prefix Directory
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Prefix not found at '$prefix_path'."
+        return 1
+    fi
+    # 4. Launch Wine Explorer
+    # Syntax: wine explorer /desktop=<name>,<resolution> explorer
+    # We use 'explorer' as the command to launch the shell (taskbar/start menu)
+    echo "" >> ./errors.txt
+    echo "======================================================================" >> ./errors.txt
+    echo "Session [ $name $resolution ] $(date '+%Y-%m-%d %H:%M:%S') " >> ./errors.txt
+    echo "" >> ./errors.txt
+    WINEPREFIX="$prefix_path" wine explorer "/desktop=${name},${resolution}" explorer &>> ./errors.txt &
+    # Optional: Disown the process so it survives if the script exits immediately
+    disown
 }
 
 # END 
