@@ -239,17 +239,27 @@ function _confirmWinetricks {
     fi
 }
 function wineDirectoryInfo {
-    # Shows info only if .wineprefix_id exists in CURRENT directory.
-    local id_file="./.wineprefix_id"
-    if [ ! -f "$id_file" ]; then
-        crit_echo "Error: Not a Wine-managed directory."
-        crit_echo "    File '.wineprefix_id' not found in current directory."
+    local current_dir="$PWD"
+    local id_file=""
+    local project_root=""
+    # Traverse upwards to find the .wineprefix_id file
+    while [ "$current_dir" != "/" ]; do
+        if [ -f "$current_dir/.wineprefix_id" ]; then
+            id_file="$current_dir/.wineprefix_id"
+            project_root="$current_dir"
+            break
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    # Fail out if we couldn't find the anchor file anywhere up the tree
+    if [ -z "$id_file" ]; then
+        crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
         return 1
     fi
     local prefix_path
     prefix_path=$(cat "$id_file")
     if [ ! -d "$prefix_path" ]; then
-        crit_echo "Error: Prefix directory missing at '$prefix_path'!"
+        crit_echo "Error: Prefix not found at '$prefix_path'."
         return 1
     fi
     info_echo "=== Wine Environment Info ==="
