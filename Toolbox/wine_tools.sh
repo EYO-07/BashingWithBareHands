@@ -30,20 +30,30 @@ function info_echo { color_echo 36 "$@"; }
 
 echo ""
 color_echo 33 "=== Wine Tools ==="
-echo "createWineDirectory          : Creates a isolated Wine directory (Git-like layout)"
-info_echo "                               -> Use 'cd' into it; functions look for local '.wineprefix_id'."
-echo "wineDirectoryInfo            : Information on the current local Wine environment"
-echo "wineSessionInfo              : Current global terminal environment variables"
-echo "wineInstallWinetricksPackage : Install winetricks packages locally"
-echo "wineDirectoryRun             : Run commands using the local directory's prefix (works on subdirectories)"
+info_echo "... wine prefix is the path for a wine's window directory"
+info_echo "... installing using a custom wine prefix is installing in a custom directory"
+info_echo "... you can manage different setups for wine just changing wine prefixes"
+info_echo "... these tools uses the file .wineprefix_id to identify the prefix"
+echo "createWineDirectory          : Creates a isolated Wine Prefix Directory (Git-like layout)"
+info_echo "                               -> Use 'cd' into it; functions look for local '.wineprefix_id'"
+echo "wineDirectoryInfo            : Information on the current local Wine environment based on .wineprefix_id"
+echo "wineSessionInfo              : Current global terminal environment variables."
+info_echo "                               -> If you export wine variables it will show the current settings."
+echo "wineInstallWinetricksPackage : Install winetricks packages locally on wine directory"
+echo "wineDirectoryRun             : Run commands using the local directory's prefix .wineprefix_id (works on subdirectories)"
 info_echo "                               -> Example: wineRun winecfg  OR  wineRun application.exe"
-echo "wineDesktop                  : Explore the wineprefix via an emulated desktop window"
+info_echo "                               -> you can go inside the wine_prefix subdirectories to run apps"
+echo "wineDesktop                  : Explore the wineprefix directory via an emulated desktop window"
 echo "exportWinePrefix             : Export this local prefix to your active terminal session"
+info_echo "                               -> check with wineSessionInfo"
 echo "makeWineKissable             : De-bloat Wine's forced Linux desktop & MIME integrations"
 echo "exportWineNvidiaSetup        : Bind NVIDIA GPU stubs (terminal session only)"
 # echo "saveWineDirectory            : Creates a .wine_environment file saving environment variables"
 # info_echo "                               -> delete .wine_environment to reset"
+echo "gotoWineDirectoryRoot        : goto current wine directory root"
+echo "gotoWineDirectoryC           : goto C:/"
 echo ""
+
 
 # -- implementation
 function makeWineKissable {
@@ -325,12 +335,18 @@ function wineDirectoryRun {
     echo "Session $(date '+%Y-%m-%d %H:%M:%S') " >> "$log_file"
     echo "" >> "$log_file"
     # Smart wrapper: Handles direct command passing (winecfg) or wrapper fallbacks
+    info_echo "=== Wine Environment Info ==="
+    echo "    Prefix Path: $prefix_path"
+    local wine_ver
+    wine_ver=$(WINEPREFIX="$prefix_path" wine --version 2>/dev/null | head -n1)
+    echo "    Wine Version: $wine_ver"
     _showWineEnvVariables
     if [[ "$1" == wine* || "$1" == winetricks ]]; then
-        WINEPREFIX="$prefix_path" "$@" &>> "$log_file"
+        WINEPREFIX="$prefix_path" "$@" &>> "$log_file" &
     else
-        WINEPREFIX="$prefix_path" wine "$@" &>> "$log_file"
+        WINEPREFIX="$prefix_path" wine "$@" &>> "$log_file" &
     fi
+    disown
 }
 function exportWinePrefix {
     # Run a wine command in the current directory's prefix.
@@ -384,6 +400,61 @@ function wineDesktop {
     WINEPREFIX="$prefix_path" wine explorer "/desktop=${name},${resolution}" explorer &>> ./errors.txt &
     # Optional: Disown the process so it survives if the script exits immediately
     disown
+}
+function gotoWineDirectoryRoot {
+    # go to current prefix wine directory 
+    local current_dir="$PWD"
+    local id_file=""
+    local project_root=""
+    # Traverse upwards to find the .wineprefix_id file
+    while [ "$current_dir" != "/" ]; do
+        if [ -f "$current_dir/.wineprefix_id" ]; then
+            id_file="$current_dir/.wineprefix_id"
+            project_root="$current_dir"
+            break
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    # Fail out if we couldn't find the anchor file anywhere up the tree
+    if [ -z "$id_file" ]; then
+        crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "$id_file")
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Prefix not found at '$prefix_path'."
+        return 1
+    fi
+    cd "$project_root"
+    return 0
+}
+function gotoWineDirectoryC {
+    # go to current prefix wine directory 
+    local current_dir="$PWD"
+    local id_file=""
+    local project_root=""
+    # Traverse upwards to find the .wineprefix_id file
+    while [ "$current_dir" != "/" ]; do
+        if [ -f "$current_dir/.wineprefix_id" ]; then
+            id_file="$current_dir/.wineprefix_id"
+            project_root="$current_dir"
+            break
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    # Fail out if we couldn't find the anchor file anywhere up the tree
+    if [ -z "$id_file" ]; then
+        crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "$id_file")
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Prefix not found at '$prefix_path'."
+        return 1
+    fi
+    cd "$project_root/wine_prefix/drive_c"
 }
 
 # -- implementation | environment settings
