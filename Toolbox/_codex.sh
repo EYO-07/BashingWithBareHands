@@ -1,6 +1,7 @@
 # BEGIN : Toolbox/_codex.sh
 # ... this file is the framework for bashing with bare hands.
-
+# ... those functions are intended to be called inside functions.
+# ... source the script inside the function scope to prevent namespace pollution.
 # ... why is called _codex ?
 # Spellcrafting Paradigm : Concept Mapping 
 # 1. Spellcasting : Spell is a function and casting is the use of the appropriate syntax.
@@ -14,9 +15,6 @@
 # 9. Golem Craft : is the programming itself, the main objective of a wizard is the golem creation, the golem is the program which is designed to do some hard work. 
 # 10. Divination : Oracle consulting.
 # 11. Library : Official Documentation, Search Engines.
-
-# Tips:
-# 1. Source the script inside the function scope to prevent namespace pollution
 
 # -- color echos
 function color_echo {
@@ -155,24 +153,140 @@ function token_prompt {
         return 1
     fi
 }
+function yn_prompt {
+    local title="$1"
+    shift
+    local description="$@"
+    if [ ! -t 0 ]; then
+        crit_echo "Error: Cannot prompt in non-interactive mode."
+        return 1
+    fi
+    warn_echo "${title:-Confirmation}: $description"
+    read -p "[y/N] > " user_input
+    case "$user_input" in
+        [yY]|[yY][eE][sS]) return 0 ;;
+        *) return 1 ;;
+    esac
+}
 
 # -- git-like directories
-# ... todo
+function get_tracking_file {
+    # Only locate and return the path to the tracking file.
+    # Usage: get_tracking_file <filename>
+    # example : 
+    # tracking_file=$(get_tracking_file ".myconfig") || exit 1
+    # source "$tracking_file"
+    # Output: echoes the full path to the file on success; returns 1 on failure.
+    if [ $# -eq 0 ]; then 
+        echo "USAGE: get_tracking_file <filename>" >&2
+        return 1
+    fi
+    local current_dir="$PWD"
+    local id_filename="$1"
+    while [ "$current_dir" != "/" ]; do
+        if [ -f "$current_dir/$id_filename" ]; then
+            echo "$current_dir/$id_filename"
+            return 0
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    crit_echo "Error: '$id_filename' not found in this directory or any parent directories." >&2
+    return 1
+}
+function save_to_tracking_file {
+    # Save specific variables to the tracking file so they persist across sessions.
+    # Usage: save_to_tracking_file <filename> <var1> [var2] [var3] ...
+    # Example: save_to_tracking_file ".myconfig" DB_HOST API_KEY DEBUG_MODE
+    if [ $# -lt 2 ]; then 
+        crit_echo "USAGE: save_to_tracking_file <filename> <var1> [var2] ..."
+        return 1
+    fi
+    local id_filename="$1"
+    shift # Remove filename from arguments, leaving only variable names
+    local vars_to_save=("$@")
+    # 1. Locate existing file OR determine path for new file
+    local target_file
+    target_file=$(get_tracking_file "$id_filename")
+    if [ -z "$target_file" ]; then
+        # File doesn't exist yet; create it in the current directory
+        target_file="$PWD/$id_filename"
+        # Add at file creation
+        touch "$target_file" || {
+            crit_echo "Error: Cannot create tracking file '$target_file'."
+            return 1
+        }
+        chmod 600 "$target_file"
+        # Warn users
+        warn_echo "Security: '$target_file' will be executed when sourced."
+        warn_echo "         Permissions set to 600 (owner-only)."
+        info_echo "Created new tracking file: $target_file"
+    fi
+    # 2. Append variables to the file
+    # We use a temporary buffer to ensure we don't partially write on error
+    local content_to_append=""
+    for var_name in "${vars_to_save[@]}"; do
+        # Check if variable is set
+        if [ -z "${!var_name+x}" ]; then
+            crit_echo "Warning: Variable '$var_name' is unset. Skipping."
+            continue
+        fi
+        # Validate variable names
+        if [[ ! "$var_name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+            crit_echo "Error: Invalid variable name '$var_name'."
+            continue
+        fi
+        # Safely extract the value using declare -p and parse it.
+        # declare -p VAR outputs: declare -- VAR="value" (or declare -x if already exported)
+        # We use eval to safely capture the value even if it contains spaces/quotes.
+        local var_def
+        var_def=$(declare -p "$var_name" 2>/dev/null) || {
+            crit_echo "Error: Could not inspect variable '$var_name'."
+            return 1
+        }
+        # Extract the value part. This regex handles the 'declare -- VAR="..."' format.
+        # It strips the 'declare ... VAR=' prefix and keeps the quoted value.
+        local value_expr
+        value_expr="${var_def#*=}"
+        # Construct the export line: export VAR_NAME=<value>
+        # Since 'value_expr' is already quoted by declare -p, we can append it directly.
+        content_to_append+="export ${var_name}=${value_expr}"$'\n'
+    done
+    # Write to file only if we have content
+    if [ -n "$content_to_append" ]; then
+        # 1. Create a secure temporary file in the SAME directory (ensures same filesystem for mv)
+        local temp_file
+        temp_file=$(mktemp "${target_file}.XXXXXX") || {
+            crit_echo "Error: Cannot create temporary file."
+            return 1
+        }
+        # 2. Set permissions on temp file immediately
+        chmod 600 "$temp_file"
+        # 3. Write content to temp file
+        {
+            echo "# Updated by save_to_tracking_file on $(date)"
+            echo "$content_to_append"
+        } > "$temp_file" || {
+            rm -f "$temp_file"
+            crit_echo "Error: Failed to write to temporary file."
+            return 1
+        }
+        # 4. Atomically move temp file to target (prevents partial writes)
+        mv "$temp_file" "$target_file" || {
+            rm -f "$temp_file"
+            crit_echo "Error: Failed to update tracking file."
+            return 1
+        }
+        info_echo "Successfully saved variables to $target_file"
+        return 0
+    else
+        crit_echo "No valid variables were saved."
+        return 1
+    fi   
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function parse_variable_from_tracking_file {
+    return 1 # todo
+}
 
 # END 
+# ... should I refactor the project with this?
