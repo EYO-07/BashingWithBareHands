@@ -16,6 +16,21 @@
 # 10. Divination : Oracle consulting.
 # 11. Library : Official Documentation, Search Engines.
 
+# >> how to import
+# ... as global variable
+# _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ... inside a function 
+# source "$_SCRIPT_DIR/_codex.sh"
+# ... as the last command of this function 
+# _codex_unset
+function _codex_unset {
+    unset -f color_echo warn_echo crit_echo info_echo
+    unset -f toolbox_title toolbox_item toolbox_endl 
+    unset -f inventory_title inventory_item inventory_endl 
+    unset -f token_prompt yn_prompt
+    unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
+}
+
 # -- color echos
 function color_echo {
     if [ $# -eq 0 ]; then 
@@ -87,29 +102,30 @@ function toolbox_item {
     echo       "$title $separator $description"
 }
 function toolbox_endl { echo ""; }  
+
 # --
-function inventory_example {
-    inventory_title 'journalctl { errors }'
-    inventory_item 'journalctl -u' 'investigate journal entries by unit name'
-    inventory_item 'journalctl -b' 'investigate journal entries from specific boot time'
-    inventory_endl
-}
-function toolbox_example {
-    toolbox_title "Filesystem Tools"
-    toolbox_item "create_file" "create a file"
-    toolbox_item "create_folder" "creates a folder"
-    toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token."
-    toolbox_item "deleteFolder <path>" "recursively deletes a folder after confirming with a random token."
-    toolbox_item "createFileFromTemplate" "create a template file from ~/Template folder"
-    toolbox_item "getHashInfo" "sha256 and other useful hashs for a file"
-    toolbox_item "getSize" "estimate or get metadata of filesize of folder or file"
-    toolbox_item "showMetadata" "show metadata info for file or folder"
-    toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp"
-    toolbox_item "restoreBackup <archive_file.7z> [output_directory]" '...'
-    toolbox_item "restoreBackup <archive_file.7z>" '... current directory'
-    toolbox_item "viewBackupContents" "view the contents of a compressed archive"
-    toolbox_endl
-}
+#function inventory_example {
+    #inventory_title 'journalctl { errors }'
+    #inventory_item 'journalctl -u' 'investigate journal entries by unit name'
+    #inventory_item 'journalctl -b' 'investigate journal entries from specific boot time'
+    #inventory_endl
+#}
+#function toolbox_example {
+    #toolbox_title "Filesystem Tools"
+    #toolbox_item "create_file" "create a file"
+    #toolbox_item "create_folder" "creates a folder"
+    #toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token."
+    #toolbox_item "deleteFolder <path>" "recursively deletes a folder after confirming with a random token."
+    #toolbox_item "createFileFromTemplate" "create a template file from ~/Template folder"
+    #toolbox_item "getHashInfo" "sha256 and other useful hashs for a file"
+    #toolbox_item "getSize" "estimate or get metadata of filesize of folder or file"
+    #toolbox_item "showMetadata" "show metadata info for file or folder"
+    #toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp"
+    #toolbox_item "restoreBackup <archive_file.7z> [output_directory]" '...'
+    #toolbox_item "restoreBackup <archive_file.7z>" '... current directory'
+    #toolbox_item "viewBackupContents" "view the contents of a compressed archive"
+    #toolbox_endl
+#}
 
 # -- prompt dialogs 
 function token_prompt {
@@ -283,10 +299,8 @@ function save_to_tracking_file {
         return 1
     fi   
 }
-
 function parse_variable_from_tracking_file {
     return 1 # todo
 }
 
 # END 
-# ... should I refactor the project with this?
