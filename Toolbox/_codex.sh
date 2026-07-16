@@ -81,17 +81,20 @@ function inventory_title {
 }
 function inventory_item {
     local title description separator indicator
-    if [ $# -eq 3 ]; then 
+    if [ $# -gt 2 ]; then 
         indicator="$(warn_echo $1'.')"
         shift
     else 
         indicator="$(warn_echo '->')"        
     fi  
+    local width=1
+    if [ $# -eq 3 ]; then 
+        width=$((5*$3))
+    fi
     title="$1"
     separator="$(warn_echo ':')"
-    shift
-    description="$@"
-    echo       "$indicator $title $separator $description"
+    description="$2"
+    printf "%s %-${width}s %s %s\n" "$indicator" "$title" "$separator" "$description"
 }
 function inventory_endl { echo ""; }  
 function toolbox_title {
@@ -99,12 +102,14 @@ function toolbox_title {
     warn_echo "=== $@ ==="
 }
 function toolbox_item {
-    local title description separator
-    title="$1"
-    separator="$(warn_echo ':')"
-    shift
-    description="$@"
-    echo       "$title $separator $description"
+    local title="$1"
+    local description="$2"
+    local width=1
+    if [ $# -eq 3 ]; then 
+        width=$((5*$3))
+    fi
+    local separator="$(warn_echo ':')"
+    printf "%-${width}s %s %s\n" "$title" "$separator" "$description"
 }
 function toolbox_endl { echo ""; }  
 # -- prompt dialogs 

@@ -6,23 +6,25 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # -- description 
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
+    local width=4
     toolbox_title "X11/XOrg Tools"
-    toolbox_item "tools" "show this ..."
-    toolbox_item "inv" "show helpful built-in commands"
-    toolbox_item "disableScreenSaver" "disable the screen saver"
-    toolbox_item "enableScreenSaver" "enable(resets) the screen saver"
+    toolbox_item "tools" "show this ..." $width
+    toolbox_item "inv" "show helpful built-in commands" $width
+    toolbox_item "disableScreenSaver" "disable the screen saver" $width
+    toolbox_item "enableScreenSaver" "enable(resets) the screen saver" $width
     toolbox_endl
     _codex_unset
 }
 tools
 function inv {
     source "$_SCRIPT_DIR/_codex.sh"
+    local width=3
     inventory_title "X11/XOrg {Linux Graphical Server}"
-    inventory_item 1 "xset -q" "query power mgmt, DPMS, and blanking status"
-    inventory_item 2 "xrandr -q" "list connected monitors and resolutions"
-    inventory_item 3 "xwininfo" "click a window to see geometry/ID"
-    inventory_item 4 "xprop" "click a window to see properties (PID, Class)"
-    inventory_item 5 "xlsclients -l" "list all running X11 clients"   
+    inventory_item 1 "xset -q" "query power mgmt, DPMS, and blanking status" $width
+    inventory_item 2 "xrandr -q" "list connected monitors and resolutions" $width
+    inventory_item 3 "xwininfo" "click a window to see geometry/ID" $width
+    inventory_item 4 "xprop" "click a window to see properties (PID, Class)" $width
+    inventory_item 5 "xlsclients -l" "list all running X11 clients" $width
     inventory_endl
     _codex_unset
 }

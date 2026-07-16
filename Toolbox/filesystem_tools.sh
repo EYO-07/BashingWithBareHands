@@ -7,22 +7,23 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # -- description
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
+    local width=7
     toolbox_title "Files/Filesystem Tools"
-    toolbox_item "tools" "print this ..."
-    toolbox_item "inv" "print built-in commands ..."
-    toolbox_item "createFile" "if not exists creates a regular file by filename"
-    toolbox_item "renameFile" "rename file/folder with token confirmation prompt"
-    toolbox_item "createFolder" "if not exists creates a folder"
-    toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token."
-    toolbox_item "deleteFolder <path>" "recursively deletes a folder after confirming with a random token."
-    toolbox_item "createFileFromTemplate" "create a template file from ~/Template folder "
-    toolbox_item "getHashInfo" "sha256 and other useful hashs for a file"
-    toolbox_item "getSize" "estimate or get metadata of filesize of folder or file"
-    toolbox_item "showMetadata" "show metadata info for file or folder"
-    toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp"
-    toolbox_item "restoreBackup <archive_file.7z> [output_directory]" "..."
-    toolbox_item "restoreBackup <archive_file.7z>" "... current directory"
-    toolbox_item "viewBackupContents" "view the contents of a compressed archive"
+    toolbox_item "tools" "print this ..." $width
+    toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "createFile" "if not exists creates a regular file by filename" $width
+    toolbox_item "renameFile" "rename file/folder with token confirmation prompt" $width
+    toolbox_item "createFolder" "if not exists creates a folder" $width
+    toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token." $width
+    toolbox_item "deleteFolder <path>" "recursively deletes a folder after confirming with a random token." $width
+    toolbox_item "createFileFromTemplate" "create a template file from ~/Template folder " $width
+    toolbox_item "getHashInfo" "sha256 and other useful hashs for a file" $width
+    toolbox_item "getSize" "estimate or get metadata of filesize of folder or file" $width
+    toolbox_item "showMetadata" "show metadata info for file or folder" $width
+    toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp" $width
+    toolbox_item "restoreBackup <file.7z> [out_dir]" "..." $width
+    toolbox_item "restoreBackup <file.7z>" "... current directory" $width
+    toolbox_item "viewBackupContents" "view the contents of a compressed archive" $width
     toolbox_endl
     _codex_unset
 }
@@ -177,6 +178,46 @@ function createFolder {
     _codex_unset
     return 0
 }   
+function getSize { # estimate or get metadata of filesize of folder or file 
+    source "$_SCRIPT_DIR/_codex.sh"
+    # estimate or get metadata of filesize of folder or file 
+    # Usage: getFileSize <path>
+    if [[ "$#" -ne 1 ]]; then
+        ls -a
+        warn_echo "Usage: getSize <path>"
+        _codex_unset
+        return 1
+    fi
+    local path="$1"
+    if [[ ! -e "$path" ]]; then
+        crit_echo "Error: Path '$path' does not exist."
+        _codex_unset
+        return 1
+    fi
+    info_echo "--- Size Information for: $path ---"
+    if [[ -d "$path" ]]; then
+        # Directory: Use du for apparent size and disk usage
+        color_echo 32 "Type: Directory"
+        echo -n "Apparent Size: "
+        du -sh "$path" | cut -f1
+        echo -n "Disk Usage (blocks): "
+        du -s "$path" | cut -f1
+        echo "File Count:"
+        find "$path" -type f | wc -l
+    else
+        # File: Use stat for precise byte count and du for blocks
+        color_echo 35 "Type: File"
+        echo -n "Exact Size (bytes): "
+        stat -c %s "$path" 2>/dev/null || stat -f %z "$path" 2>/dev/null # Handles Linux/macOS
+        echo -n "Human Readable: "
+        du -h "$path" | cut -f1
+        echo -n "Disk Blocks Used: "
+        du -s "$path" | cut -f1
+    fi
+    _codex_unset
+}
+
+# << refactored | refactoring {_codex.sh} >>
 
 function createFileFromTemplate { # create a template file from ~/Template folder 
     source "$_SCRIPT_DIR/_codex.sh"
@@ -223,41 +264,6 @@ function getHashInfo { # sha256 and other useful hashs for a file
     if command -v b2sum &> /dev/null; then
         echo -n "BLAKE2b:"
         b2sum "$file" | awk '{print $1}'
-    fi
-}
-function getSize { # estimate or get metadata of filesize of folder or file 
-    source "$_SCRIPT_DIR/_codex.sh"
-    # estimate or get metadata of filesize of folder or file 
-    # Usage: getFileSize <path>
-    if [[ "$#" -ne 1 ]]; then
-        echo "Usage: getFileSize <path>"
-        return 1
-    fi
-    local path="$1"
-    if [[ ! -e "$path" ]]; then
-        echo "Error: Path '$path' does not exist."
-        return 1
-    fi
-    echo ""
-    echo "--- Size Information for: $path ---"
-    if [[ -d "$path" ]]; then
-        # Directory: Use du for apparent size and disk usage
-        echo "Type: Directory"
-        echo -n "Apparent Size (human readable): "
-        du -sh "$path" | cut -f1
-        echo -n "Disk Usage (blocks): "
-        du -s "$path" | cut -f1
-        echo "File Count:"
-        find "$path" -type f | wc -l
-    else
-        # File: Use stat for precise byte count and du for blocks
-        echo "Type: File"
-        echo -n "Exact Size (bytes): "
-        stat -c %s "$path" 2>/dev/null || stat -f %z "$path" 2>/dev/null # Handles Linux/macOS
-        echo -n "Human Readable: "
-        du -h "$path" | cut -f1
-        echo -n "Disk Blocks Used: "
-        du -s "$path" | cut -f1
     fi
 }
 function showMetadata { # show metadata info for file or folder
