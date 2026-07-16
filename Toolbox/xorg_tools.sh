@@ -18,11 +18,11 @@ tools
 function inv {
     source "$_SCRIPT_DIR/_codex.sh"
     inventory_title "X11/XOrg {Linux Graphical Server}"
-    inventory_item "xset -q" "query power mgmt, DPMS, and blanking status"
-    inventory_item "xrandr -q" "list connected monitors and resolutions"
-    inventory_item "xwininfo" "click a window to see geometry/ID"
-    inventory_item "xprop" "click a window to see properties (PID, Class)"
-    inventory_item "xlsclients -l" "list all running X11 clients"   
+    inventory_item 1 "xset -q" "query power mgmt, DPMS, and blanking status"
+    inventory_item 2 "xrandr -q" "list connected monitors and resolutions"
+    inventory_item 3 "xwininfo" "click a window to see geometry/ID"
+    inventory_item 4 "xprop" "click a window to see properties (PID, Class)"
+    inventory_item 5 "xlsclients -l" "list all running X11 clients"   
     inventory_endl
     _codex_unset
 }

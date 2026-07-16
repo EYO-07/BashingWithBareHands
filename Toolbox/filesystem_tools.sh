@@ -1,43 +1,185 @@
 # BEGIN : ~/Toolbox/filesystem_tools.sh 
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
 # 1. 7z : compressing and extracting tools 
 
 # -- description
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    echo -e "\e[${color}m$@\e[0m"
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    toolbox_title "Files/Filesystem Tools"
+    toolbox_item "tools" "print this ..."
+    toolbox_item "inv" "print built-in commands ..."
+    toolbox_item "createFile" "if not exists creates a regular file by filename"
+    toolbox_item "renameFile" "rename file/folder with token confirmation prompt"
+    toolbox_item "createFolder" "if not exists creates a folder"
+    toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token."
+    toolbox_item "deleteFolder <path>" "recursively deletes a folder after confirming with a random token."
+    toolbox_item "createFileFromTemplate" "create a template file from ~/Template folder "
+    toolbox_item "getHashInfo" "sha256 and other useful hashs for a file"
+    toolbox_item "getSize" "estimate or get metadata of filesize of folder or file"
+    toolbox_item "showMetadata" "show metadata info for file or folder"
+    toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp"
+    toolbox_item "restoreBackup <archive_file.7z> [output_directory]" "..."
+    toolbox_item "restoreBackup <archive_file.7z>" "... current directory"
+    toolbox_item "viewBackupContents" "view the contents of a compressed archive"
+    toolbox_endl
+    _codex_unset
+}
+tools
+function inv {
+    echo "... todo"
 }
 
-echo ""
-color_echo 33 "=== Filesystem Tools ==="
-echo "create_file : create a file"
-echo "create_folder : creates a folder"
-echo "deleteFile <path> : safely deletes a file after confirming with a random token."
-echo "deleteFolder <path> : recursively deletes a folder after confirming with a random token."
-echo "createFileFromTemplate : create a template file from ~/Template folder "
-echo "getHashInfo : sha256 and other useful hashs for a file"
-echo "getSize : estimate or get metadata of filesize of folder or file"
-echo "showMetadata : show metadata info for file or folder"
-echo "createBackup : create a compressed backup file for file or folder naming with datetime stamp"
-echo "restoreBackup <archive_file.7z> [output_directory] : ..."
-echo "restoreBackup <archive_file.7z> : ... current directory"
-echo "viewBackupContents : view the contents of a compressed archive"
-echo ""
-
 # -- implementation
-alias create_file='touch'
-alias create_folder='mkdir -pv'
+function createFile {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [ $# -ne 1 ]; then 
+        ls -a
+        warn_echo "USAGE: createFile <filename>"
+        return 1
+    fi
+    local filename="$1"
+    local absolute_path
+    if [[ -e "$filename" ]]; then
+        absolute_path="$(cd "$(dirname "$filename")" && pwd)/$(basename "$filename")"
+    else
+        local dir_part="$(dirname "$filename")"
+        local file_part="$(basename "$filename")"
+        if [[ ! -d "$dir_part" ]]; then
+            mkdir -p "$dir_part" || {
+                warn_echo "Error: Could not create directory '$dir_part'"
+                return 1
+            }
+        fi        
+        absolute_path="$(cd "$dir_part" && pwd)/$file_part"
+    fi
+    if [[ -f "$absolute_path" ]]; then
+        warn_echo "File Already Exists"
+    else 
+        if touch "$absolute_path"; then
+            echo "Created file: $absolute_path"
+        else
+            warn_echo "Error: Failed to create file '$absolute_path'"
+        fi
+    fi
+    _codex_unset
+}
+function renameFile {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Validate arguments (expects 2: old_name new_name)
+    if [ $# -ne 2 ]; then 
+        ls -a
+        warn_echo "USAGE: renameFile <current_filename> <new_filename>"
+        return 1
+    fi
+    local old_filename="$1"
+    local new_filename="$2"
+    local old_absolute_path
+    local new_absolute_path
+    local dir_part
+    local file_part
+    # --- Resolve Old Absolute Path ---
+    if [[ ! -e "$old_filename" ]]; then
+        crit_echo "Error: Source file does not exist: $old_filename"
+        _codex_unset
+        return 1
+    fi
+    old_absolute_path="$(cd "$(dirname "$old_filename")" && pwd)/$(basename "$old_filename")"
+    # --- Resolve New Absolute Path ---
+    # Check if target exists or if only the parent path exists
+    if [[ -e "$new_filename" ]]; then
+        new_absolute_path="$(cd "$(dirname "$new_filename")" && pwd)/$(basename "$new_filename")"
+    else
+        dir_part="$(dirname "$new_filename")"
+        file_part="$(basename "$new_filename")"
+        # Ensure parent directory for new name exists
+        if [[ ! -d "$dir_part" ]]; then
+            if ! mkdir -p "$dir_part"; then
+                crit_echo "Error: Could not create directory '$dir_part' for new filename"
+                _codex_unset
+                return 1
+            fi
+        fi
+        new_absolute_path="$(cd "$dir_part" && pwd)/$file_part"
+    fi
+    # --- Check for Collision ---
+    if [[ -e "$new_absolute_path" ]]; then
+        # If old and new resolve to the same file, do nothing
+        if [[ "$old_absolute_path" == "$new_absolute_path" ]]; then
+            echo "Source and destination are identical. No action taken."
+        else 
+            warn_echo "Target already exists: $new_absolute_path"
+            crit_echo "Operation Cancelled"
+        fi
+        _codex_unset
+        return 0
+    fi
+    # --- Perform Rename ---
+    if token_prompt "Confirm Renaming" "$old_filename to $new_absolute_path"; then 
+        if mv -- "$old_absolute_path" "$new_absolute_path"; then
+            echo "Renamed: $old_absolute_path -> $new_absolute_path"
+            _codex_unset
+            return 0
+        else
+            warn_echo "Error: Failed to rename file"
+            _codex_unset
+            return 1
+        fi
+    fi
+}
+function createFolder {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [ $# -ne 1 ]; then 
+        ls -a
+        warn_echo "USAGE: createFolder <foldername>"
+        return 1
+    fi
+    local foldername="$1"
+    local absolute_path
+    local dir_part
+    local folder_part
+    # --- Resolve Absolute Path ---
+    if [[ -d "$foldername" ]]; then
+        # Folder exists, resolve directly
+        absolute_path="$(cd "$(dirname "$foldername")" && pwd)/$(basename "$foldername")"
+    else
+        # Folder does not exist, resolve parent dir
+        dir_part="$(dirname "$foldername")"
+        folder_part="$(basename "$foldername")"
+        # Ensure parent directory exists
+        if [[ ! -d "$dir_part" ]]; then
+            crit_echo "this function was not intended to create nested subfolders structure"
+            warn_echo "create the parent folder first"
+            _codex_unset
+            return 1
+        fi
+        absolute_path="$(cd "$dir_part" && pwd)/$folder_part"
+    fi
+    # --- Check Existence & Create ---
+    if [[ -d "$absolute_path" ]]; then
+        warn_echo "Folder already exists: $absolute_path"
+    else
+        # Check if a FILE with the same name exists (safety check)
+        if [[ -e "$absolute_path" ]]; then
+            crit_echo "Error: A file with this name already exists: $absolute_path"
+            _codex_unset
+            return 1
+        fi
+        if mkdir -- "$absolute_path"; then
+            echo "Created folder: $absolute_path"
+        else
+            crit_echo "Error: Failed to create folder '$absolute_path'"
+            _codex_unset
+            return 1
+        fi
+    fi
+    _codex_unset
+    return 0
+}   
+
 function createFileFromTemplate { # create a template file from ~/Template folder 
+    source "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 2 ]]; then
         ls ~/Templates -l
         return 
@@ -50,6 +192,7 @@ function createFileFromTemplate { # create a template file from ~/Template folde
     cp --interactive --verbose ~/Templates/"$1" ./"$2"
 }
 function getHashInfo { # sha256 and other useful hashs for a file
+    source "$_SCRIPT_DIR/_codex.sh"
     # sha256 and other useful hashes for a file
     # Usage: getHashInfo <filename>
     if [[ "$#" -ne 1 ]]; then
@@ -83,6 +226,7 @@ function getHashInfo { # sha256 and other useful hashs for a file
     fi
 }
 function getSize { # estimate or get metadata of filesize of folder or file 
+    source "$_SCRIPT_DIR/_codex.sh"
     # estimate or get metadata of filesize of folder or file 
     # Usage: getFileSize <path>
     if [[ "$#" -ne 1 ]]; then
@@ -117,6 +261,7 @@ function getSize { # estimate or get metadata of filesize of folder or file
     fi
 }
 function showMetadata { # show metadata info for file or folder
+    source "$_SCRIPT_DIR/_codex.sh"
     # show metadata info for file or folder
     # Usage: showMetadata <path>
     if [[ "$#" -ne 1 ]]; then
@@ -150,6 +295,7 @@ function showMetadata { # show metadata info for file or folder
     file -b "$path"
 }
 function createBackup { # create a compressed backup file for file or folder naming with datetime stamp
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
         echo "Error: No source path provided."
         echo "Usage: createBackup <path_to_file_or_folder>"
@@ -177,6 +323,7 @@ function createBackup { # create a compressed backup file for file or folder nam
     fi
 }
 function restoreBackup { # extract the contents of a backup file 
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
         echo "Error: No archive file provided."
         echo "Usage: restoreBackup <archive_file.7z> [output_directory]"
@@ -200,6 +347,7 @@ function restoreBackup { # extract the contents of a backup file
     fi
 }
 function viewBackupContents { # view the contents of a compressed archive
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
         echo "Error: No archive file provided."
         echo "Usage: peekBackup <archive_file>"
@@ -221,6 +369,7 @@ function viewBackupContents { # view the contents of a compressed archive
     esac
 }
 function deleteFolder { 
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: deleteFolder <path>
     # Recursively deletes a folder after confirming with a random token.
     local target_path="${1:-}"
@@ -272,6 +421,7 @@ function deleteFolder {
     fi
 }
 function deleteFile { 
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: deleteFile <path>
     # Deletes a single file after confirming with a random token.
     local target_path="${1:-}"

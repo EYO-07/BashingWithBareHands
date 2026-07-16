@@ -23,6 +23,8 @@
 # source "$_SCRIPT_DIR/_codex.sh"
 # ... as the last command of this function 
 # _codex_unset
+#
+# ... suggestion : tools to print the toolbox, inv to print inventories
 function _codex_unset {
     unset -f color_echo warn_echo crit_echo info_echo
     unset -f toolbox_title toolbox_item toolbox_endl 
@@ -70,7 +72,6 @@ function color_echo {
 function warn_echo { color_echo 33 "$@"; }
 function crit_echo { color_echo 31 "$@"; }
 function info_echo { color_echo 36 "$@"; }
-
 # -- inventories
 # ... are small curated list of syntax : description 
 function inventory_title {
@@ -80,15 +81,19 @@ function inventory_title {
 }
 function inventory_item {
     local title description separator indicator
+    if [ $# -eq 3 ]; then 
+        indicator="$(warn_echo $1'.')"
+        shift
+    else 
+        indicator="$(warn_echo '->')"        
+    fi  
     title="$1"
     separator="$(warn_echo ':')"
-    indicator="$(warn_echo '->')"
     shift
     description="$@"
     echo       "$indicator $title $separator $description"
 }
 function inventory_endl { echo ""; }  
-# -- 
 function toolbox_title {
     echo       ""
     warn_echo "=== $@ ==="
@@ -102,31 +107,6 @@ function toolbox_item {
     echo       "$title $separator $description"
 }
 function toolbox_endl { echo ""; }  
-
-# --
-#function inventory_example {
-    #inventory_title 'journalctl { errors }'
-    #inventory_item 'journalctl -u' 'investigate journal entries by unit name'
-    #inventory_item 'journalctl -b' 'investigate journal entries from specific boot time'
-    #inventory_endl
-#}
-#function toolbox_example {
-    #toolbox_title "Filesystem Tools"
-    #toolbox_item "create_file" "create a file"
-    #toolbox_item "create_folder" "creates a folder"
-    #toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token."
-    #toolbox_item "deleteFolder <path>" "recursively deletes a folder after confirming with a random token."
-    #toolbox_item "createFileFromTemplate" "create a template file from ~/Template folder"
-    #toolbox_item "getHashInfo" "sha256 and other useful hashs for a file"
-    #toolbox_item "getSize" "estimate or get metadata of filesize of folder or file"
-    #toolbox_item "showMetadata" "show metadata info for file or folder"
-    #toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp"
-    #toolbox_item "restoreBackup <archive_file.7z> [output_directory]" '...'
-    #toolbox_item "restoreBackup <archive_file.7z>" '... current directory'
-    #toolbox_item "viewBackupContents" "view the contents of a compressed archive"
-    #toolbox_endl
-#}
-
 # -- prompt dialogs 
 function token_prompt {
     # example : ...
@@ -184,7 +164,6 @@ function yn_prompt {
         *) return 1 ;;
     esac
 }
-
 # -- git-like directories
 function get_tracking_file {
     # Only locate and return the path to the tracking file.
