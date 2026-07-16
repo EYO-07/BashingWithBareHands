@@ -31,6 +31,7 @@ function _codex_unset {
     unset -f inventory_title inventory_item inventory_endl 
     unset -f token_prompt yn_prompt
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
+    unset -f get_abs_path
 }
 
 # -- color echos
@@ -169,6 +170,42 @@ function yn_prompt {
         *) return 1 ;;
     esac
 }
+
+# -- paths 
+function get_abs_path {
+    if [ $# -ne 1 ]; then 
+        return 1
+    fi
+    local target="$1"
+    if [ -z "$target" ]; then
+        return 1
+    fi
+    # If already absolute, normalize it
+    if [[ "$target" = /* ]]; then
+        # Use realpath if available (resolves .., ., symlinks)
+        if command -v realpath &>/dev/null; then
+            realpath -m "$target" 2>/dev/null || echo "$target"
+        else
+            echo "$target"
+        fi
+    else
+        # Convert relative to absolute and normalize
+        local absolute="$(pwd)/$target"
+        if command -v realpath &>/dev/null; then
+            realpath -m "$absolute" 2>/dev/null || echo "$absolute"
+        else
+            # Fallback: manual normalization using cd
+            local dir="$(dirname "$absolute")"
+            local base="$(basename "$absolute")"
+            if [ -d "$dir" ]; then
+                echo "$(cd "$dir" && pwd)/$base"
+            else
+                echo "$absolute"
+            fi
+        fi
+    fi
+}
+
 # -- git-like directories
 function get_tracking_file {
     # Only locate and return the path to the tracking file.

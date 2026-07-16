@@ -216,37 +216,51 @@ function getSize { # estimate or get metadata of filesize of folder or file
     fi
     _codex_unset
 }
-
-# << refactored | refactoring {_codex.sh} >>
-
 function createFileFromTemplate { # create a template file from ~/Template folder 
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 2 ]]; then
-        ls ~/Templates -l
-        return 
+        info_echo "Available Templates (~/Templates): "
+        ls ~/Templates
+        warn_echo "USAGE: createFileFromTemplate <template_filename> <filename>"
+        _codex_unset
+        return 0
     fi
     if [[ ! -f ~/Templates/"$1" ]]; then
         echo "Error: Template '$1' not found in ~/Templates/"
         ls ~/Templates -l
-        return 
+        _codex_unset
+        return 1
     fi
-    cp --interactive --verbose ~/Templates/"$1" ./"$2"
+    local new_absolute_path
+    new_absolute_path="$(get_abs_path $2)"
+    if [ -e "$new_absolute_path" ]; then 
+        crit_echo "File Already Exists"
+        _codex_unset
+        return 1
+    fi
+    cp --verbose ~/Templates/"$1" "$new_absolute_path"
+    color_echo 32 "File Created Successfully from Template"
+    _codex_unset
+    return 0
 }
 function getHashInfo { # sha256 and other useful hashs for a file
     source "$_SCRIPT_DIR/_codex.sh"
     # sha256 and other useful hashes for a file
     # Usage: getHashInfo <filename>
     if [[ "$#" -ne 1 ]]; then
-        echo "Usage: getHashInfo <filename>"
-        return 1
+        ls -a
+        warn_echo "Usage: getHashInfo <filename>"
+        _codex_unset
+        return 0
     fi
     local file="$1"
     if [[ ! -f "$file" ]]; then
         echo "Error: File '$file' not found or is not a regular file."
+        _codex_unset
         return 1
     fi
     echo ""
-    echo "--- Hash Information for: $file ---"
+    warn_echo "--- Hash Information for: $file ---"
     # SHA256 (Standard)
     echo -n "SHA256: "
     sha256sum "$file" | awk '{print $1}'
@@ -265,7 +279,12 @@ function getHashInfo { # sha256 and other useful hashs for a file
         echo -n "BLAKE2b:"
         b2sum "$file" | awk '{print $1}'
     fi
+    echo ""
+    _codex_unset
 }
+
+# << refactored | refactoring {_codex.sh} >>
+
 function showMetadata { # show metadata info for file or folder
     source "$_SCRIPT_DIR/_codex.sh"
     # show metadata info for file or folder
@@ -476,5 +495,7 @@ function deleteFile {
         return 1
     fi
 }   
+
+# ""
 
 # END
