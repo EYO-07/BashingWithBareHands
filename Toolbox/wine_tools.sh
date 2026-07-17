@@ -50,8 +50,9 @@ echo "makeWineKissable             : De-bloat Wine's forced Linux desktop & MIME
 echo "exportWineNvidiaSetup        : Bind NVIDIA GPU stubs (terminal session only)"
 # echo "saveWineDirectory            : Creates a .wine_environment file saving environment variables"
 # info_echo "                               -> delete .wine_environment to reset"
-echo "gotoWineDirectoryRoot        : goto current wine directory root"
-echo "gotoWineDirectoryC           : goto C:/"
+echo "gotoWineDirectoryRoot        : go to current wine directory root"
+echo "gotoWineDirectoryC           : go to C:/"
+echo "gotoWineDirectoryAppData     : go to %AppData%"
 echo ""
 
 
@@ -466,6 +467,35 @@ function gotoWineDirectoryC {
     fi
     cd "$project_root/wine_prefix/drive_c"
 }
+
+function gotoWineDirectoryAppData {
+    # go to current prefix wine directory 
+    local current_dir="$PWD"
+    local id_file=""
+    local project_root=""
+    # Traverse upwards to find the .wineprefix_id file
+    while [ "$current_dir" != "/" ]; do
+        if [ -f "$current_dir/.wineprefix_id" ]; then
+            id_file="$current_dir/.wineprefix_id"
+            project_root="$current_dir"
+            break
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    # Fail out if we couldn't find the anchor file anywhere up the tree
+    if [ -z "$id_file" ]; then
+        crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
+        return 1
+    fi
+    local prefix_path
+    prefix_path=$(cat "$id_file")
+    if [ ! -d "$prefix_path" ]; then
+        crit_echo "Error: Prefix not found at '$prefix_path'."
+        return 1
+    fi
+    cd "$project_root/wine_prefix/drive_c/users/$USER/AppData"
+}
+
 
 # -- implementation | environment settings
 function exportWineNvidiaSetup {

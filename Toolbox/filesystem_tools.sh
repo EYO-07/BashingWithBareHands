@@ -29,7 +29,14 @@ function tools {
 }
 tools
 function inv {
-    echo "... todo"
+    source "$_SCRIPT_DIR/_codex.sh"
+    inventory_title "7z {File Compression}"
+    local width=9
+    inventory_item 1 "7z x" "extracts a compressed file preserving the folder structure" $width
+    inventory_item 2 "7z e <archive> <path_in_archive> -o<out_dir>" "extracts a single file from compressed archive" $width
+    inventory_item 3 "7z t" "test file integrity" $width
+    inventory_endl 
+    _codex_unset
 }
 
 # -- implementation
@@ -282,27 +289,26 @@ function getHashInfo { # sha256 and other useful hashs for a file
     echo ""
     _codex_unset
 }
-
-# << refactored | refactoring {_codex.sh} >>
-
 function showMetadata { # show metadata info for file or folder
     source "$_SCRIPT_DIR/_codex.sh"
     # show metadata info for file or folder
     # Usage: showMetadata <path>
     if [[ "$#" -ne 1 ]]; then
-        echo "Usage: showMetadata <path>"
-        return 1
+        ls -a
+        warn_echo "Usage: showMetadata <path>"
+        _codex_unset
+        return 0
     fi
     local path="$1"
     if [[ ! -e "$path" ]]; then
-        echo "Error: Path '$path' does not exist."
+        crit_echo "Error: Path '$path' does not exist."
+        _codex_unset
         return 1
     fi
     # Standard POSIX/Linux Metadata using stat
     echo ""
-    echo "--- System Metadata : $path ---"
+    info_echo "--- System Metadata : $path ---"
     # Using stat with format options (Linux specific mostly, %z is modify time)
-    # For macOS compatibility, one might need 'stat -f' syntax, but sticking to GNU stat for Linux context
     stat -c "File: %n" "$path"
     stat -c "Size: %s bytes" "$path"
     stat -c "Blocks: %b" "$path"
@@ -316,19 +322,23 @@ function showMetadata { # show metadata info for file or folder
     stat -c "Modify Time: %y" "$path"
     stat -c "Change Time: %z" "$path"
     # File type detection
-    echo -e "\n--- File Type Detection ---"
+    info_echo "--- File Type Detection ---"
     file -b "$path"
+    echo ""
+    _codex_unset
 }
 function createBackup { # create a compressed backup file for file or folder naming with datetime stamp
     source "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
-        echo "Error: No source path provided."
-        echo "Usage: createBackup <path_to_file_or_folder>"
-        return 1
+        ls -a
+        warn_echo "Usage: createBackup <path_to_file_or_folder>"
+        _codex_unset
+        return 0
     fi
     local source="$1"
     if [ ! -e "$source" ]; then
         echo "Error: Source '$source' does not exist."
+        _codex_unset
         return 1
     fi
     # Generate timestamp: YYYYMMDD_HHMMSS
@@ -340,37 +350,50 @@ function createBackup { # create a compressed backup file for file or folder nam
     # -mmt=on: Multi-threading
     # -ssw: Compress shared files (useful for live backups)
     if 7z a -mx=9 -mmt=on -ssw "$archive_name" "$source"; then
-        echo "Backup created successfully: $archive_name"
+        color_echo 32 "Backup created successfully: $archive_name"
+        _codex_unset
         return 0
     else
-        echo "Error: Backup creation failed."
+        crit_echo "Error: Backup creation failed."
+        _codex_unset
         return 1
     fi
 }
 function restoreBackup { # extract the contents of a backup file 
     source "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
-        echo "Error: No archive file provided."
-        echo "Usage: restoreBackup <archive_file.7z> [output_directory]"
-        return 1
+        ls -a
+        warn_echo "Usage: restoreBackup <archive_file.7z> [output_directory]"
+        _codex_unset
+        return 0
     fi
     local archive="$1"
     local output_dir="${2:-.}" # Default to current directory if not specified
     if [ ! -f "$archive" ]; then
-        echo "Error: Archive '$archive' not found."
+        crit_echo "Error: Archive '$archive' not found."
+        _codex_unset
         return 1
     fi
-    echo "Restoring '$archive' to '$output_dir'..."
+    local abs_output_dir="$(get_abs_path $output_dir)"
+    if ! token_prompt "Restoring ($archive) to ($abs_output_dir)" "This action is irreversible"; then 
+        _codex_unset
+        return 0
+    fi
     # -o: Set output directory
     # -y: Assume Yes on all queries (overwrite without prompt)
     if 7z x -y -o"$output_dir" "$archive"; then
-        echo "Restore completed successfully."
+        color_echo 32 "Restore completed successfully."
+        _codex_unset
         return 0
     else
-        echo "Error: Restore failed."
+        crit_echo "Error: Restore failed."
+        _codex_unset
         return 1
     fi
 }
+
+# << refactored | refactoring {_codex.sh} >>
+
 function viewBackupContents { # view the contents of a compressed archive
     source "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
