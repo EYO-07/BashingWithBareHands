@@ -391,30 +391,28 @@ function restoreBackup { # extract the contents of a backup file
         return 1
     fi
 }
-
-# << refactored | refactoring {_codex.sh} >>
-
 function viewBackupContents { # view the contents of a compressed archive
     source "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
-        echo "Error: No archive file provided."
-        echo "Usage: peekBackup <archive_file>"
+        ls -la | grep -iE "zip|7z|tar" 
+        warn_echo "Usage: viewBackupContents <archive_file>"
+        _codex_unset
         return 1
     fi
-
     local archive="$1"
     if [ ! -f "$archive" ]; then
         echo "Error: Archive '$archive' not found."
+        _codex_unset
         return 1
     fi
-
-    echo "--- Contents of $archive ---"
+    info_echo "--- Contents of $archive ---"
     case "$archive" in
         *.7z)        7z l "$archive" ;;
         *.zip)       unzip -l "$archive" ;;
         *.tar.gz|*.tgz) tar -tf "$archive" ;;
         *)           echo "Error: Unsupported archive format." ;;
     esac
+    _codex_unset
 }
 function deleteFolder { 
     source "$_SCRIPT_DIR/_codex.sh"
@@ -425,11 +423,13 @@ function deleteFolder {
     if [ -z "$target_path" ]; then
         ls -a
         warn_echo "Usage: deleteFolder <path>"
+        _codex_unset
         return 0
     fi
     # 2. Check Existence
     if [ ! -d "$target_path" ]; then
         crit_echo "Error: Directory '$target_path' does not exist or is not a directory."
+        _codex_unset
         return 1
     fi
     # 3. Gather Information (Size & Contents)
@@ -439,82 +439,64 @@ function deleteFolder {
     # Count items
     local item_count
     item_count=$(find "$target_path" -mindepth 1 | wc -l | tr -d ' ')
-    color_echo 33 "--- Deletion Preview ---"
-    color_echo 36 "Target: $target_path"
-    color_echo 36 "Total Size: $dir_size"
-    color_echo 36 "Items to delete: $item_count"
-    color_echo 31 "WARNING: This action is irreversible!"
-    # 4. Generate Random Token (6 characters, alphanumeric)
-    # Uses /dev/urandom for cryptographic security
-    local confirm_token
-    confirm_token=$(tr -dc 'A-Z0-9' < /dev/urandom | head -c 6)
-    # 5. Prompt User
-    color_echo 35 "To confirm deletion, type the following token exactly:"
-    color_echo 32 ">>> $confirm_token <<<"
-    read -p "Enter token: " user_input
-    # 6. Verify and Execute
-    if [ "$user_input" == "$confirm_token" ]; then
-        color_echo 35 "Token matched. Deleting..."
+    info_echo "--- Deletion Preview ---"
+    echo "Target: $target_path"
+    echo "Total Size: $dir_size"
+    echo "Items to delete: $item_count"
+    if token_prompt "Confirm deletion" "this action is irreversible" ; then 
         rm -rf "$target_path"
         if [ $? -eq 0 ]; then
-            color_echo 32 "=== Deletion Successful ==="
+            good_echo "=== Deletion Successful ==="
+            _codex_unset
             return 0
         else
             crit_echo "=== Deletion Failed (Permission error?) ==="
+            _codex_unset
             return 1
         fi
     else
-        crit_echo "=== Deletion Cancelled: Token mismatch ==="
+        _codex_unset
         return 1
     fi
 }
 function deleteFile { 
     source "$_SCRIPT_DIR/_codex.sh"
-    # USAGE: deleteFile <path>
-    # Deletes a single file after confirming with a random token.
     local target_path="${1:-}"
-    # 1. Validate Input
     if [ -z "$target_path" ]; then
-        crit_echo "Error: No path provided."
+        ls -a
         echo "Usage: deleteFile <path>"
-        return 1
+        _codex_unset
+        return 0
     fi
-    # 2. Check Existence (Ensure it is a file, not a directory)
+    # --
     if [ ! -f "$target_path" ]; then
         if [ -d "$target_path" ]; then
             crit_echo "Error: '$target_path' is a directory. Use deleteFolder instead."
         else
             crit_echo "Error: File '$target_path' does not exist."
         fi
+        _codex_unset
         return 1
     fi
-    # 3. Gather Information (Size)
+    # -- 
     local file_size
     file_size=$(du -h "$target_path" 2>/dev/null | cut -f1)
-    color_echo 33 "--- Deletion Preview ---"
-    color_echo 36 "Target: $target_path"
-    color_echo 36 "Size: $file_size"
-    color_echo 31 "WARNING: This action is irreversible!"
-    # 4. Generate Random Token (6 characters, alphanumeric)
-    local confirm_token
-    confirm_token=$(tr -dc 'A-Z0-9' < /dev/urandom | head -c 6)
-    # 5. Prompt User
-    color_echo 35 "To confirm deletion, type the following token exactly:"
-    color_echo 32 ">>> $confirm_token <<<"
-    read -p "Enter token: " user_input
-    # 6. Verify and Execute
-    if [ "$user_input" == "$confirm_token" ]; then
-        color_echo 35 "Token matched. Deleting..."
+    info_echo "--- Deletion Preview ---"
+    echo "Target: $target_path"
+    echo "Size: $file_size"
+    if token_prompt "Confirm deletion" "this is irreversible"; then
         rm -f "$target_path"
         if [ $? -eq 0 ]; then
-            color_echo 32 "=== Deletion Successful ==="
+            good_echo "=== Deletion Successful ==="
+            _codex_unset
             return 0
         else
             crit_echo "=== Deletion Failed (Permission error?) ==="
+            _codex_unset
             return 1
         fi
     else
-        crit_echo "=== Deletion Cancelled: Token mismatch ==="
+        _codex_unset
         return 1
     fi
 }   
