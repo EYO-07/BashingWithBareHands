@@ -423,9 +423,9 @@ function deleteFolder {
     local target_path="${1:-}"
     # 1. Validate Input
     if [ -z "$target_path" ]; then
-        crit_echo "Error: No path provided."
-        echo "Usage: deleteFolder <path>"
-        return 1
+        ls -a
+        warn_echo "Usage: deleteFolder <path>"
+        return 0
     fi
     # 2. Check Existence
     if [ ! -d "$target_path" ]; then

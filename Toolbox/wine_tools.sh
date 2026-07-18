@@ -343,7 +343,7 @@ function wineDirectoryRun {
     local log_file="$project_root/errors.txt"
     echo "" >> "$log_file"
     echo "======================================================================" >> "$log_file"
-    echo "Session $(date '+%Y-%m-%d %H:%M:%S') " >> "$log_file"
+    echo "Session '$1 $2' $(date '+%Y-%m-%d %H:%M:%S') " >> "$log_file"
     echo "" >> "$log_file"
     # Smart wrapper: Handles direct command passing (winecfg) or wrapper fallbacks
     info_echo "=== Wine Environment Info ==="
@@ -467,7 +467,6 @@ function gotoWineDirectoryC {
     fi
     cd "$project_root/wine_prefix/drive_c"
 }
-
 function gotoWineDirectoryAppData {
     # go to current prefix wine directory 
     local current_dir="$PWD"
@@ -495,7 +494,6 @@ function gotoWineDirectoryAppData {
     fi
     cd "$project_root/wine_prefix/drive_c/users/$USER/AppData"
 }
-
 
 # -- implementation | environment settings
 function exportWineNvidiaSetup {
