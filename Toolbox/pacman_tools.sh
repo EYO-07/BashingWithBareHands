@@ -1,64 +1,67 @@
 # BEGIN : ~/Toolbox/pacman_tools.sh
 # ... collection of pacman toplevel terminal functions and aliases for linux
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
 # 1. pacman 
 # 2. pacman-contrib : showPackageRelations
 
 # -- description
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    # If arguments are provided, use them. Otherwise, read from standard input (stdin).
-    if [ "$#" -gt 0 ]; then
-        echo -e "\e[${color}m$@\e[0m"
-    else
-        while IFS= read -r line; do
-            echo -e "\e[${color}m${line}\e[0m"
-        done
-    fi
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=9
+    toolbox_title "Pacman Package Manager Tools"
+    toolbox_item "tools" "print this ..." $width
+    toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "listInstalledPackages [ <kw1> <kw2> ... ]" "search packages by matching keywords" $width
+    toolbox_item 'listInstalledPackages "<kw1>|<kw2>|..."' "search for multiple packages" $width
+    toolbox_item "checkInstalledPackages" "check for upgradable packages" $width
+    toolbox_item "systemUpdate" "repository sync and update" $width
+    toolbox_item "searchPackages <keyword1> [keyword2 ...]" "search packages on official repos" $width
+    toolbox_item "installPackage <package1> [package2 ...]" "install packages from official repos" $width
+    toolbox_item "packageInfo" "show detailed information about a package" $width
+    toolbox_item "listOrphanPackages" "list orphan dependency packages" $width
+    toolbox_item "removePackage" "remove/uninstall package keeping configs" $width
+    toolbox_item "purgePackage" "remove and remove configs" $width
+    toolbox_item "cleanPackageCache" "clean the pacman cache" $width
+    toolbox_item "packageRelations" "show direct parent child dependency relations" $width
+    #toolbox_item "regenerate_initramfs" "... necessary for drivers and kernel updates" $width
+    toolbox_endl
+    # _codex_unset
 }
-function warn_echo {
-    # Seamlessly forwards arguments or stdin to color_echo
-    color_echo 33 "$@"
+tools
+function inv {
+    source "$_SCRIPT_DIR/_codex.sh"
+    inventory_title "Package Managers { Arch-Linux }"
+    local width=4
+    inventory_item 1 "yay -Qu" "check update status for AUR and official packages" $width
+    inventory_item 2 "yay -S <package>" "install/update a AUR package using yay" $width
+    inventory_item 3 "fc-cache -fv" "update the font cache" $width
+    inventory_item 4 "mkinitcpio -P" "regenerate initramfs, necessary on drivers and kernel updates" $width
+    #inventory_item 0 "" "" $width
+    inventory_endl 
+    #_codex_unset
 }
-function crit_echo {
-    # Seamlessly forwards arguments or stdin to color_echo
-    color_echo 31 "$@"
+
+# -- implementations 
+function checkInstalledPackages {
+    source "$_SCRIPT_DIR/_codex.sh"
+    sudo pacman -Sy "$@"
+    pacman -Qu "$@" | warn_echo
+    #_codex_unset
 }
-function info_echo { color_echo 36 "$@"; }
+function systemUpdate {
+    source "$_SCRIPT_DIR/_codex.sh"
+    sudo pacman -Syu "$@"
+    #_codex_unset
+}
 
-echo ""
-color_echo 33 "=== Pacman Package Manager Tools ==="
-color_echo 36 "... designed for pacman package manager"
-echo "listInstalledPackages : ... you can filter by keywords"
-echo " 1. listInstalledPackages [ <kw1> <kw2> ... ] : filter search"
-echo ' 2. listInstalledPackages "<kw1>|<kw2>|..." : combined search'
-echo "checkInstalledPackages : check for upgradable packages"
-echo "systemUpdate : repository sync and update"
-echo "searchPackages <keyword1> [keyword2 ...] : search packages on official repos"
-echo "installPackage <package1> [package2 ...] : install packages from official repos"
-echo "packageInfo : show detailed information about a package"
-echo "listOrphanPackages : list orphan dependency packages"
-echo "removePackage : remove/uninstall package keeping configs"
-echo "purgePackage : remove and remove configs"
-echo "cleanPackageCache : clean the pacman cache"
-echo "packageRelations : show direct parent child dependency relations"
-echo ""
-color_echo 31 "-- Post Installation Commands --"
-echo "regenerate_initramfs : ..."
-echo ""
+# >>> Refactoring 
 
-alias checkInstalledPackages='sudo pacman -Sy && (pacman -Qu | warn_echo)'
-alias systemUpdate='sudo pacman -Syu'
+#alias checkInstalledPackages='sudo pacman -Sy && (pacman -Qu | warn_echo)'
+#alias systemUpdate='sudo pacman -Syu'
+#alias regenerate_initramfs='sudo mkinitcpio -P'
+
 function searchPackages {
     if [ "$#" -eq 0 ]; then 
         echo "USAGE: searchPackages <keyword1> [keyword2 ...]"
@@ -188,7 +191,6 @@ function cleanPackageCache {
         return 0
     fi
 }
-alias regenerate_initramfs='sudo mkinitcpio -P'
 function packageRelations {
     # Check argument count
     if [ "$#" -ne 1 ]; then 

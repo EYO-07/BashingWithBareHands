@@ -35,21 +35,14 @@ function _codex_unset {
 }
 
 # -- color echos
+# RED = 31
+# GREEN = 32
+# YELLOW = 33
+# BLUE = 34
+# MAGENTA = 35
+# CYAN = 36
+# WHITE = 37
 function color_echo {
-    if [ $# -eq 0 ]; then 
-        echo "USAGE: color_echo <echo text>"
-        echo "USAGE: color_echo <forecolor_num> <echo text>"
-        echo "USAGE: color_echo <forecolor_num> <background_num> <echo text>"
-        echo "foreground background color"
-        echo "31 41 red"
-        echo "32 42 green"
-        echo "33 43 yellow"
-        echo "34 44 blue"
-        echo "35 45 magenta"
-        echo "36 46 cyan"
-        echo "37 47 white"
-        return
-    fi
     # Check NO_COLOR standard
     if [ "${NO_COLOR:-}" = "1" ]; then
         # Colors disabled globally
@@ -59,16 +52,15 @@ function color_echo {
         fi
         return
     fi
-    local fg_color=$1
-    local bg_color=$2 
-    if [ $# -eq 1 ]; then 
-        echo -e "\e[33m$1\e[0m"
-    elif [ $# -eq 2 ]; then 
-        echo -e "\e[${fg_color}m$2\e[0m"
-    elif [ $# -ge 3 ]; then 
-        shift 2
-        echo -e "\e[${fg_color};${bg_color}m$@\e[0m"
-    fi   
+    local color=$1
+    shift
+    if [ "$#" -gt 0 ]; then
+        echo -e "\e[${color}m$@\e[0m"
+    else
+        while IFS= read -r line; do
+            echo -e "\e[${color}m${line}\e[0m"
+        done
+    fi
 }
 function warn_echo { color_echo 33 "$@"; }
 function crit_echo { color_echo 31 "$@"; }
@@ -78,7 +70,7 @@ function info_echo { color_echo 36 "$@"; }
 function inventory_title {
     echo       ""
     echo       "Inventory : $@" 
-    color_echo "-------------------------------------------------------------------"
+    warn_echo  "-------------------------------------------------------------------"
 }
 function inventory_item {
     local title description separator indicator
