@@ -65,6 +65,7 @@ function color_echo {
 function warn_echo { color_echo 33 "$@"; }
 function crit_echo { color_echo 31 "$@"; }
 function info_echo { color_echo 36 "$@"; }
+function good_echo { color_echo 32 "$@"; }
 # -- inventories
 # ... are small curated list of syntax : description 
 function inventory_title {
