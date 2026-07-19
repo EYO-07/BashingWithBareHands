@@ -1,48 +1,29 @@
 # BEGIN : Toolbox/errors_tools.sh
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # {TextMarker|red:|cyan:}
 
 # -- dependencies
 # Requires: dmesg (util-linux), journalctl (systemd)
 
 # -- description
-# A Linux-specific library for retrieving system, device, driver, and application error messages.
-# Supports lookup by keyword search with optional file output.
-# Usage: <function> [ <keyword> [<fileoutput>] ]
-
-# -- color utilities
-function color_echo {
-    local color=$1
-    shift
-    if [ "$#" -gt 0 ]; then
-        echo -e "\e[${color}m$@\e[0m"
-    else
-        while IFS= read -r line; do
-            echo -e "\e[${color}m${line}\e[0m"
-        done
-    fi
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=11
+    toolbox_title "Error/Issues Tools"
+    toolbox_item "tools" "print this ..." $width
+    toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "getSystemErrorMessages [ <keyword> [<fileoutput>] ]" "Scan kernel log for critical system failures" $width
+    toolbox_item "getDeviceErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve hardware/device errors" $width
+    toolbox_item "getDriverErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve kernel module/driver failures" $width
+    toolbox_item "getUserErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve user-space application errors" $width
+    toolbox_item "getX11ErrorMessages [ <keyword> [<fileoutput>]" "x11/xorg specific errors" $width
+    toolbox_item "getGraphicCardErrorMessages [ <keyword> [<fileoutput>]" "..." $width
+    toolbox_item "systemInformation" "... info attached to fileoutputs" $width
+    toolbox_item "queryMessagesByUnit <unit>" "query journalctl by unit name" $width
+    toolbox_endl
+    _codex_unset
 }
-function warn_echo { color_echo 33 "$@"; }
-function crit_echo { color_echo 31 "$@"; }
-function info_echo { color_echo 36 "$@"; }
-
-# -- Header Display
-echo ""
-color_echo 33 "=== Error/Issues Tools ==="
-info_echo '... use `<application> "" <fileoutput>` to save to file without keywords'
-crit_echo "... don't try to fix everything, some errors are just warnings, trying to fix them could make it worse!"
-echo "getSystemErrorMessages [ <keyword> [<fileoutput>] ] : Scan kernel log for critical system failures"
-echo "getDeviceErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve hardware/device errors"
-echo "getDriverErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve kernel module/driver failures"
-echo "getUserErrorMessages [ <keyword> [<fileoutput>] ] : Retrieve user-space application errors"
-echo "getX11ErrorMessages [ <keyword> [<fileoutput>] : x11/xorg specific errors"
-echo "getGraphicCardErrorMessages [ <keyword> [<fileoutput>] : ..."
-echo "systemInformation : ... info attached to fileoutputs"
-echo "queryMessagesByUnit <unit> : query journalctl by unit name"
-echo "inv : show built-in commands"
-echo ""
-
+tools
 function inv {
     source "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Errors"
@@ -59,13 +40,14 @@ function inv {
     inventory_item '' "<command> --help" "majority of cli tools have this syntax for help page" $width
     #inventory_item 0 "" "" $width
     inventory_endl 
-    #_codex_unset
+    _codex_unset
 }
 
 # -- Helper: Safe Output Handler
 # Handles writing to stdout or file, ensures directory exists, avoids accidental overwrites if desired.
 # Args: $1 = content (via stdin), $2 = optional file path
 function _write_output {
+    source "$_SCRIPT_DIR/_codex.sh"
     local outfile="$1"
     if [[ -n "$outfile" ]]; then
         # Ensure parent directory exists
@@ -73,6 +55,7 @@ function _write_output {
         dir=$(dirname "$outfile")
         if [[ ! -d "$dir" ]]; then
             crit_echo "Error: Output directory '$dir' does not exist."
+            _codex_unset
             return 1
         fi
         # Write to file
@@ -85,6 +68,7 @@ function _write_output {
         # Write to stdout
         cat
     fi
+    _codex_unset
     return 0
 }
 
@@ -99,12 +83,14 @@ _gpu_drivers="nvidia|nouveau|amdgpu|radeon|i915|xe|drm|vgaarb|gpu"
 _gpu_errors="error|fail|corrupt|reset|timeout|hang|fallback|vram|flip_done|crtc|invalid"
 # functions
 function getSystemErrorMessages {
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: getSystemErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     local pattern="$_general_error_filter"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
+        _codex_unset
         return 1
     fi
     local cmd="sudo dmesg -T"
@@ -118,14 +104,17 @@ function getSystemErrorMessages {
         info_echo "--- Scanning for general critical system errors ---"
         { $cmd | grep -iE "$pattern" || true; } | _write_output "$outfile"
     fi
+    _codex_unset
     return 0
 }
 function getDeviceErrorMessages {
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: getDeviceErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
+        _codex_unset
         return 1
     fi
     local cmd="sudo dmesg -T"
@@ -135,14 +124,17 @@ function getDeviceErrorMessages {
         # Default filter for device errors
         { $cmd | grep -iE "$_device_filter" | grep -iE "$_device_error_filter" | tail -n 20 || true; } | _write_output "$outfile"
     fi
+    _codex_unset
     return 0
 }
 function getDriverErrorMessages {
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: getDriverErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
+        _codex_unset
         return 1
     fi
     local cmd="sudo dmesg -T"
@@ -152,14 +144,17 @@ function getDriverErrorMessages {
     else
         { $cmd | grep -iE "$_driver_filter" | grep -iE "$_driver_error_filter" | tail -n 20 || true; } | _write_output "$outfile"
     fi
+    _codex_unset
     return 0
 }
 function getUserErrorMessages {
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: getApplicationErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     if ! command -v journalctl &> /dev/null; then
         crit_echo "Error: 'journalctl' (systemd) not found."
+        _codex_unset
         return 1
     fi
     info_echo "--- Scanning for application errors ---"
@@ -177,9 +172,11 @@ function getUserErrorMessages {
         # Default: Recent application errors
         sudo journalctl -p err --no-pager -n 25 2>/dev/null | _write_output "$outfile"
     fi
+    _codex_unset
     return 0
 }
-function systemInformation {
+function systemInformation {    
+    source "$_SCRIPT_DIR/_codex.sh"
     # show a short system hardware and operational system info
     # to constraint the solution based on current system 
     echo "=== System Information ==="
@@ -235,8 +232,10 @@ function systemInformation {
     else
         echo "Environment: Physical/Bare Metal"
     fi
+    _codex_unset
 }   
 function getX11ErrorMessages {
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: getX11ErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -268,6 +267,7 @@ function getX11ErrorMessages {
     # 3. Filter and Output
     if [[ -z "$buffer" ]]; then
         warn_echo "No X11 errors or warnings found in standard log paths."
+        _codex_unset
         return 0
     fi
     if [[ -n "$keyword" ]]; then
@@ -275,14 +275,17 @@ function getX11ErrorMessages {
     else
         echo "$buffer" | _write_output "$outfile"
     fi   
+    _codex_unset
     return 0
 }
 function getGraphicCardErrorMessages {
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: getGraphicCardErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
+        _codex_unset
         return 1
     fi
     info_echo "--- Scanning Kernel Logs (dmesg) for Graphics/GPU errors ---"
@@ -295,6 +298,7 @@ function getGraphicCardErrorMessages {
     # Filter and Output
     if [[ -z "$buffer" ]]; then
         warn_echo "No specific Graphics Card/GPU errors detected in dmesg."
+        _codex_unset
         return 0
     fi
     if [[ -n "$keyword" ]]; then
@@ -302,14 +306,18 @@ function getGraphicCardErrorMessages {
     else
         echo "$buffer" | _write_output "$outfile"
     fi
+    _codex_unset
     return 0
 }
 function queryMessagesByUnit {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then
         echo "Usage: queryMessagesByUnit <unit_name>"
+        _codex_unset
         return 1
     fi
     journalctl -u "$1"
+    _codex_unset
 }
 
 # END   
