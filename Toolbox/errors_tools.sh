@@ -1,4 +1,6 @@
 # BEGIN : Toolbox/errors_tools.sh
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # {TextMarker|red:|cyan:}
 
 # -- dependencies
@@ -38,7 +40,27 @@ echo "getX11ErrorMessages [ <keyword> [<fileoutput>] : x11/xorg specific errors"
 echo "getGraphicCardErrorMessages [ <keyword> [<fileoutput>] : ..."
 echo "systemInformation : ... info attached to fileoutputs"
 echo "queryMessagesByUnit <unit> : query journalctl by unit name"
+echo "inv : show built-in commands"
 echo ""
+
+function inv {
+    source "$_SCRIPT_DIR/_codex.sh"
+    inventory_title "Errors"
+    local width=8
+    inventory_item '' "loginctl list-sessions" "list active sessions" $width
+    inventory_item '' "loginctl kill-session <SESSION_ID>" "terminate session by id" $width
+    inventory_item '' "<command> | less" "allow reading long command outputs" $width
+    inventory_item '' "dmesg --since=YYYY-MM-DD | less" "show kernel logs" $width
+    inventory_item '' "journalctl --since=YYYY-MM-DD | less" "show system logs" $width
+    inventory_item '' "<command> | grep -i <keyword>" "filter lines of the output of a command by keyword case-insensitive" $width
+    inventory_item '' '<command> | grep -iE "kw1|kw2|..."' "union of filtered keyword line searchs case-insensitive" $width
+    inventory_item '' '<command> | grep -iv <keyword>' "exclude matching lines" $width
+    inventory_item '' '<command> | grep -ivE "kw1|kw2|..."' "exclude matching lines combined" $width
+    inventory_item '' "<command> --help" "majority of cli tools have this syntax for help page" $width
+    #inventory_item 0 "" "" $width
+    inventory_endl 
+    #_codex_unset
+}
 
 # -- Helper: Safe Output Handler
 # Handles writing to stdout or file, ensures directory exists, avoids accidental overwrites if desired.

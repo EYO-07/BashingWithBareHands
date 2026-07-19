@@ -26,7 +26,7 @@
 #
 # ... suggestion : tools to print the toolbox, inv to print inventories
 function _codex_unset {
-    unset -f color_echo warn_echo crit_echo info_echo
+    unset -f color_echo warn_echo crit_echo info_echo good_echo
     unset -f toolbox_title toolbox_item toolbox_endl 
     unset -f inventory_title inventory_item inventory_endl 
     unset -f token_prompt yn_prompt
