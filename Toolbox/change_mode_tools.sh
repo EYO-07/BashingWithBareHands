@@ -1,11 +1,35 @@
 # BEGIN : Toolbox/change_mode_tools.sh 
 # ... aliases and helper function for chmod cli 
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies 
 # Requires: bash, chmod, ls, stat (optional fallback used)
 
 # -- description 
 # A toolbox for managing file permissions with colored output.
+
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=3
+    toolbox_title "Change File Mode Tools"
+    toolbox_item "tools" "print this ..." $width
+    toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "showAttributes" "display file attributes" $width
+    toolbox_item "activate" "turn script or file executable (chmod +x)" $width
+    toolbox_item "deactivate" "turn off the executable attribute (chmod -x)" $width
+    toolbox_endl
+    _codex_unset
+}
+tools
+function inv {
+    source "$_SCRIPT_DIR/_codex.sh"
+    inventory_title "change mode tools"
+    local width=6
+    inventory_item 1 "chown <USER>:<GROUP> <FILE>" "change file ownership" $width
+    inventory_item 2 "chmod <MODE> <FILE>" "change file permissions" $width
+    inventory_endl 
+    _codex_unset
+}
 
 # RED = 31 - 41
 # GREEN = 32 - 42
@@ -32,22 +56,19 @@ function crit_echo {
     color_echo 31 "$@"
 }
 
-echo ""
-color_echo 33 "=== Change Mode Tools ==="
-echo "showAttributes : display all files attributes human readable"
-echo "activate       : turn script or file executable (chmod +x)"
-echo "deactivate     : turn off the executable attribute (chmod -x)"
-echo ""
-
 # -- implementation
 function showAttributes { 
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 1 ]; then
+        ls -a
         warn_echo "USAGE: showAttributes <file>"
-        return 1
+        _codex_unset
+        return 0
     fi
     local file="$1"    
     if [ ! -e "$file" ]; then
         crit_echo "Warning: '$file' does not exist."
+        _codex_unset
         return 1 
     fi
     local stat_cmd stat_format
@@ -79,12 +100,15 @@ function showAttributes {
     [ -z "$desc" ] && desc="none"
     echo "   * Permissions: $desc (Mode: $foctal)"
     echo ""
+    _codex_unset
 }
 function activate { 
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then
-        crit_echo "Error: No file specified."
+        ls -a
         warn_echo "Usage: activate <file1> [file2] ..."
-        return 1
+        _codex_unset
+        return 0
     fi
     for file in "$@"; do
         if [ ! -e "$file" ]; then
@@ -100,18 +124,22 @@ function activate {
                 color_echo 32 "Activated (sudo): $file"
             else
                 crit_echo "Error: Failed to change permissions (sudo failed or cancelled)."
+                _codex_unset
                 return 1
             fi
         else
             color_echo 32 "Activated: $file"
         fi
     done
+    _codex_unset
 }
 function deactivate { 
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then
-        crit_echo "Error: No file specified."
+        ls -a
         warn_echo "Usage: deactivate <file1> [file2] ..."
-        return 1
+        _codex_unset
+        return 0
     fi
     for file in "$@"; do
         if [ ! -e "$file" ]; then
@@ -126,12 +154,14 @@ function deactivate {
                 color_echo 35 "Deactivated (sudo): $file"
             else
                 crit_echo "Error: Failed to change permissions (sudo failed or cancelled)."
+                _codex_unset
                 return 1
             fi
         else
             color_echo 35 "Deactivated: $file"
         fi
     done
+    _codex_unset
 }   
 
 # END   
