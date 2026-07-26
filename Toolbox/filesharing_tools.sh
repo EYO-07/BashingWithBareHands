@@ -1,4 +1,5 @@
 # BEGIN : Toolbox/filesharing_tools.sh
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
 # 1. avahi
@@ -7,46 +8,36 @@
 # 4. rsync
 
 # -- description 
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    if [ "$#" -gt 0 ]; then
-        echo -e "\e[${color}m$@\e[0m"
-    else
-        while IFS= read -r line; do
-            echo -e "\e[${color}m${line}\e[0m"
-        done
-    fi
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=15
+    toolbox_title "File Sharing Tools"
+    toolbox_item "tools" "show this ..." $width
+    toolbox_item "inv" "show helpful built-in commands" $width
+    toolbox_item "checkLocalFileSharingBridge" "check the connection between local network machines" $width
+    toolbox_item "remoteShell <remoteusername> <remotehostname>" "open a remote terminal" $width
+    toolbox_item "leftload <remoteusername> <remotehostname> <remotepath> [ <localpath> ]" "download from local network machines" $width
+    toolbox_item "1. leftload <remoteusername> <remotehostname> <remotepath>" "Lists remote files (Dry Run / Preview)" $width
+    toolbox_item "2. leftload <remoteusername> <remotehostname> <remotepath> ." "Starts the download to current directory" $width
+    toolbox_item "3. leftload <remoteusername> <remotehostname> <remotepath> /some/path" "Starts the download to specific path" $width
+    toolbox_item "activateFileSharingServices" "activate related services for filesharing" $width
+    toolbox_item "deactivateFileSharingServices" "deactivate related services for filesharing" $width
+    toolbox_endl
+    _codex_unset
 }
-function warn_echo {
-    color_echo 33 "$@"
+tools
+function inv {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=3
+    inventory_title "todo"
+    inventory_item 1 "..." "..." $width
+    inventory_endl
+    _codex_unset
 }
-function crit_echo {
-    color_echo 31 "$@"
-}
-
-echo ""
-color_echo 33 "=== File Sharing Tools ==="
-echo "checkLocalFileSharingBridge : check the connection between local network machines"
-echo "remoteShell <remoteusername> <remotehostname> : open a remote terminal"
-echo "leftload <remoteusername> <remotehostname> <remotepath> [ <localpath> ] : download from local network machines"
-echo " 1. leftload <remoteusername> <remotehostname> <remotepath> : Lists remote files (Dry Run / Preview)"
-echo " 2. leftload <remoteusername> <remotehostname> <remotepath> . : Starts the download to current directory"
-echo " 3. leftload <remoteusername> <remotehostname> <remotepath> /some/path : Starts the download to specific path"
-echo "activateFileSharingServices : ... "
-echo "    deactivateFileSharingServices : ..."
-echo ""
 
 # -- implementation 
 function checkLocalFileSharingBridge {
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: checkLocalFileSharingBridge <remotehostname> [ <username> ]
     # 1. check the name resolution
     # 2. prompt for username if not provided
@@ -62,6 +53,7 @@ function checkLocalFileSharingBridge {
     if [ -z "$remote_host" ]; then
         crit_echo "Error: No remote hostname provided."
         echo "Usage: checkLocalFileSharingBridge <remotehostname> [ <username> ]"
+        _codex_unset
         return 1
     fi
     # Strip .local suffix if present for consistency
@@ -72,6 +64,7 @@ function checkLocalFileSharingBridge {
     if ! avahi-daemon --check >/dev/null 2>&1; then
         crit_echo "CRITICAL: avahi-daemon is NOT running on this machine."
         warn_echo "Please start it with: sudo systemctl start avahi-daemon"
+        _codex_unset
         return 1
     fi
     color_echo 32 "[OK] avahi-daemon is running locally."
@@ -81,6 +74,7 @@ function checkLocalFileSharingBridge {
     if [ -z "$resolved_ip" ]; then
         crit_echo "FAILED: Could not resolve ${target_host} to an IP address."
         warn_echo "Ensure the remote machine is on the same network and running avahi-daemon."
+        _codex_unset
         return 1
     fi
     color_echo 32 "[OK] Resolved ${target_host} to ${resolved_ip}"
@@ -141,12 +135,15 @@ function checkLocalFileSharingBridge {
         color_echo 32 "[OK] rsync is available on remote machine."
     else
         crit_echo "FAILED: rsync not found on remote machine or connection failed."
+        _codex_unset
         return 1
     fi
     color_echo 32 "=== Bridge Check Complete: ${target_host} is reachable as ${ssh_user} ==="
+    _codex_unset
     return 0
 }
 function remoteShell {
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: remoteShell <remoteusername> <remotehostname>
     # Opens an interactive remote terminal session
     local ssh_user="${1:-}"
@@ -157,6 +154,7 @@ function remoteShell {
     if [ -z "$ssh_user" ] || [ -z "$remote_host" ]; then
         crit_echo "Error: Missing arguments."
         echo "Usage: remoteshell <remoteusername> <remotehostname>"
+        _codex_unset
         return 1
     fi
     clean_host="${remote_host%.local}"
@@ -171,9 +169,11 @@ function remoteShell {
     # Start interactive SSH session
     # -t forces pseudo-terminal allocation (needed for interactive shells)
     ssh -t "${ssh_user}@${resolved_ip}"
+    _codex_unset
     return $?
 }   
 function leftload { 
+    source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: leftload <remoteusername> <remotehostname> <remotepath> [ <localpath> ] 
     # 1. leftload <remoteusername> <remotehostname> <remotepath> 
     #    -> Lists remote files (Dry Run / Preview)
@@ -198,6 +198,7 @@ function leftload {
         echo "  leftload alice server.local /home/alice/docs       # List files only"
         echo "  leftload alice server.local /home/alice/docs .     # Download to current dir"
         echo "  leftload alice server.local /home/alice/docs ./bak # Download to ./bak"
+        _codex_unset
         return 1
     fi
     # Normalize Hostname
@@ -231,6 +232,7 @@ function leftload {
         else
             crit_echo "Failed to list remote directory (check path or permissions)."
         fi
+        _codex_unset
         return $exit_code
     fi   
     # MODE 2: DOWNLOAD (Destination provided)
@@ -254,9 +256,11 @@ function leftload {
     else
         crit_echo "=== Leftload Failed with exit code ${exit_code} ==="
     fi
+    _codex_unset
     return $exit_code
 }   
 function activateFileSharingServices {
+    source "$_SCRIPT_DIR/_codex.sh"
     warn_echo "--- filesharing services ---"
     color_echo 36 "... note those units are not exclusive for filesharing"
     systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"
@@ -274,17 +278,21 @@ function activateFileSharingServices {
         if [ $? -eq 0 ]; then
             color_echo 32 "=== Activation Successful ==="
             echo "... could be necessary to reboot the system"
+            _codex_unset
             return 0
         else
             crit_echo "=== Activation Failed (Permission error?) ==="
+            _codex_unset
             return 1
         fi
     else
         crit_echo "=== Cancelled: Token mismatch ==="
+        _codex_unset
         return 1
-    fi    
+    fi
 }
 function deactivateFileSharingServices {
+    source "$_SCRIPT_DIR/_codex.sh"
     warn_echo "--- filesharing services ---"
     color_echo 36 "... note those units are not exclusive for filesharing"
     systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"
@@ -302,13 +310,16 @@ function deactivateFileSharingServices {
         if [ $? -eq 0 ]; then
             color_echo 32 "=== Deactivation Successful ==="
             echo "... could be necessary to reboot the system"
+            _codex_unset
             return 0
         else
             crit_echo "=== Deactivation Failed (Permission error?) ==="
+            _codex_unset
             return 1
         fi
     else
         crit_echo "=== Cancelled: Token mismatch ==="
+        _codex_unset
         return 1
     fi    
 }
