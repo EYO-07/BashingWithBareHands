@@ -21,6 +21,7 @@ function tools {
     toolbox_item "extendDisplayLeft <main> <left>" "..." $width
     toolbox_item "extendDisplayAbove <main> <above>" "..." $width
     toolbox_item "extendDisplayBelow <main> <below>" "..." $width
+    toolbox_item "setBrightness <output> <value>" "adjust brightness through gamma (not actual backlight). Values between 0.1 to 1.0" $width
     toolbox_endl
     _codex_unset
 }
@@ -228,6 +229,21 @@ function setProviders {
         _codex_unset
         return 1
     fi
+}
+function setBrightness {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [ $# -ne 2 ]; then 
+        listConnectedDisplays
+        echo ""
+        echo "USAGE: setBrightness <output> <value>"
+        echo "... values between 0.1 to 1.0 (float)"
+        echo ""
+        _codex_unset
+        return 0
+    fi
+    xrandr --output "$1" --brightness "$2"   
+    _codex_unset
+    return 0
 }
 
 # END
