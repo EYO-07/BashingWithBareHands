@@ -32,6 +32,7 @@ function inv {
     local width=5
     inventory_item 1 "xrandr -q" "information about displays from xorg tools" $width
     inventory_item 2 "xrandr --dpi <number>" "set dpi for current monitor (96,120,144,196)" $width
+    inventory_item 3 "brightnessctl --list" "list devices which brightness can be controlled by brightnessctl" $width
     inventory_endl 
     _codex_unset
     return 0
@@ -235,6 +236,10 @@ function setBrightness {
     if [ $# -ne 2 ]; then 
         listConnectedDisplays
         echo ""
+        if [ $# -eq 1 ]; then 
+            xrandr --verbose | grep -A 5 "^$1 " | grep "Brightness"
+            echo ""
+        fi 
         echo "USAGE: setBrightness <output> <value>"
         echo "... values between 0.1 to 1.0 (float)"
         echo ""
