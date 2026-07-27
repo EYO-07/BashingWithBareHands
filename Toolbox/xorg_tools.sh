@@ -1,5 +1,6 @@
 # BEGIN : Toolbox/xorg_tools.sh 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # -- dependencies
 # 1. using xorg as graphical server 
 

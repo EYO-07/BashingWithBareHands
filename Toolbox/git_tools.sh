@@ -1,4 +1,6 @@
 # BEGIN : ~/Toolbox/git_tools.sh
+# {TextMarker|magenta:pwd}
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
 # 1. git ; cli tool 
@@ -6,69 +8,66 @@
 
 # -- description
 
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    # If arguments are provided, use them. Otherwise, read from standard input (stdin).
-    if [ "$#" -gt 0 ]; then
-        echo -e "\e[${color}m$@\e[0m"
-    else
-        while IFS= read -r line; do
-            echo -e "\e[${color}m${line}\e[0m"
-        done
-    fi
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=4
+    toolbox_title "Git Tools"
+    toolbox_item "tools" "show this ..." $width
+    toolbox_item "inv" "show helpful built-in commands" $width
+    toolbox_item "downloadProject" "... run without args to see usage" $width
+    toolbox_item "projectInfo" "run it inside git directory to show information about the directory and update status" $width
+    toolbox_item "gitCommit <title> [description]" "local clone commit registry" $width
+    toolbox_item "projectUpdate" "discard local changes and sync with remote repository" $width
+    toolbox_item "gitPullRequest" "pull request, require gh cli tool" $width
+    toolbox_item "listBranches" "list available branches from the git directory" $width
+    toolbox_item "setBranch <keyword>" "set branch for current git directory" $width
+    toolbox_item "gitDirectPush" "direct push using gh credentials" $width
+    toolbox_item "gitStash" "manage git stashes" $width
+    toolbox_endl
+    _codex_unset
 }
-function warn_echo {
-    # Seamlessly forwards arguments or stdin to color_echo
-    color_echo 33 "$@"
+tools
+function inv {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=3
+    inventory_title "todo"
+    inventory_item 1 "..." "..." $width
+    inventory_endl
+    _codex_unset
 }
-function crit_echo {
-    # Seamlessly forwards arguments or stdin to color_echo
-    color_echo 31 "$@"
-}
-
-echo ""
-color_echo 33 "=== Git Tools ==="
-echo "downloadProject : ... run without args to see usage"
-echo "projectInfo : ..."
-echo "gitCommit <title> [description] : local clone commit registry"
-echo "projectUpdate : discard local changes and sync with remote repository"
-echo "gitPullRequest : pull request, require gh cli tool"
-echo "listBranches : ..."
-echo "setBranch <keyword> : ..."
-echo "gitDirectPush : ..."
-echo "gitStash : managing git stashes"
-echo ""
 
 # -- implementation 
 function downloadProject {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then 
         echo "Usage: downloadProject <PROJECT_OWNER> <PROJECT_NAME>"
-    echo "Usage: downloadProject <URL>"
+        echo "Usage: downloadProject <URL>"
+        warn_echo "... it will download the project directory on current directory $(pwd)"
+        _codex_unset
         return 1
     fi
     if [ "$#" -eq 1 ]; then 
         git clone "$1"
+        _codex_unset
         return 0
     fi 
     if [ "$#" -eq 2 ]; then 
         git clone "https://github.com/$1/$2.git"
+        _codex_unset
         return 0
     fi
     echo "Usage: downloadProject <PROJECT_OWNER> <PROJECT_NAME>"
     echo "Usage: downloadProject <URL>"
+    _codex_unset
 }
 function projectInfo {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Check if inside a git repository
     if [ ! -d .git ]; then
+        ls -a
+        info_echo "Current Directory: $(pwd)"
         crit_echo "Error: Not a git repository."
+        _codex_unset
         return 1
     fi
     # Get current branch name
@@ -77,6 +76,7 @@ function projectInfo {
     if [ "$branch" = "HEAD" ] || ! git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
         echo "Repository: $(git config --get remote.origin.url)"
         echo "Current Branch: $branch (No upstream tracking branch set)"
+        _codex_unset
         return 0
     fi
     echo "Repository: $(git config --get remote.origin.url)"
@@ -109,11 +109,14 @@ function projectInfo {
     else
         color_echo 32 "Working Directory: Clean"
     fi
+    _codex_unset
 }   
 function gitCommit {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Check for arguments
     if [ "$#" -lt 1 ]; then 
         echo "Usage: gitCommit <title> [description]"
+        _codex_unset
         return 1
     fi
     local title="$1"
@@ -141,14 +144,19 @@ function gitCommit {
             ;;
         *)
             echo "Commit aborted."
+            _codex_unset
             return 1
             ;;
     esac
+    _codex_unset
 }   
 function projectUpdate {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Ensure we are inside a git repository
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        ls -a
         echo "Error: Not a git repository."
+        _codex_unset
         return 1
     fi
     # Check if an upstream branch is set
@@ -156,6 +164,7 @@ function projectUpdate {
     if [ -z "$upstream" ]; then
         echo "Error: No upstream branch configured."
         echo "Run 'git push -u origin <branch>' to set one."
+        _codex_unset
         return 1
     fi
     echo "=== Download Sync (Overwrite Mode) ==="
@@ -172,6 +181,7 @@ function projectUpdate {
     read -r -p "Are you sure you want to proceed? Type 'yes' to confirm: " response
     if [ "$response" != "yes" ]; then
         echo "Sync aborted. Your local changes are safe."
+        _codex_unset
         return 1
     fi
     echo "Fetching latest changes..."
@@ -181,33 +191,35 @@ function projectUpdate {
     echo "Cleaning untracked files..."
     git clean -fd
     color_echo 32 "Sync complete. Local clone matches remote exactly."
+    _codex_unset
 }   
 function gitPullRequest {
+    source "$_SCRIPT_DIR/_codex.sh"
     # 1. Check for GitHub CLI
     if ! command -v gh &> /dev/null; then
         echo "Error: GitHub CLI (gh) is not installed."
         echo "Install it: brew install gh (macOS) or sudo apt install gh (Linux)"
         echo "Then run: gh auth login"
+        _codex_unset
         return 1
     fi
-
     # 2. Ensure we are inside a git repository
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        ls -a
         echo "Error: Not a git repository."
+        _codex_unset
         return 1
     fi
-
     # 3. Get current branch
     local current_branch=$(git branch --show-current)
     if [ -z "$current_branch" ]; then
         echo "Error: Cannot determine current branch (detached HEAD?)."
+        _codex_unset
         return 1
     fi
-
     # 4. Prompt for Base Branch (default: main)
     read -r -p "Target base branch (default: main): " base_branch
     base_branch=${base_branch:-main}
-
     # 5. Preview Action
     echo ""
     echo "=== Pull Request Preview ==="
@@ -216,7 +228,6 @@ function gitPullRequest {
     echo "Action: Push branch to remote AND create PR"
     echo "============================"
     echo ""
-
     # 6. Confirmation
     read -r -p "Proceed? [y/N] " response
     case "$response" in
@@ -224,33 +235,37 @@ function gitPullRequest {
             ;;
         *)
             echo "Aborted."
+            _codex_unset
             return 1
             ;;
     esac
-
     # 7. Push Branch (PRs require the branch to exist on remote)
     echo "Pushing branch '$current_branch' to origin..."
     git push -u origin "$current_branch"
     if [ $? -ne 0 ]; then
         echo "Error: Push failed. Cannot create PR."
+        _codex_unset
         return 1
     fi
-
     # 8. Create PR using GitHub CLI
     # --fill automatically uses commit messages for title/body if not provided
     echo "Creating Pull Request..."
     gh pr create --base "$base_branch" --head "$current_branch" --fill
-    
     if [ $? -eq 0 ]; then
         echo "✓ Pull Request created successfully!"
     else
         echo "Error: Failed to create PR. You may already have one open for this branch."
+        _codex_unset
         return 1
     fi
+    _codex_unset
 }   
 function listBranches {
+    source "$_SCRIPT_DIR/_codex.sh"
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        ls -a
         echo "Error: Not a git repository."
+        _codex_unset
         return 1
     fi
     echo "=== Remote Branches ==="
@@ -264,13 +279,17 @@ function listBranches {
         git branch -r | grep -v '\HEAD' | grep -i "$pattern" | sed 's/origin\///'  
         if [ ${PIPESTATUS[1]} -ne 0 ]; then
             echo "No branches found matching '$pattern'."
+            _codex_unset
             return 1
         fi
     fi
+    _codex_unset
 }
 function setBranch {
+    source "$_SCRIPT_DIR/_codex.sh"
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         echo "Error: Not a git repository."
+        _codex_unset
         return 1
     fi
     # Check for dirty working directory
@@ -281,12 +300,14 @@ function setBranch {
             echo "..."
         else
             echo "Abort: Please commit or stash changes manually."
+            _codex_unset
             return 1
         fi
     fi
     if [ "$#" -eq 0 ]; then
         echo "=== Available Branches ==="
         git branch -a
+        _codex_unset
         return 0
     fi
     local target="$1"
@@ -300,10 +321,13 @@ function setBranch {
         echo "Remote branch not found. Creating new branch '$target' from 'main'..."
         git checkout -b "$target" main 2>/dev/null || git checkout -b "$target" master
     fi
+    _codex_unset
 }   
 function gitDirectPush {
+    source "$_SCRIPT_DIR/_codex.sh"
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         echo "Error: Not a git repository."
+        _codex_unset
         return 1
     fi
     local current_branch=$(git branch --show-current)
@@ -313,6 +337,7 @@ function gitDirectPush {
         read -r -p "Type 'force' to confirm direct push to protected branch: " confirm
         if [ "$confirm" != "force" ]; then
             echo "Aborted. Use a feature branch and gitPullRequest instead."
+            _codex_unset
             return 1
         fi
     fi
@@ -326,18 +351,24 @@ function gitDirectPush {
                 echo "Pushed successfully."
             else
                 echo "Error: Push failed."
+                _codex_unset
                 return 1
             fi
             ;;
         *)
             echo "Aborted."
+            _codex_unset
             return 1
             ;;
     esac
+    _codex_unset
 }   
 function gitStash {
+    source "$_SCRIPT_DIR/_codex.sh"
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
+        ls -a
         echo "Error: Not a git repository."
+        _codex_unset
         return 1
     fi
     # Mode 1: No arguments -> Interactively ask to Save or Pop/List
@@ -349,7 +380,6 @@ function gitStash {
         echo "4) Cancel"
         echo ""
         read -r -p "Select an option [1-4]: " stash_opt
-
         case "$stash_opt" in
             1)
                 read -r -p "Enter optional stash message: " stash_msg
@@ -358,20 +388,24 @@ function gitStash {
                 else
                     git stash push
                 fi
+                _codex_unset
                 return 0
                 ;;
             2)
                 echo "Applying and removing the most recent stash..."
                 git stash pop
+                _codex_unset
                 return $?
                 ;;
             3)
                 echo "=== Current Stash List ==="
                 git stash list
+                _codex_unset
                 return 0
                 ;;
             *)
                 echo "Operation cancelled."
+                _codex_unset
                 return 0
                 ;;
         esac
@@ -400,9 +434,19 @@ function gitStash {
             echo "  gitStash list          : Show all stashed changes"
             echo "  gitStash pop           : Apply and delete top stash entry"
             echo "  gitStash save [msg]    : Stash local changes with an optional message"
+            _codex_unset
             return 1
             ;;
     esac
+    _codex_unset
+}
+
+function gitIgnore { # creates or update gitignore
+    source "$_SCRIPT_DIR/_codex.sh"
+    # dont use templates 
+    # USAGE: gitIgnore <file_or_expr1> [ <file_or_expr2> ... ]
+    _codex_unset
+    return 1
 }
 
 
