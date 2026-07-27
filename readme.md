@@ -1,8 +1,12 @@
 # Bashing With Bare Hands 
 
-(this project is a working progress)
-
 This repository is just a collection of aliases and helper functions to be used on linux desktop terminal. In contrast to the legacy pattern of linux and unix system, these aliases and functions should be easy to remember and be used with autocompletion, so the commands are verbose.
+
+The majority of commands display the following behaviour:
+1. The script when sourced display a small inventory of their functions.
+2. Their functions prompts the user with confirmation token or simple confirmation for critical or irreversible modifications.
+3. Their functions display usage help and useful information when used with wrong number or no arguments.
+4. Colors for contrast.
 
 The main goal for this project is to make minimal setup linux environments easy to manage using only terminal interface. Many of the tools still require third-party cli tools, so read it and install the necessary packages for your system.
 
@@ -16,6 +20,8 @@ The main goal for this project is to make minimal setup linux environments easy 
 With these rules you should manage the linux system with minimal memorization of commands.
 
 ## Usage
+
+Please read the dependencies to see if you can use it, as it relies primarily on other cli programs, this is just a user interface wrapper of existing commands. The dependencies are listed on script itself.
 
 ```bash
 # -- BashingWithBareHands
