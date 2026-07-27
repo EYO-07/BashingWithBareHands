@@ -27,6 +27,7 @@ function inv {
     inventory_item 5 "xlsclients -l" "list all running X11 clients" $width
     inventory_item 6 "xinput list" "list all input devices ids" $width
     inventory_item 7 "xinput --set-prop <id> 'libinput Accel Speed' <value>" "set pointer speed from -1. to 1. float values" $width
+    inventory_item 8 "xev" "interactive window to get keynames and keycodes" $width
     inventory_endl
     _codex_unset
 }
