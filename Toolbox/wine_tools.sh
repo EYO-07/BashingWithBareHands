@@ -1,10 +1,73 @@
 # BEGIN : Toolbox/wine_tools.sh
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies 
 # 1. wine 
 # 2. winetricks
 
 # -- description 
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=6
+    toolbox_title "Wine Tools"
+    info_echo "... requires: wine, winetricks"
+    toolbox_item "tools" "print this ..." $width
+    toolbox_item "readmeWineTools" "... please execute this command on terminal" $width
+    toolbox_item "createWineDirectory" "Creates a isolated Wine Prefix Directory (Git-like layout)" $width
+    toolbox_item "wineDirectoryInfo" "Information on the current local Wine environment based on .wineprefix_id" $width
+    toolbox_item "wineSessionInfo" "Current global terminal environment variables." $width
+    toolbox_item "wineInstallWinetricksPackage" "Install winetricks packages locally on wine directory" $width
+    toolbox_item "wineDirectoryRun" "Run commands using the local directory's prefix .wineprefix_id (works on subdirectories)" $width
+    toolbox_item "wineDesktop" "Explore the wineprefix directory via an emulated desktop window" $width
+    toolbox_item "exportWinePrefix" "Export this local prefix to your active terminal session" $width
+    toolbox_item "makeWineKissable" "De-bloat Wine's forced Linux desktop & MIME integrations" $width
+    toolbox_item "exportWineNvidiaSetup" "Bind NVIDIA GPU stubs (terminal session only)" $width
+    toolbox_item "gotoWineDirectoryRoot" "go to current wine directory root" $width
+    toolbox_item "gotoWineDirectoryC" "go to C:/" $width
+    toolbox_item "gotoWineDirectoryAppData" "go to %AppData%" $width
+    toolbox_endl
+    #_codex_unset
+}
+tools 
+function readmeWineTools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    echo ""
+    warn_echo "=== Wine Tools ==="
+    info_echo "this is a collection of bash functions and aliases to handle wineprefixes on terminal."
+    echo "the idea is to make a wineprefix directory behave as git-directory."
+    echo "1. wine prefix is the path for a wine's window directory where wine install their programs."
+    echo "... installing using a custom wine prefix is installing in a custom directory."
+    echo "... you can manage different setups for wine just changing wine prefixes."
+    echo "2. the tools on this script uses the file .wineprefix_id to identify the prefix."
+    echo "... use 'ls -a' inside the created wine directory to locate the .wineprefix_id"
+    echo ""
+    echo "To create a wine directory, use the function createWineDirectory"
+    echo "... this function will create the prefix folder and open winecfg gui for first setup."
+    echo ""
+    echo "After the creation, change the diretory to the created directory and check the prefix with wineDirectoryInfo"
+    echo ""
+    echo "To install things on your wine prefix, inside the wine directory, use exportWinePrefix"
+    echo "... you can check if the exporting succeed with wineSessionInfo."
+    echo "... then you can change to any folder and executes the installer."
+    warn_echo "... exportWinePrefix only changes the current terminal session variables"
+    warn_echo "... so closing or opening other terminal instance will reset to default wineprefix."
+    echo ""
+    echo "To use the programs installed on your wine directory, you can use the function wineDesktop"
+    echo "... which will open an explorer.exe desktop emulator."
+    echo "Alternatively, you can explore the wine_prefix contents directly on terminal"
+    echo "... find the executable and run using 'wineDirectoryRun myapp.exe'."
+    info_echo "wineDesktop is useful for programs that have ill behaviour on fullscreen."
+    echo ""
+    warn_echo "Optionally, if you are using multi-card setup, you can assert nvidia graphics by using "
+    warn_echo "... exportWineNvidiaSetup before using the other functions."
+    echo ""
+    echo "If you program needs specific runtimes, you can install them using wineInstallWinetricksPackage."
+    echo "... use it inside the root of wine directory (where .wineprefix_id is located)."
+    echo ""
+    info_echo "If you know how to, you can use those functions to create a script executable on .local/bin"
+    info_echo "... but be sure to use 'cd ...' to the wine directory and to source the script correctly."
+    #_codex_unset ""
+}
 
 # RED = 31 - 41
 # GREEN = 32 - 42
@@ -27,34 +90,6 @@ function color_echo {
 function warn_echo { color_echo 33 "$@"; }
 function crit_echo { color_echo 31 "$@"; }
 function info_echo { color_echo 36 "$@"; }
-
-echo ""
-color_echo 33 "=== Wine Tools ==="
-info_echo "... wine prefix is the path for a wine's window directory"
-info_echo "... installing using a custom wine prefix is installing in a custom directory"
-info_echo "... you can manage different setups for wine just changing wine prefixes"
-info_echo "... these tools uses the file .wineprefix_id to identify the prefix"
-echo "createWineDirectory          : Creates a isolated Wine Prefix Directory (Git-like layout)"
-info_echo "                               -> Use 'cd' into it; functions look for local '.wineprefix_id'"
-echo "wineDirectoryInfo            : Information on the current local Wine environment based on .wineprefix_id"
-echo "wineSessionInfo              : Current global terminal environment variables."
-info_echo "                               -> If you export wine variables it will show the current settings."
-echo "wineInstallWinetricksPackage : Install winetricks packages locally on wine directory"
-echo "wineDirectoryRun             : Run commands using the local directory's prefix .wineprefix_id (works on subdirectories)"
-info_echo "                               -> Example: wineRun winecfg  OR  wineRun application.exe"
-info_echo "                               -> you can go inside the wine_prefix subdirectories to run apps"
-echo "wineDesktop                  : Explore the wineprefix directory via an emulated desktop window"
-echo "exportWinePrefix             : Export this local prefix to your active terminal session"
-info_echo "                               -> check with wineSessionInfo"
-echo "makeWineKissable             : De-bloat Wine's forced Linux desktop & MIME integrations"
-echo "exportWineNvidiaSetup        : Bind NVIDIA GPU stubs (terminal session only)"
-# echo "saveWineDirectory            : Creates a .wine_environment file saving environment variables"
-# info_echo "                               -> delete .wine_environment to reset"
-echo "gotoWineDirectoryRoot        : go to current wine directory root"
-echo "gotoWineDirectoryC           : go to C:/"
-echo "gotoWineDirectoryAppData     : go to %AppData%"
-echo ""
-
 
 # -- implementation
 function makeWineKissable {
