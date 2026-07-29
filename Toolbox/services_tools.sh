@@ -1,85 +1,111 @@
 # BEGIN : Toolbox/services_tools.sh 
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
 # 1. systemctl cli tool 
 # 2. sudo privileges
 
 # -- description
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    if [ "$#" -gt 0 ]; then
-        echo -e "\e[${color}m$@\e[0m"
-    else
-        while IFS= read -r line; do
-            echo -e "\e[${color}m${line}\e[0m"
-        done
-    fi
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=9
+    toolbox_title "Services Management Tools"
+    info_echo "... requires: systemctl, grep"
+    toolbox_item "tools" "print this ..." $width
+    #toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "serviceStatus <unit>" "show detailed status and recent logs" $width
+    toolbox_item "serviceRestart <unit>" "stop and start service immediately" $width
+    toolbox_item "serviceReload <unit>" "reload config without dropping connections" $width
+    toolbox_item "serviceEnable <unit>" "enable service to start at next boot" $width
+    toolbox_item "serviceDisable <unit>" "..." $width
+    toolbox_item "serviceActivate <unit>" "enable and start service immediately" $width
+    toolbox_item "serviceDeactivate <unit>" "..." $width
+    toolbox_item "daemonReload" "reload systemd manager config (after editing unit files)" $width
+    toolbox_item "resetFailed [unit]" "clear 'failed' state from one or all units" $width
+    toolbox_item "listServices [ <keyword1> <keyword2> ... ]" "list ALL registered service unit files on disk" $width
+    toolbox_item "listRunningServices" "list services currently in 'running' state" $width
+    toolbox_item "listActiveServices" "list services 'active' (includes running, exited, waiting)" $width
+    toolbox_item "listFailedServices" "list services currently in 'failed' state" $width
+    toolbox_item "showFailed" "detailed view of failed units only" $width
+    toolbox_item "systemHealth" "check overall system state (running/degraded/maintenance)" $width
+    toolbox_endl
+    _codex_unset
 }
-function warn_echo {
-    color_echo 33 "$@"
-}
-function crit_echo {
-    color_echo 31 "$@"
-}
-
-echo ""
-color_echo 33 "=== Services Tools ==="
-color_echo 36 "--- Management ---"
-echo "serviceStatus <unit>       : show detailed status and recent logs"
-echo "serviceRestart <unit>      : stop and start service immediately"
-echo "serviceReload <unit>       : reload config without dropping connections"
-echo "serviceEnable <unit>       : enable service to start at next boot"
-echo "serviceDisable <unit>      : ..."
-echo "serviceActivate <unit>     : enable AND start service immediately (--now)"
-echo "serviceDeactivate <unit>   : ..."
-echo "daemonReload               : reload systemd manager config (after editing unit files)"
-echo "resetFailed [unit]         : clear 'failed' state from one or all units"
-color_echo 36 "--- Inventory & Health ---"
-echo "listServices               : list ALL registered service unit files on disk"
-echo "listRunningServices        : list services currently in 'running' state"
-echo "listActiveServices         : list services 'active' (includes running, exited, waiting)"
-echo "listFailedServices         : list services currently in 'failed' state"
-echo "showFailed                 : detailed view of failed units only"
-echo "systemHealth               : check overall system state (running/degraded/maintenance)"
-echo ""
+tools 
 
 # -- implementation 
-
-# -- services 
 function listRunningServices {
-    # Lists only services currently in the 'running' state.
-    # Excludes services that are 'active' but 'exited' (one-off tasks).
-    # --no-legend: Removes the header/footer lines for cleaner output.
-    # --no-pager: Prevents opening 'less', allowing the output to scroll or be piped.
-    systemctl list-units --type=service --state=running --no-legend --no-pager
+    source "$_SCRIPT_DIR/_codex.sh"
+    local cmd="systemctl list-units --type=service --state=running --no-legend --no-pager"
+    if [ $# -eq 0 ]; then
+        # No arguments: list all
+        eval "$cmd"
+    else
+        local grep_cmd=""
+        for keyword in "$@"; do
+            grep_cmd="$grep_cmd | grep -- '$keyword'"
+        done
+        eval "$cmd $grep_cmd"
+    fi
+    _codex_unset
 }
 function listActiveServices {
     # Lists services that are 'active' (includes running, waiting, and exited).
     # Useful for seeing services that are loaded and functioning, even if idle.
-    systemctl list-units --type=service --state=active --no-legend --no-pager
+    source "$_SCRIPT_DIR/_codex.sh"
+    local cmd="systemctl list-units --type=service --state=active --no-legend --no-pager"
+    if [ $# -eq 0 ]; then
+        # No arguments: list all
+        eval "$cmd"
+    else
+        local grep_cmd=""
+        for keyword in "$@"; do
+            grep_cmd="$grep_cmd | grep -- '$keyword'"
+        done
+        eval "$cmd $grep_cmd"
+    fi
+    _codex_unset
 }
 function listFailedServices {
     # Lists services that have failed to start or crashed.
     # Critical for troubleshooting and system health checks.
-    systemctl list-units --type=service --state=failed --no-legend --no-pager
+    source "$_SCRIPT_DIR/_codex.sh"
+    local cmd="systemctl list-units --type=service --state=failed --no-legend --no-pager"
+    if [ $# -eq 0 ]; then
+        # No arguments: list all
+        eval "$cmd"
+    else
+        local grep_cmd=""
+        for keyword in "$@"; do
+            grep_cmd="$grep_cmd | grep -- '$keyword'"
+        done
+        eval "$cmd $grep_cmd"
+    fi
+    _codex_unset
 }   
 function listServices {
-    # Lists ALL available registered service unit files on the system.
-    # Includes enabled, disabled, static, and masked services.
-    # Unlike 'list-units', this shows services not currently loaded in memory.
-    # --no-pager: Prevents opening 'less' for script-friendly output.
-    # --no-legend: Removes the summary line for cleaner parsing.
-    systemctl list-unit-files --type=service --no-pager --no-legend
-}
+    source "$_SCRIPT_DIR/_codex.sh"
+    # listServices [ <keyword1> ... ]
+    # Filters service list by matching ALL provided keywords    
+    local cmd="systemctl list-unit-files --type=service --no-pager --no-legend"
+    if [ $# -eq 0 ]; then
+        # No arguments: list all
+        if yn_prompt "This will show all units" "are you sure to display all unit files?"; then 
+            systemctl list-unit-files --type=service --no-pager --no-legend
+        else 
+            warn_echo "please, insert keywords to filter the list"
+        fi
+    else
+        # Arguments provided: pipe through grep for each keyword
+        # Uses process substitution to build the pipeline dynamically
+        local grep_cmd=""
+        for keyword in "$@"; do
+            grep_cmd="$grep_cmd | grep -- '$keyword'"
+        done
+        eval "$cmd $grep_cmd"
+    fi
+    _codex_unset
+}   
 function serviceStatus {
     if [ $# -ne 1 ]; then 
         listServices
@@ -89,57 +115,73 @@ function serviceStatus {
     sudo systemctl status "$1"
 }
 function serviceRestart {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
+        warn_echo "Usage: serviceRestart <unit_name>"
         listRunningServices
-        echo "Usage: serviceRestart <unit_name>"
+        _codex_unset
         return 1
     fi
     sudo systemctl restart "$1"
+    _codex_unset
 }
 function serviceReload {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then
+        warn_echo "Usage: serviceReload <unit_name>"
         listRunningServices
-        echo "Usage: serviceReload <unit_name>"
+        _codex_unset
         return 1
     fi
     sudo systemctl reload "$1"
+    _codex_unset
 }
 function serviceEnable {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
+        warn_echo "Usage: serviceEnable <unit_name>"
         listActiveServices
-        echo "Usage: serviceEnable <unit_name>"
+        _codex_unset
         return 1
     fi
     sudo systemctl enable "$1"
+    _codex_unset
 }
 function serviceDisable {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
+        warn_echo "Usage: serviceDisable <unit_name>"
         listActiveServices
-        echo "Usage: serviceDisable <unit_name>"
+        _codex_unset
         return 1
     fi
     sudo systemctl disable "$1"
+    _codex_unset
 }
 function serviceActivate {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Enables the service for boot AND starts it immediately
     if [ $# -ne 1 ]; then 
+        warn_echo "Usage: serviceActivate <unit_name>"
         listRunningServices
-        echo "Usage: serviceActivate <unit_name>"
+        _codex_unset
         return 1
     fi
     sudo systemctl enable --now "$1"
+    _codex_unset
 }
 function serviceDeactivate {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Enables the service for boot AND starts it immediately
     if [ $# -ne 1 ]; then 
+        warn_echo "Usage: serviceDeactivate <unit_name>"
         listRunningServices
-        echo "Usage: serviceDeactivate <unit_name>"
+        _codex_unset
         return 1
     fi
     sudo systemctl disable --now "$1"
+    _codex_unset
 }
-
-# -- system management (add to implementation section)
 function daemonReload {
     # Reloads systemd manager configuration.
     # MUST be run after creating, deleting, or editing any .service or .socket file.

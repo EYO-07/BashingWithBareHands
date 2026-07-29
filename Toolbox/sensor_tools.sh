@@ -1,42 +1,47 @@
 # BEGIN : sensor_tools.sh
 # ... script to list sensor files 
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
 
 # -- description
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    echo -e "\e[${color}m$@\e[0m"
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=5
+    toolbox_title "Sensor Virtual File Tools"
+    info_echo "... script to find information about sensor virtual files"
+    toolbox_item "tools" "print this ..." $width
+    toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "searchGeneralSensorFiles" "..." $width
+    toolbox_item "searchGPUSensorFiles" "..." $width
+    #toolbox_item "..." "..." $width
+    toolbox_endl
+    _codex_unset
 }
-
-echo ""
-color_echo 33 "=== Sensor Tools ==="
-color_echo 36 "... search sensor files"
-echo "searchGeneralSensorFiles : ..."
-echo "searchCPUSensorFiles : ..."
-echo "searchGPUSensorFiles : ..."
-echo ""
+tools 
+function inv {
+    source "$_SCRIPT_DIR/_codex.sh"
+    inventory_title "Sensor Virtual File Tools"
+    local width=2
+    inventory_item 1 "cat" "display the contents of regular file on terminal output. Similar commands: head, tail." $width
+    inventory_item 2 "nvidia-smi" "general information about sensors for nvidia graphic cards."
+    inventory_endl 
+    _codex_unset
+    return 0
+}
 
 # -- implementation
 function searchGeneralSensorFiles {
+    source "$_SCRIPT_DIR/_codex.sh"
     echo '-- /sys/class/hwmon'
     if [ -d '/sys/class/hwmon' ]; then
         for hwmon_link in /sys/class/hwmon/hwmon*; do
             if [ -d "$hwmon_link" ]; then
                 sensor_name=$(cat "$hwmon_link/name" 2>/dev/null || echo "unknown")
                 stable_path=$(readlink -f "$hwmon_link")
-                echo "  [Dispositivo: $sensor_name]"
+                echo "  [Device: $sensor_name]"
                 echo "    -> Link: $hwmon_link"
-                echo "    -> Caminho Estável: $stable_path"
+                echo "    -> Stable Path: $stable_path"
                 for file in "$hwmon_link"/*; do
                     if [ -f "$file" ]; then
                         echo "       $file"
@@ -45,20 +50,12 @@ function searchGeneralSensorFiles {
             fi
         done
     else
-        echo "  Diretório /sys/class/hwmon não encontrado."
+        echo "  cant find the folder /sys/class/hwmon"
     fi
+    _codex_unset
 }    
-function searchCPUSensorFiles {
-    # 2. Uso da CPU
-    echo '-- /proc/stat'
-    if [ -f '/proc/stat' ]; then
-        echo "  Arquivo: /proc/stat"
-        echo "  (Contém linhas iniciadas com 'cpu' para cálculo de uso)"
-    else
-        echo "  Arquivo não encontrado."
-    fi
-}
 function searchGPUSensorFiles {
+    source "$_SCRIPT_DIR/_codex.sh"
     # 3. Sensores e Uso da GPU (DRM)
     echo '-- /sys/class/drm'
     if [ -d '/sys/class/drm' ]; then
@@ -70,7 +67,7 @@ function searchGPUSensorFiles {
                 # Lista conteúdo direto do card (frequências, status)
                 files=$(ls "$card_dir" 2>/dev/null | grep -E 'freq|status|util')
                 if [ -n "$files" ]; then
-                    echo "    -> Arquivos de Controle/Frequência:"
+                    echo "    -> Control/Frequency Files:"
                     echo "$files" | sed 's|^|       |'
                 fi
                 # Verifica diretório do dispositivo (vendor specific)
@@ -80,7 +77,7 @@ function searchGPUSensorFiles {
                     # Arquivos específicos AMD/Intel (gpu_busy_percent, etc)
                     gpu_files=$(ls "$device_dir" 2>/dev/null | grep -E 'gpu_busy|power|freq')
                     if [ -n "$gpu_files" ]; then
-                        echo "    -> Arquivos de Uso/Energia:"
+                        echo "    -> Power/Usage Files:"
                         echo "$gpu_files" | sed 's|^|       |'
                     fi
                     # Sensores hwmon específicos da GPU (comum em AMD)
@@ -88,7 +85,7 @@ function searchGPUSensorFiles {
                     if [ -d "$hwmon_gpu_dir" ]; then
                         for gpu_hwmon in "$hwmon_gpu_dir"/hwmon*; do
                             if [ -d "$gpu_hwmon" ]; then
-                                echo "    -- Sensores GPU em: $gpu_hwmon --"
+                                echo "    -- GPU Sensors in: $gpu_hwmon --"
                                 ls -1 "$gpu_hwmon" | sed 's|^|       |'
                             fi
                         done
@@ -97,9 +94,9 @@ function searchGPUSensorFiles {
             fi
         done
     else
-        echo "  Diretório não encontrado."
+        echo "  Directory not found."
     fi
+    _codex_unset
 }
-
 
 # END
