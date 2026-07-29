@@ -4,28 +4,30 @@
 # 1. yt-dlp cli tool for download youtube videos 
 
 # -- description 
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    echo -e "\e[${color}m$@\e[0m"
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=10
+    toolbox_title "Video Download Tools"
+    info_echo "... requires: yt-dlp"
+    toolbox_item "tools" "print this ..." $width
+    #toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "downloadVideo <url> <output_filename>" "use naming with no ext (auto to .webm)" $width
+    toolbox_item "downloadVideo <url> <resolution> <output_filename>" "use naming with no ext (auto to .webm)" $width
+    toolbox_endl
+    _codex_unset
+}
+tools 
+function inv {
+    source "$_SCRIPT_DIR/_codex.sh"
+    inventory_title "Video Download Tools"
+    local width=3
+    inventory_item 1 "..." "..." $width
+    inventory_endl 
+    _codex_unset
+    return 0
 }
 
-echo ""
-color_echo 33 "=== Video/Music Download ==="
-echo "downloadVideo <url> <output_filename> : use naming with no ext (auto to .webm)"
-echo "downloadVideo <url> <resolution> <output_filename> : use naming with no ext (auto to .webm)"
-echo ""
-
 # implementation 
-
 function downloadVideo {
     if [ "$#" -lt 2 ]; then 
         echo "Usage: downloadVideo <url> <output_filename>"

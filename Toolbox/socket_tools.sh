@@ -5,41 +5,23 @@
 # 1. systemctl cli command {systemd}
 
 # -- description 
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    if [ "$#" -gt 0 ]; then
-        echo -e "\e[${color}m$@\e[0m"
-    else
-        while IFS= read -r line; do
-            echo -e "\e[${color}m${line}\e[0m"
-        done
-    fi
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=6
+    toolbox_title "Service-Sockets Tools"
+    info_echo "... sockets trigger services demanded by processes, requires: systemctl"
+    toolbox_item "tools" "print this ..." $width
+    #toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "serviceSocketEnable <unit>" "enable .socket unit (triggers service on traffic)" $width
+    toolbox_item "serviceSocketDisable <unit>" "disable .socket unit immediately" $width
+    toolbox_item "listServiceSockets" "list ALL registered socket units (active + inactive)" $width
+    toolbox_item "listListeningSockets" "list sockets currently listening for connections" $width
+    toolbox_item "listSocketsByService" "list sockets sorted by activated service" $width
+    toolbox_item "listActiveSockets" "list sockets currently in memory (active)" $width
+    toolbox_endl
+    _codex_unset
 }
-function warn_echo {
-    color_echo 33 "$@"
-}
-function crit_echo {
-    color_echo 31 "$@"
-}
-
-echo ""
-color_echo 33 "=== Socket Tools ==="
-echo "serviceSocketEnable <unit> : enable .socket unit (triggers service on traffic)"
-echo "serviceSocketDisable <unit>: disable .socket unit immediately"
-echo "listServiceSockets         : list ALL registered socket units (active + inactive)"
-echo "listListeningSockets       : list sockets currently listening for connections"
-echo "listSocketsByService       : list sockets sorted by activated service"
-echo "listActiveSockets          : list sockets currently in memory (active)"
-echo ""
+tools 
 
 # -- implementation 
 
