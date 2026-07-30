@@ -27,6 +27,7 @@ function tools {
     toolbox_item "listConnectionPreferences" "List the Connections Metric (lower~preferred)" $width
     toolbox_item "setConnectionMetric <interface_name> <metric_value>" "lower the metric higher the connection preference, useful to handle multiple available connections." $width
     toolbox_item "shareConnection" "creates an access point for other devices to access internet" $width
+    toolbox_item "connectionInfo" "short connection information" $width
     toolbox_endl
     _codex_unset
 }
@@ -167,8 +168,8 @@ function setConnectionMetric {
     local dev="$1"
     local metric="$2"
     if [ -z "$dev" ] || [ -z "$metric" ]; then
-        listConnectionPreferences 
         color_echo 33 "Usage: setConnectionMetric <interface_name> <metric_value>"
+        listConnectionPreferences 
         _codex_unset
         return 1
     fi
@@ -203,11 +204,12 @@ function setConnectionMetric {
             return 1
         fi
     fi
-    listConnectionPreferences
     color_echo 33 "Done."
+    listConnectionPreferences
     _codex_unset
 }
 
+# --
 function shareConnection {
     source "$_SCRIPT_DIR/_codex.sh"
     # Validate argument count
@@ -238,6 +240,39 @@ function shareConnection {
     _codex_unset
     return 0
 }
+function connectionInfo {
+    # Source the helper script for utility functions like showConnections and _codex_unset
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Check if a connection name was provided
+    if [[ -z "$1" ]]; then
+        warn_echo "Usage: connectionInfo <CONNECTION_NAME>"
+        showConnections
+        _codex_unset
+        return 1
+    fi
+    local conn_name="$*"
+    # Verify if the connection exists before attempting to show details
+    if ! nmcli connection show "$conn_name" &>/dev/null; then
+        crit_echo "Error: Connection '$conn_name' not found."
+        showConnections
+        _codex_unset
+        return 1
+    fi
+    warn_echo "=== Connection Details: $conn_name ==="
+    # Show general connection info (UUID, type, device)
+    info_echo "[General Information]"
+    nmcli connection show "$conn_name" | grep --color=never -E "^(connection.id|connection.type|connection.interface-name|general.state)"
+    # Show IPv4 settings
+    info_echo "[IPv4 Settings]"
+    # Extract address, gateway, and DNS. 
+    # Note: 'connection show' displays stored profile config, not necessarily runtime state.
+    nmcli connection show "$conn_name" | grep --color=never -E "^(ipv4.addresses|ipv4.gateway|ipv4.dns|ipv4.method)"
+    # Show IPv6 settings
+    info_echo "[IPv6 Settings]"
+    nmcli connection show "$conn_name" | grep --color=never -E "^(ipv6.addresses|ipv6.gateway|ipv6.dns|ipv6.method)"
+    _codex_unset
+    return 0
+}   
 
 # END   
 

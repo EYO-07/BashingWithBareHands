@@ -102,4 +102,12 @@ function toggleAllWindowsFloatMode {
     return 0
 }   
 
+function exchageApplications {
+    return 1
+}
+
+function transferApplications {
+    return 1
+}
+
 # END
