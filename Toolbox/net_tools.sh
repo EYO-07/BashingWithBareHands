@@ -117,11 +117,11 @@ function disable_ipv6 {
         _codex_unset
         return 1
     fi     
-    nmcli connection down "$1"
-    nmcli connection modify "$1" ipv6.method "disabled"
-    nmcli connection up "$1"
-    echo "Verification for '$1':"
-    nmcli connection show "$1" | grep ipv6.method
+    nmcli connection down "$*"
+    nmcli connection modify "$*" ipv6.method "disabled"
+    nmcli connection up "$*"
+    echo "Verification for '$*':"
+    nmcli connection show "$*" | grep ipv6.method
     _codex_unset
 }
 function enable_ipv6 {
@@ -133,11 +133,11 @@ function enable_ipv6 {
         _codex_unset
         return 1
     fi 
-    nmcli connection down "$1"
-    nmcli connection modify "$1" ipv6.method "auto"
-    nmcli connection up "$1"
-    echo "Verification for '$1':"
-    nmcli connection show "$1" | grep ipv6.method
+    nmcli connection down "$*"
+    nmcli connection modify "$*" ipv6.method "auto"
+    nmcli connection up "$*"
+    echo "Verification for '$*':"
+    nmcli connection show "$*" | grep ipv6.method
     _codex_unset
 }
 
