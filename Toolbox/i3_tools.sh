@@ -62,7 +62,6 @@ function listApplications {
     echo "$tree" | jq -r "$query"
     _codex_unset
 }
-
 function toggleAllWindowsFloatMode {
     source "$_SCRIPT_DIR/_codex.sh"
     # 1. Identify the currently focused workspace name

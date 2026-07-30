@@ -1,42 +1,44 @@
 # BEGIN : ~/Toolbox/net_tools.sh
-# {TextMarker|red:_get_gateway}
+# {TextMarker|red:}
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
 # 1. nmcli NetworkManager 
 
 # -- description
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    echo -e "\e[${color}m$@\e[0m"
+function tools {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local width=7
+    toolbox_title "Networking Tools"
+    info_echo "... requires: nmcli (NetworkManager)"
+    toolbox_item "tools" "print this ..." $width
+    toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "showNetworkDevices" "Display status of all network devices" $width
+    toolbox_item "showConnections" "List all saved connection profiles" $width
+    toolbox_item "turnNetworkOn / turnNetworkOff" "enable / disable all networking" $width
+    toolbox_item "wifiList" "Scan and list available WiFi networks" $width
+    toolbox_item "wifiConnect <SSID>" "Connect to a WiFi network by SSID" $width
+    toolbox_item "turnWifiOn / turnWifiOff" "Enable / Disable WiFi radio only" $width
+    toolbox_item "turnConnectionUp <NAME>" "Activate a specific connection" $width
+    toolbox_item "turnConnectionDown <NAME>" "Deactivate a specific connection" $width
+    toolbox_item "deleteConnection <NAME>" "Delete a connection profile" $width
+    toolbox_item "enable_ipv6 <NAME>" "Enable IPv6 (auto) for a specific connection" $width
+    toolbox_item "disable_ipv6 <NAME>" "Disable IPv6 for a specific connection" $width
+    toolbox_item "listConnectionPreferences" "List the Connections Metric (lower~preferred)" $width
+    toolbox_item "setConnectionMetric <interface_name> <metric_value>" "lower the metric higher the connection preference, useful to handle multiple available connections." $width
+    toolbox_item "shareConnection" "creates an access point for other devices to access internet" $width
+    toolbox_endl
+    _codex_unset
 }
-
-echo ""
-color_echo 33 "=== Networking Tools ==="
-echo "showNetworkDevices           : Display status of all network devices"
-echo "    showConnections          : List all saved connection profiles"
-echo "turnNetworkOn                : Enable all networking"
-echo "    turnNetworkOff           : Disable all networking"
-echo "wifiList                     : Scan and list available WiFi networks"
-echo "wifiConnect <SSID>           : Connect to a WiFi network by SSID"
-echo "turnWifiOn                   : Enable WiFi radio only"
-echo "    turnWifiOff              : Disable WiFi radio only"
-echo "turnConnectionUp <NAME>      : Activate a specific connection"
-echo "    turnConnectionDown <NAME>: Deactivate a specific connection"
-echo "deleteConnection <NAME>      : Delete a connection profile"
-echo "enable_ipv6 <NAME>           : Enable IPv6 (auto) for a specific connection"
-echo "    disable_ipv6 <NAME>      : Disable IPv6 for a specific connection"
-echo "listConnectionPreferences    : List the Connections Metric (lower~preferred)"
-echo "setConnectionMetric <interface_name> <metric_value> : ..."
-echo ""
+tools
+function inv {
+    source "$_SCRIPT_DIR/_codex.sh"
+    inventory_title "todo"
+    local width=9
+    inventory_item 1 "..." "..." $width
+    inventory_endl 
+    _codex_unset
+}
 
 # -- implementation
 
@@ -54,74 +56,88 @@ alias turnWifiOn='nmcli radio wifi on'
 
 # Connect to WiFi by SSID
 function wifiConnect {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         echo "Error: SSID required."
         wifiList
         echo "Usage: wifiConnect <SSID>"
+        _codex_unset
         return 1
     fi
     # Quotes handle SSIDs with spaces
     nmcli device wifi connect "$1"
+    _codex_unset
 }
 
 # Delete a connection profile permanently
 function deleteConnection {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         echo "Error: Connection name required."
         showConnections
         echo "Usage: deleteConnection <CONNECTION_NAME>"
+        _codex_unset
         return 1
     fi
     # "$*" combines all arguments into a single string separated by spaces
     nmcli connection delete "$*"
+    _codex_unset
 }
 function turnConnectionDown {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         echo "Error: Connection name required."
         showConnections
         echo "Usage: turnConnectionDown <CONNECTION_NAME>"
+        _codex_unset
         return 1
     fi
     nmcli connection down "$1"
+    _codex_unset
 }
 function turnConnectionUp {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         echo "Error: Connection name required."
         showConnections
         echo "Usage: turnConnectionUp <CONNECTION_NAME>"
+        _codex_unset
         return 1
     fi
     nmcli connection up "$1"
+    _codex_unset
 }
 function disable_ipv6 {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         echo "Error: Connection name required."
         nmcli connection show
         echo "Usage: disable_ipv6 <CONNECTION_NAME>"
+        _codex_unset
         return 1
-    fi 
-    
+    fi     
     nmcli connection down "$1"
     nmcli connection modify "$1" ipv6.method "disabled"
     nmcli connection up "$1"
-    
     echo "Verification for '$1':"
     nmcli connection show "$1" | grep ipv6.method
+    _codex_unset
 }
 function enable_ipv6 {
+    source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         echo "Error: Connection name required."
         nmcli connection show
         echo "Usage: enable_ipv6 <CONNECTION_NAME>"
+        _codex_unset
         return 1
     fi 
-    
     nmcli connection down "$1"
     nmcli connection modify "$1" ipv6.method "auto"
     nmcli connection up "$1"
-    
     echo "Verification for '$1':"
     nmcli connection show "$1" | grep ipv6.method
+    _codex_unset
 }
 
 # Helper: Get the connection name associated with a device (e.g., eth0 -> "Wired conn 1")
@@ -129,6 +145,7 @@ _get_conn_name() {
     nmcli -g GENERAL.CONNECTION device show "$1" 2>/dev/null
 }
 function listConnectionPreferences {
+    source "$_SCRIPT_DIR/_codex.sh"
     echo "Current Routing Preference (Lowest Metric = Preferred):"
     # Parse 'ip route' correctly:
     # Format: default via <GW> dev <DEV> ... metric <METRIC>
@@ -142,19 +159,23 @@ function listConnectionPreferences {
         conn=$(_get_conn_name "$dev")
         echo "Metric: $metric | Device: $dev | Gateway: $gw | Connection: ${conn:-N/A}"
     done | sort -t: -k2 -n
+    _codex_unset
 }   
 function setConnectionMetric {
+    source "$_SCRIPT_DIR/_codex.sh"
     # setConnectionMetric <interface_name> <metric_value>
     local dev="$1"
     local metric="$2"
     if [ -z "$dev" ] || [ -z "$metric" ]; then
         listConnectionPreferences 
         color_echo 33 "Usage: setConnectionMetric <interface_name> <metric_value>"
+        _codex_unset
         return 1
     fi
     local conn=$(_get_conn_name "$dev")
     if [ -z "$conn" ]; then
         color_echo 31 "Error: No active connection found for device $dev"
+        _codex_unset
         return 1
     fi
     color_echo 36 "Setting metric $metric for $conn ($dev) ..."
@@ -162,6 +183,7 @@ function setConnectionMetric {
     # saved to /etc/NetworkManager/system-connections/
     if ! nmcli connection modify "$conn" ipv4.route-metric "$metric"; then
         color_echo 31 "Error: Failed to modify connection profile."
+        _codex_unset
         return 1
     fi
     # Attempt smooth reapply first (least disruptive)
@@ -177,11 +199,44 @@ function setConnectionMetric {
         # Verify it came back up
         if ! nmcli device status | grep -q "$dev.*connected"; then
             color_echo 31 "Warning: Device $dev did not reconnect automatically."
+            _codex_unset
             return 1
         fi
     fi
     listConnectionPreferences
     color_echo 33 "Done."
+    _codex_unset
+}
+
+function shareConnection {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Validate argument count
+    if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+        warn_echo "USAGE: shareConnection <interface_type> <interface_name> [ <connection_name> ]"
+        echo "... the interface_name is the interface where other devices access the shared internet."
+        echo "... Example: shareConnection ethernet enp4s0 shared-lan"
+        _codex_unset
+        return 1 # Return error code on failure
+    fi
+    local type="$1"
+    local ifname="$2"
+    # Use provided name or default to 'shared-lan'
+    local con_name="${3:-shared-lan}"
+    # Create the shared connection
+    # ipv4.method shared enables IP forwarding, masquerading, and dnsmasq automatically
+    if ! nmcli connection add type "$type" con-name "$con_name" ifname "$ifname" ipv4.method shared ipv6.method shared; then
+        warn_echo "Failed to create connection '$con_name'"
+        _codex_unset
+        return 1
+    fi
+    # Activate the connection
+    if ! nmcli connection up "$con_name"; then
+        warn_echo "Failed to activate connection '$con_name'"
+        _codex_unset
+        return 1
+    fi
+    _codex_unset
+    return 0
 }
 
 # END   

@@ -34,9 +34,10 @@ function inv {
     inventory_title "Package Managers { Arch-Linux }"
     local width=4
     inventory_item 1 "yay -Qu" "check update status for AUR and official packages" $width
-    inventory_item 2 "yay -S <package>" "install/update a AUR package using yay" $width
-    inventory_item 3 "fc-cache -fv" "update the font cache" $width
-    inventory_item 4 "mkinitcpio -P" "regenerate initramfs, necessary on drivers and kernel updates" $width
+    inventory_item 2 "yay -S <package>" "install/update an AUR package using yay" $width
+    inventory_item 3 "yay -Ss <package>" "search for AUR package" $width
+    inventory_item 4 "fc-cache -fv" "update the font cache" $width
+    inventory_item 5 "mkinitcpio -P" "regenerate initramfs, necessary on drivers and kernel updates" $width
     #inventory_item 0 "" "" $width
     inventory_endl 
     _codex_unset

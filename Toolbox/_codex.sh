@@ -32,6 +32,7 @@ function _codex_unset {
     unset -f token_prompt yn_prompt
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
     unset -f get_abs_path
+    unset -f is_command_valid
 }
 
 # -- color echos
@@ -316,5 +317,10 @@ function save_to_tracking_file {
 function parse_variable_from_tracking_file {
     return 1 # todo
 }
+
+# -- misc 
+function is_command_valid {
+    eval "$@" &> /dev/null    
+}   
 
 # END 

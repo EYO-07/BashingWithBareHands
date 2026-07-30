@@ -11,6 +11,7 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=10
     toolbox_title "Display/Monitors Tools"
+    info_echo "... requires: xrandr (XOrg)"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "listDisplays" "short list of display monitor names and connection state" $width
@@ -22,17 +23,27 @@ function tools {
     toolbox_item "extendDisplayAbove <main> <above>" "..." $width
     toolbox_item "extendDisplayBelow <main> <below>" "..." $width
     toolbox_item "setBrightness <output> <value>" "adjust brightness through gamma (not actual backlight). Values between 0.1 to 1.0" $width
+    toolbox_item "disableScreenSaver" "disable the screen saver" $width
+    toolbox_item "enableScreenSaver" "enable(resets) the screen saver" $width
     toolbox_endl
     _codex_unset
 }
 tools 
 function inv {
     source "$_SCRIPT_DIR/_codex.sh"
-    inventory_title "Display/Monitors Tools"
+    inventory_title "XOrg Tools"
     local width=5
     inventory_item 1 "xrandr -q" "information about displays from xorg tools" $width
     inventory_item 2 "xrandr --dpi <number>" "set dpi for current monitor (96,120,144,196)" $width
     inventory_item 3 "brightnessctl --list" "list devices which brightness can be controlled by brightnessctl" $width
+    inventory_item 4 "xset -q" "query power mgmt, DPMS, and blanking status" $width
+    inventory_item 5 "xrandr -q" "list connected monitors and resolutions" $width
+    inventory_item 6 "xwininfo" "click a window to see geometry/ID" $width
+    inventory_item 7 "xprop" "click a window to see properties (PID, Class)" $width
+    inventory_item 8 "xlsclients -l" "list all running X11 clients" $width
+    inventory_item 9 "xinput list" "list all input devices ids" $width
+    inventory_item 10 "xinput --set-prop <id> 'libinput Accel Speed' <value>" "set pointer speed from -1. to 1. float values" $width
+    inventory_item 11 "xev" "interactive window to get keynames and keycodes" $width
     inventory_endl 
     _codex_unset
     return 0
@@ -246,9 +257,53 @@ function setBrightness {
         _codex_unset
         return 0
     fi
-    xrandr --output "$1" --brightness "$2"   
+    xrandr --output "$1" --brightness "$2"
     _codex_unset
     return 0
+}
+function disableScreenSaver {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Check if X11 is available
+    if [[ -z "$DISPLAY" ]]; then
+        crit_echo "Error: DISPLAY variable is not set. Are you running in X11?"
+        return 1
+    fi
+    # 1. Disable software screen blanking (timeout = 0)
+    xset s off
+    # 2. Disable hardware DPMS (Energy Star) features
+    xset -dpms
+    # 3. Ensure video device is not blanked even if screensaver triggers
+    xset s noblank
+    if [[ $? -eq 0 ]]; then
+        warn_echo "Screen saver and DPMS disabled successfully."
+        return 0
+    else
+        crit_echo "Failed to disable screen saver settings."
+        return 1
+    fi
+    _codex_unset
+}
+function enableScreenSaver {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Check if X11 is available
+    if [[ -z "$DISPLAY" ]]; then
+        crit_echo "Error: DISPLAY variable is not set. Are you running in X11?"
+        return 1
+    fi
+    # 1. Reset screen saver to server defaults (usually timeout=600, cycle=600)
+    xset s default
+    # 2. Re-enable DPMS features (restores default timeouts)
+    xset +dpms
+    # 3. Restore default blanking preference
+    xset s blank
+    if [[ $? -eq 0 ]]; then
+        info_echo "Screen saver and DPMS reset to defaults."
+        return 0
+    else
+        crit_echo "Failed to enable screen saver settings."
+        return 1
+    fi
+    _codex_unset
 }
 
 # END
