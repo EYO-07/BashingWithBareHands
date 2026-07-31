@@ -300,10 +300,10 @@ function connectionInfo {
     info_echo "[IPv4 Settings]"
     # Extract address, gateway, and DNS. 
     # Note: 'connection show' displays stored profile config, not necessarily runtime state.
-    nmcli connection show "$conn_name" | grep --color=never -E "^(ipv4.addresses|ipv4.gateway|ipv4.dns|ipv4.method)"
+    nmcli connection show "$conn_name" | grep --color=never -E "^(ipv4.addresses|ipv4.gateway|ipv4.dns|ipv4.method|IP4.ADDRESS|IP4.GATEWAY)"
     # Show IPv6 settings
     info_echo "[IPv6 Settings]"
-    nmcli connection show "$conn_name" | grep --color=never -E "^(ipv6.addresses|ipv6.gateway|ipv6.dns|ipv6.method)"
+    nmcli connection show "$conn_name" | grep --color=never -E "^(ipv6.addresses|ipv6.gateway|ipv6.dns|ipv6.method|IP6.ADDRESS|IP6.GATEWAY)"
     _codex_unset
     return 0
 }   
