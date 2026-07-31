@@ -21,6 +21,8 @@ function tools {
     toolbox_item "turnWifiOn / turnWifiOff" "Enable / Disable WiFi radio only" $width
     toolbox_item "turnConnectionUp <NAME>" "Activate a specific connection" $width
     toolbox_item "turnConnectionDown <NAME>" "Deactivate a specific connection" $width
+    toolbox_item "turnDeviceUp" "turn internet interface device up" $width
+    toolbox_item "turnDeviceDown" "turn internet interface device down" $width
     toolbox_item "deleteConnection <NAME>" "Delete a connection profile" $width
     toolbox_item "enable_ipv6 <NAME>" "Enable IPv6 (auto) for a specific connection" $width
     toolbox_item "disable_ipv6 <NAME>" "Disable IPv6 for a specific connection" $width
@@ -74,22 +76,30 @@ function wifiConnect {
 function deleteConnection {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
-        echo "Error: Connection name required."
+        crit_echo "Error: Connection name required."
         showConnections
         echo "Usage: deleteConnection <CONNECTION_NAME>"
         _codex_unset
         return 1
     fi
+    if ! token_prompt "Confirmation" "delete this connection $* ?" ; then 
+        return 0
+    fi
     # "$*" combines all arguments into a single string separated by spaces
-    nmcli connection delete "$*"
+    if ! nmcli connection delete "$*"; then 
+        crit_echo "Failed to Delete"
+        _codex_unset
+        return 1
+    fi
     _codex_unset
+    return 0
 }
 function turnConnectionDown {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
-        echo "Error: Connection name required."
+        crit_echo "Error: Connection name required."
+        warn_echo "Usage: turnConnectionDown <CONNECTION_NAME>"
         showConnections
-        echo "Usage: turnConnectionDown <CONNECTION_NAME>"
         _codex_unset
         return 1
     fi
@@ -99,13 +109,37 @@ function turnConnectionDown {
 function turnConnectionUp {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
-        echo "Error: Connection name required."
+        crit_echo "Error: Connection name required."
+        warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
         showConnections
-        echo "Usage: turnConnectionUp <CONNECTION_NAME>"
         _codex_unset
         return 1
     fi
     nmcli connection up "$1"
+    _codex_unset
+}
+function turnDeviceDown {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [[ -z "$1" ]]; then
+        crit_echo "Error: Connection name required."
+        warn_echo "Usage: turnConnectionDown <CONNECTION_NAME>"
+        showConnections
+        _codex_unset
+        return 1
+    fi
+    nmcli device disconnect "$1"
+    _codex_unset
+}
+function turnDeviceUp {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [[ -z "$1" ]]; then
+        crit_echo "Error: Connection name required."
+        warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
+        showConnections
+        _codex_unset
+        return 1
+    fi
+    nmcli device connect "$1"
     _codex_unset
 }
 function disable_ipv6 {
