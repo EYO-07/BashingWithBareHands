@@ -14,7 +14,7 @@ function tools {
     #toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
     toolbox_item "pdfAudiobookReader" "read pdf books using gtts-cli and vlc" $width
-    toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 50 pages and suspend the system at end" $width
+    toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 25 pages and suspend the system at end" $width
     toolbox_item "webpageReader" "read a web page using gtts-cli, vlc. Requires lynx or w3m." $width
     toolbox_endl
     _codex_unset
@@ -113,8 +113,8 @@ function pdfAudiobookReaderSleep {
     local chunk="$2"
     local language="$3"
     local total_pages=$(pdfinfo "$pdf_file" | grep Pages | awk '{print $2}')
-    local spg=$(( 50 * (chunk - 1) + 1 ))
-    local epg=$(( 50 * chunk ))
+    local spg=$(( 25 * (chunk - 1) + 1 ))
+    local epg=$(( 25 * chunk ))
     # Cap end page at total pages
     if [ $epg -gt $total_pages ]; then
         epg=$total_pages
