@@ -11,12 +11,13 @@ import subprocess
 def main():
     # --- Argument Parsing ---
     if len(sys.argv) < 2:
-        print("Usage: _readpdfaudio.py <pdfbook> [--pausepages=N] [--startingpage=M] [--language=...]")
+        print("Usage: _readpdfaudio.py <pdfbook> [--pausepages=N] [--startingpage=M] [--language=...] [--endpage=...]")
         sys.exit(1)
     pdf_path = sys.argv[1]
     pause_interval = 1      # Default: no pause (0)
     start_page = 1          # Default: start at page 1
     language="en"
+    endpage = 0
     # Parse optional flags
     for arg in sys.argv[2:]:
         if arg.startswith("--pausepages="):
@@ -35,8 +36,14 @@ def main():
             try:
                 language = str(arg.split("=")[1])
             except ValueError:
-                print("Error: --startingpage must be an integer.")
-                sys.exit(1)        
+                print("Error: --language must be a string.")
+                sys.exit(1)
+        elif arg.startswith("--endpage="):
+            try:
+                endpage = int(arg.split("=")[1])
+            except ValueError:
+                print("Error: --endpage must be an integer.")
+                sys.exit(1)                
     if not os.path.isfile(pdf_path):
         print(f"Error: File '{pdf_path}' not found.")
         sys.exit(1)
@@ -54,10 +61,23 @@ def main():
     if start_page > total_pages:
         print(f"Error: Starting page ({start_page}) is greater than total pages ({total_pages}).")
         sys.exit(1)
+    # Validate end page
+    if endpage > 0:
+        if endpage < start_page:
+            print("Error: endpage must be >= startingpage")
+            sys.exit(1)
+        if endpage > total_pages:
+            print(f"Warning: endpage ({endpage}) exceeds total pages ({total_pages}), using {total_pages}")
+            endpage = total_pages    
+    
     print(f"Loaded PDF: {total_pages} pages. Starting from page {start_page}...")
+    if (endpage>0): 
+        print(f"... end reading in {endpage} page.")
     # --- Playback Loop ---
     # Enumerate starts at 0, so we slice or skip based on start_page
     for i in range(total_pages):
+        if (endpage>0 and i>=endpage): 
+            break
         page_num = i + 1
         # Skip pages before the starting page
         if page_num < start_page:

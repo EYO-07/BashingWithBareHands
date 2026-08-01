@@ -10,10 +10,12 @@ function tools {
     local width=4
     toolbox_title "Audiobook Tools"
     info_echo "... requires gtts-cli, vlc and python-pdftotext"
+    info_echo "... it takes a bit of time to start, be patient"
     toolbox_item "tools" "print this ..." $width
     #toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
-    toolbox_item "pdfAudiobookReader" "read pdf books" $width
+    toolbox_item "pdfAudiobookReader" "read pdf books (needs to activate with chmod +x the _readpdfaudio.py script)" $width
+    toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 50 pages and suspend the system" $width
     toolbox_endl
     _codex_unset
 }
@@ -51,32 +53,91 @@ function textReader {
 }
 function pdfAudiobookReader {
     source "$_SCRIPT_DIR/_codex.sh"
-    if [ $# -eq 1 ]; then 
-        eval "$_SCRIPT_DIR/_readpdfaudio.py $1 --pausepages=1"
+    # Validate minimum arguments
+    if [ $# -lt 1 ] || [ $# -gt 4 ]; then
+        echo "Usage: pdfAudiobookReader <pdf>"
+        echo "       pdfAudiobookReader <pdf> <startingpage>"
+        echo "       pdfAudiobookReader <pdf> <startingpage> <language>"
+        echo "       pdfAudiobookReader <pdf> <startingpage> <pages_chunk_to_pause> <language>"
         _codex_unset
-        return 0 
+        return 1
     fi
-    if [ $# -eq 2 ]; then 
-        eval "$_SCRIPT_DIR/_readpdfaudio.py $1 --pausepages=1 --startingpage=$2"
+    local pdf_file="$1"
+    local start_page="${2:-}"
+    local pause_pages="${3:-}"
+    local language="${4:-}"
+    # Validate file exists
+    if [ ! -f "$pdf_file" ]; then
+        echo "Error: File '$pdf_file' not found."
         _codex_unset
-        return 0
+        return 1
     fi
-    if [ $# -eq 3 ]; then 
-        eval "$_SCRIPT_DIR/_readpdfaudio.py $1 --pausepages=1 --startingpage=$2 --language=$3"
+    # Build command array safely (NO eval needed)
+    local cmd=("$_SCRIPT_DIR/_readpdfaudio.py" "$pdf_file")
+    # Always add pausepages if we have 4 args (special case in your original logic)
+    # Or default to 1 if not specified in the 4-arg case
+    if [ $# -eq 4 ]; then
+        cmd+=("--pausepages=$pause_pages")
+        cmd+=("--startingpage=$start_page")
+        cmd+=("--language=$language")
+    elif [ $# -eq 3 ]; then
+        # Case: <pdf> <start> <language> -> pausepages defaults to 1 in your original
+        cmd+=("--pausepages=1")
+        cmd+=("--startingpage=$start_page")
+        cmd+=("--language=$language")
+    elif [ $# -eq 2 ]; then
+        # Case: <pdf> <start> -> pausepages defaults to 1
+        cmd+=("--pausepages=1")
+        cmd+=("--startingpage=$start_page")
+    else
+        # Case: <pdf> only -> pausepages defaults to 1
+        cmd+=("--pausepages=1")
+    fi
+    # Execute command directly from array
+    "${cmd[@]}"
+    _codex_unset
+    return $?
+}
+function pdfAudiobookReaderSleep {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Validate arguments
+    if [ $# -ne 3 ]; then
+        echo "Usage: pdfAudiobookReaderSleep <pdf> <chunk> <language>"
+        echo "  chunk: chapter number (1-based, each chunk = 50 pages)"
+        echo "  language: gTTS language code (e.g., en, es, fr)"
         _codex_unset
-        return 0
+        return 1
     fi
-    if [ $# -eq 4 ]; then 
-        eval "$_SCRIPT_DIR/_readpdfaudio.py $1 --pausepages=$3 --startingpage=$2 --language=$4"
+    local pdf_file="$1"
+    local chunk="$2"
+    local language="$3"
+    # Validate file exists
+    if [ ! -f "$pdf_file" ]; then
+        echo "Error: File '$pdf_file' not found."
         _codex_unset
-        return 0
+        return 1
     fi
-    echo "Usage: pdfAudiobookReader <pdf>"
-    echo "Usage: pdfAudiobookReader <pdf> <startingpage>"
-    echo "Usage: pdfAudiobookReader <pdf> <startingpage> <language>"
-    echo "Usage: pdfAudiobookReader <pdf> <startingpage> <pages_chunk_to_pause> <language>"
+    # Validate chunk is numeric
+    if ! [[ "$chunk" =~ ^[0-9]+$ ]]; then
+        echo "Error: chunk must be a positive integer."
+        _codex_unset
+        return 1
+    fi
+    # Calculate page range (50 pages per chunk)
+    local spg=$(( 50 * (chunk - 1) + 1 ))  # Start page (1-based)
+    local epg=$(( 50 * chunk ))            # End page
+    echo "Reading chunk $chunk: pages $spg-$epg"
+    # Run Python script (NO eval needed)
+    "$_SCRIPT_DIR/_readpdfaudio.py" "$pdf_file" \
+        --pausepages=70 \
+        --startingpage="$spg" \
+        --language="$language" \
+        --endpage="$epg"
+    # Suspend requires sudo or polkit configuration
+    echo "Suspending system..."
+    systemctl suspend  # Or configure passwordless sudo
     _codex_unset
     return 0
-}
+}   
 
 # END
