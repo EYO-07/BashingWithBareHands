@@ -15,6 +15,7 @@ function tools {
     toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
     toolbox_item "pdfAudiobookReader" "read pdf books using gtts-cli and vlc" $width
     toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 50 pages and suspend the system at end" $width
+    toolbox_item "webpageReader" "read a web page using gtts-cli, vlc. Requires lynx or w3m." $width
     toolbox_endl
     _codex_unset
 }
@@ -133,5 +134,52 @@ function pdfAudiobookReaderSleep {
     _codex_unset
     return 0
 }
+function webpageReader {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Helper: Extract text from a single URL using w3m (preferred) or lynx
+    # w3m -dump: Renders HTML to text and outputs to stdout
+    # -T text/html: Ensures correct parsing if piped
+    _extract_text() {
+        local url="$1"
+        # Try w3m first, fallback to lynx if not found
+        if command -v w3m &> /dev/null; then
+            w3m -dump "$url"
+        elif command -v lynx &> /dev/null; then
+            lynx -dump -nolist "$url"
+        else
+            crit_echo "Error: Neither w3m nor lynx is installed." >&2
+            return 1
+        fi
+    }
+    # Helper: Play the extracted text
+    _play_text_stream() {
+        # Reads text from stdin -> gtts-cli -> stdout (MP3) -> cvlc
+        gtts-cli -f - | cvlc --play-and-exit --no-loop -
+    }
+    if [ -z "$1" ]; then
+        crit_echo "Usage: webpageReader <textfile_or_url>" >&2
+        _codex_unset
+        return 1
+    fi
+    local input="$1"
+    if [ -f "$input" ]; then
+        # FILE MODE: Read URLs line by line from the file
+        echo "Reading URLs from file: $input"
+        while IFS= read -r url || [ -n "$url" ]; do
+            # Skip empty lines or comments
+            [[ -z "$url" || "$url" =~ ^# ]] && continue
+            
+            echo "Processing: $url"
+            _extract_text "$url" | _play_text_stream
+        done < "$input"
+    else
+        # URL MODE: Direct URL argument
+        local url="$1"
+        echo "Processing URL: $url"
+        _extract_text "$url" | _play_text_stream
+    fi
+    _codex_unset
+    return 0
+}   
 
 # END
