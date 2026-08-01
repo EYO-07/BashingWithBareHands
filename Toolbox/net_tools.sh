@@ -121,7 +121,7 @@ function turnConnectionUp {
 function turnDeviceDown {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
-        crit_echo "Error: Connection name required."
+        crit_echo "Error: internet interface device name required."
         warn_echo "Usage: turnConnectionDown <CONNECTION_NAME>"
         showConnections
         _codex_unset
@@ -133,7 +133,7 @@ function turnDeviceDown {
 function turnDeviceUp {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
-        crit_echo "Error: Connection name required."
+        crit_echo "Error: internet interface device name required."
         warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
         showConnections
         _codex_unset

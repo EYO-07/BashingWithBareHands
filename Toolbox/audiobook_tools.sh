@@ -53,91 +53,86 @@ function textReader {
 }
 function pdfAudiobookReader {
     source "$_SCRIPT_DIR/_codex.sh"
-    # Validate minimum arguments
-    if [ $# -lt 1 ] || [ $# -gt 4 ]; then
-        echo "Usage: pdfAudiobookReader <pdf>"
-        echo "       pdfAudiobookReader <pdf> <startingpage>"
-        echo "       pdfAudiobookReader <pdf> <startingpage> <language>"
-        echo "       pdfAudiobookReader <pdf> <startingpage> <pages_chunk_to_pause> <language>"
+    _play_stream() {
+        cvlc --play-and-exit --no-loop -
+    }
+    # Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]
+    if [ $# -lt 1 ]; then
+        echo "Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]"
         _codex_unset
         return 1
     fi
     local pdf_file="$1"
-    local start_page="${2:-}"
-    local pause_pages="${3:-}"
-    local language="${4:-}"
-    # Validate file exists
+    local start_page="${2:-1}"
+    local pause_chunk="${3:-1}" # Default pause every 1 page if not specified
+    local language="${4:-en}"
+    local total_pages=$(pdfinfo "$pdf_file" | grep Pages | awk '{print $2}')
     if [ ! -f "$pdf_file" ]; then
         echo "Error: File '$pdf_file' not found."
         _codex_unset
         return 1
     fi
-    # Build command array safely (NO eval needed)
-    local cmd=("$_SCRIPT_DIR/_readpdfaudio.py" "$pdf_file")
-    # Always add pausepages if we have 4 args (special case in your original logic)
-    # Or default to 1 if not specified in the 4-arg case
-    if [ $# -eq 4 ]; then
-        cmd+=("--pausepages=$pause_pages")
-        cmd+=("--startingpage=$start_page")
-        cmd+=("--language=$language")
-    elif [ $# -eq 3 ]; then
-        # Case: <pdf> <start> <language> -> pausepages defaults to 1 in your original
-        cmd+=("--pausepages=1")
-        cmd+=("--startingpage=$start_page")
-        cmd+=("--language=$language")
-    elif [ $# -eq 2 ]; then
-        # Case: <pdf> <start> -> pausepages defaults to 1
-        cmd+=("--pausepages=1")
-        cmd+=("--startingpage=$start_page")
-    else
-        # Case: <pdf> only -> pausepages defaults to 1
-        cmd+=("--pausepages=1")
-    fi
-    # Execute command directly from array
-    "${cmd[@]}"
+    echo "Starting PDF Audiobook: $pdf_file"
+    echo "Total Pages: $total_pages | Start: $start_page | Language: $language"
+    local current_page=$start_page
+    while [ $current_page -le $total_pages ]; do
+        echo "Reading Page $current_page..."
+        # 1. Extract single page to stdout using pdftotext
+        # 2. Pipe directly to gtts-cli (reading from stdin via '-')
+        # 3. Pipe MP3 stream to player
+        pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
+            gtts-cli -l "$language" -f - | \
+            _play_stream
+        # Pause Logic
+        if [ "$pause_chunk" -gt 0 ] && [ $(( current_page % pause_chunk )) -eq 0 ] && [ $current_page -lt $total_pages ]; then
+            echo -e "\n--- Paused after page $current_page ---"
+            read -p "Press Enter to continue (or 'q' to quit): " user_input
+            if [ "$user_input" = "q" ]; then
+                echo "Quitting..."
+                _codex_unset
+                return 0
+            fi
+        fi
+        ((current_page++))
+    done
+    echo "Finished reading."
     _codex_unset
-    return $?
+    return 0
 }
 function pdfAudiobookReaderSleep {
     source "$_SCRIPT_DIR/_codex.sh"
-    # Validate arguments
+    _play_stream() {
+        cvlc --play-and-exit --no-loop -
+    }
     if [ $# -ne 3 ]; then
         echo "Usage: pdfAudiobookReaderSleep <pdf> <chunk> <language>"
-        echo "  chunk: chapter number (1-based, each chunk = 50 pages)"
-        echo "  language: gTTS language code (e.g., en, es, fr)"
         _codex_unset
         return 1
     fi
     local pdf_file="$1"
     local chunk="$2"
     local language="$3"
-    # Validate file exists
-    if [ ! -f "$pdf_file" ]; then
-        echo "Error: File '$pdf_file' not found."
-        _codex_unset
-        return 1
+    local total_pages=$(pdfinfo "$pdf_file" | grep Pages | awk '{print $2}')
+    local spg=$(( 50 * (chunk - 1) + 1 ))
+    local epg=$(( 50 * chunk ))
+    # Cap end page at total pages
+    if [ $epg -gt $total_pages ]; then
+        epg=$total_pages
     fi
-    # Validate chunk is numeric
-    if ! [[ "$chunk" =~ ^[0-9]+$ ]]; then
-        echo "Error: chunk must be a positive integer."
-        _codex_unset
-        return 1
-    fi
-    # Calculate page range (50 pages per chunk)
-    local spg=$(( 50 * (chunk - 1) + 1 ))  # Start page (1-based)
-    local epg=$(( 50 * chunk ))            # End page
     echo "Reading chunk $chunk: pages $spg-$epg"
-    # Run Python script (NO eval needed)
-    "$_SCRIPT_DIR/_readpdfaudio.py" "$pdf_file" \
-        --pausepages=70 \
-        --startingpage="$spg" \
-        --language="$language" \
-        --endpage="$epg"
-    # Suspend requires sudo or polkit configuration
+    # Loop through the specific range
+    local current_page=$spg
+    while [ $current_page -le $epg ]; do
+        echo "Reading Page $current_page..."
+        pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
+            gtts-cli -l "$language" -f - | \
+            cvlc --play-and-exit --no-loop -
+        ((current_page++))
+    done
     echo "Suspending system..."
-    systemctl suspend  # Or configure passwordless sudo
+    systemctl suspend
     _codex_unset
     return 0
-}   
+}
 
 # END
