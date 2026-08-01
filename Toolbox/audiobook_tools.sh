@@ -2,15 +2,14 @@
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
-# 1. gtts-cli ; 2. vlc 
+# 1. gtts-cli ; 2. vlc ; 3. pdftotext
 
 # -- description 
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
-    local width=4
+    local width=5
     toolbox_title "Audiobook Tools"
-    info_echo "... requires gtts-cli, vlc and python-pdftotext"
-    info_echo "... it takes a bit of time to start, be patient"
+    info_echo "... requires gtts-cli, vlc and pdftotext (poppler)"
     toolbox_item "tools" "print this ..." $width
     #toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
