@@ -13,8 +13,8 @@ function tools {
     toolbox_item "tools" "print this ..." $width
     #toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
-    toolbox_item "pdfAudiobookReader" "read pdf books (needs to activate with chmod +x the _readpdfaudio.py script)" $width
-    toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 50 pages and suspend the system" $width
+    toolbox_item "pdfAudiobookReader" "read pdf books using gtts-cli and vlc" $width
+    toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 50 pages and suspend the system at end" $width
     toolbox_endl
     _codex_unset
 }
