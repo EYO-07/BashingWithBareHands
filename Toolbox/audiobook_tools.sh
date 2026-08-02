@@ -193,7 +193,7 @@ function pdfAudiobookReaderSleep {
             crit_echo "Error processing page $current_page. Stopping."
             # Save state on error too
             echo "$current_page" > "$journal_file"
-            break
+            continue
         fi
         # Save progress to journal BEFORE suspending
         # We save the NEXT page to read, so if we wake up, we don't repeat the current one
