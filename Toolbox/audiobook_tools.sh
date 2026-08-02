@@ -135,39 +135,81 @@ function pdfAudiobookReader {
 }   
 function pdfAudiobookReaderSleep {
     source "$_SCRIPT_DIR/_codex.sh"
+    # Define the player function locally (or source it if defined in _codex.sh)
     _play_stream() {
         cvlc --play-and-exit --no-loop -
     }
-    if [ $# -ne 3 ]; then
-        echo "Usage: pdfAudiobookReaderSleep <pdf> <chunk> <language>"
+    # Usage: pdfAudiobookReaderSleep <pdf> [start_page_or_chunk] [language]
+    # If start_page is 0 or omitted, it attempts to resume from journal.
+    # If a specific page is given, it starts there.
+    if [ $# -lt 1 ]; then
+        ls -a | grep ".pdf"
+        warn_echo "Usage: pdfAudiobookReaderSleep <pdf> [start_page] [language]"
+        info_echo "... use 0 as start_page to resume the reading"
         _codex_unset
         return 1
     fi
     local pdf_file="$1"
-    local chunk="$2"
-    local language="$3"
-    local total_pages=$(pdfinfo "$pdf_file" | grep Pages | awk '{print $2}')
-    local spg=$(( 25 * (chunk - 1) + 1 ))
-    local epg=$(( 25 * chunk ))
-    # Cap end page at total pages
-    if [ $epg -gt $total_pages ]; then
-        epg=$total_pages
+    local provided_start_page="$2"
+    local language="${3:-en}"
+    local chunk=25
+    if [ ! -f "$pdf_file" ]; then
+        ls -a | grep ".pdf"
+        crit_echo "Error: File '$pdf_file' not found."
+        _codex_unset
+        return 1
     fi
-    echo "Reading chunk $chunk: pages $spg-$epg"
-    # Loop through the specific range
-    local current_page=$spg
-    while [ $current_page -le $epg ]; do
+    # --- Journal Logic Start ---
+    local journal_file="_${pdf_file}.journal"
+    local start_page=1
+    # If no start page provided or explicitly 0, check journal
+    if [ -z "$provided_start_page" ] || [ "$provided_start_page" -eq 0 ]; then
+        if [ -f "$journal_file" ]; then
+            start_page=$(cat "$journal_file")
+            info_echo "Resuming from page $start_page (found in journal)"
+        else
+            info_echo "No journal found. Starting from page 1."
+        fi
+    else
+        start_page="$provided_start_page"
+    fi
+    # --- Journal Logic End ---
+    local total_pages=$(pdfinfo "$pdf_file" | grep Pages | awk '{print $2}')
+    # Validate start page
+    if [ "$start_page" -gt "$total_pages" ] || [ "$start_page" -lt 1 ]; then
+        crit_echo "Error: Start page $start_page is invalid. Total pages: $total_pages"
+        _codex_unset
+        return 1
+    fi
+    info_echo "Starting Sleep Audiobook: $pdf_file"
+    echo "Total Pages: $total_pages | Start: $start_page | Language: $language"
+    local current_page=$start_page
+    while [ $current_page -le $total_pages ]; do
         echo "Reading Page $current_page..."
-        pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
+        # Process the page
+        if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
             gtts-cli -l "$language" -f - | \
-            cvlc --play-and-exit --no-loop -
+            _play_stream; then
+            crit_echo "Error processing page $current_page. Stopping."
+            # Save state on error too
+            echo "$current_page" > "$journal_file"
+            break
+        fi
+        # Save progress to journal BEFORE suspending
+        # We save the NEXT page to read, so if we wake up, we don't repeat the current one
+        local next_page=$((current_page + 1))
+        if [ $((next_page-start_page)) -eq $chunk ]; then 
+            echo "$next_page" > "$journal_file"
+            info_echo "Progress saved to journal: Next page $next_page"
+            warn_echo "--- Suspending system after page $current_page ---"
+            break
+        fi
         ((current_page++))
     done
-    echo "Suspending system..."
     systemctl suspend
     _codex_unset
     return 0
-}
+}   
 function webpageReader {
     source "$_SCRIPT_DIR/_codex.sh"
     # Helper: Extract text from a single URL using w3m (preferred) or lynx
