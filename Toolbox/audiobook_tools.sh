@@ -84,7 +84,7 @@ function pdfAudiobookReader {
         if [ -f "$journal_file" ]; then
             # Read the last saved page from the journal
             start_page=$(cat "$journal_file")
-            echo "Resuming from page $start_page (found in journal)"
+            info_echo "Resuming from page $start_page (found in journal)"
         fi
     else
         start_page="$provided_start_page"
@@ -95,11 +95,11 @@ function pdfAudiobookReader {
     local total_pages=$(pdfinfo "$pdf_file" | grep Pages | awk '{print $2}')
     # Validate start page
     if [ "$start_page" -gt "$total_pages" ] || [ "$start_page" -lt 1 ]; then
-        echo "Error: Start page $start_page is invalid. Total pages: $total_pages"
+        crit_echo "Error: Start page $start_page is invalid. Total pages: $total_pages"
         _codex_unset
         return 1
     fi
-    echo "Starting PDF Audiobook: $pdf_file"
+    info_echo "Starting PDF Audiobook: $pdf_file"
     echo "Total Pages: $total_pages | Start: $start_page | Language: $language"
     local current_page=$start_page
     while [ $current_page -le $total_pages ]; do
@@ -110,26 +110,26 @@ function pdfAudiobookReader {
         if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
             gtts-cli -l "$language" -f - | \
             _play_stream; then
-            echo "Error processing page $current_page. Stopping."
+            crit_echo "Error processing page $current_page. Stopping."
             break
         fi
         # Pause Logic
         if [ "$pause_chunk" -gt 0 ] && [ $(( current_page % pause_chunk )) -eq 0 ] && [ $current_page -lt $total_pages ]; then
-            echo -e "\n--- Paused after page $current_page ---"  
+            warn_echo -e "\n--- Paused after page $current_page ---"  
             # *** WRITE TO JOURNAL ***
             # Save the current page so we can resume here next time
             echo "$current_page" > "$journal_file"
-            echo "Progress saved to journal: Page $current_page"
+            info_echo "Progress saved to journal: Page $current_page"
             read -p "Press Enter to continue (or 'q' to quit): " user_input
             if [ "$user_input" = "q" ]; then
-                echo "Quitting... Progress saved. Run the command again to resume."
+                warn_echo "Quitting... Progress saved. Run the command again to resume."
                 _codex_unset
                 return 0
             fi
         fi
         ((current_page++))
     done
-    echo "Finished reading."
+    good_echo "Finished reading."
     _codex_unset
     return 0
 }   
