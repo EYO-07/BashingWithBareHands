@@ -58,17 +58,44 @@ function pdfAudiobookReader {
     }
     # Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]
     if [ $# -lt 1 ]; then
-        echo "Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]"
+        ls -a | grep ".pdf"
+        warn_echo "Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]"
+        info_echo "... use 0 as start_page to resume the reading"
         _codex_unset
         return 1
     fi
     local pdf_file="$1"
-    local start_page="${2:-1}"
-    local pause_chunk="${3:-1}" # Default pause every 1 page if not specified
+    # If start_page is not provided, we will check the journal later
+    local provided_start_page="$2"
+    local pause_chunk="${3:-5}"
     local language="${4:-en}"
-    local total_pages=$(pdfinfo "$pdf_file" | grep Pages | awk '{print $2}')
     if [ ! -f "$pdf_file" ]; then
-        echo "Error: File '$pdf_file' not found."
+        ls -a | grep ".pdf"
+        crit_echo "Error: File '$pdf_file' not found."
+        _codex_unset
+        return 1
+    fi
+    # --- Journal Logic Start ---
+    # Create a journal filename based on the PDF name (e.g., book.pdf -> book.pdf.journal)
+    local journal_file="_${pdf_file}.journal"
+    local start_page=1
+    # If no start page was provided by the user, check for a resume point
+    if [ -z "$provided_start_page" ] || [ $provided_start_page -eq 0 ]; then
+        if [ -f "$journal_file" ]; then
+            # Read the last saved page from the journal
+            start_page=$(cat "$journal_file")
+            echo "Resuming from page $start_page (found in journal)"
+        fi
+    else
+        start_page="$provided_start_page"
+        # If user manually specifies a start page, we can optionally clear the old journal
+        # or just let it overwrite later. Here we just proceed.
+    fi
+    # --- Journal Logic End ---
+    local total_pages=$(pdfinfo "$pdf_file" | grep Pages | awk '{print $2}')
+    # Validate start page
+    if [ "$start_page" -gt "$total_pages" ] || [ "$start_page" -lt 1 ]; then
+        echo "Error: Start page $start_page is invalid. Total pages: $total_pages"
         _codex_unset
         return 1
     fi
@@ -78,17 +105,24 @@ function pdfAudiobookReader {
     while [ $current_page -le $total_pages ]; do
         echo "Reading Page $current_page..."
         # 1. Extract single page to stdout using pdftotext
-        # 2. Pipe directly to gtts-cli (reading from stdin via '-')
+        # 2. Pipe directly to gtts-cli
         # 3. Pipe MP3 stream to player
-        pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
+        if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
             gtts-cli -l "$language" -f - | \
-            _play_stream
+            _play_stream; then
+            echo "Error processing page $current_page. Stopping."
+            break
+        fi
         # Pause Logic
         if [ "$pause_chunk" -gt 0 ] && [ $(( current_page % pause_chunk )) -eq 0 ] && [ $current_page -lt $total_pages ]; then
-            echo -e "\n--- Paused after page $current_page ---"
+            echo -e "\n--- Paused after page $current_page ---"  
+            # *** WRITE TO JOURNAL ***
+            # Save the current page so we can resume here next time
+            echo "$current_page" > "$journal_file"
+            echo "Progress saved to journal: Page $current_page"
             read -p "Press Enter to continue (or 'q' to quit): " user_input
             if [ "$user_input" = "q" ]; then
-                echo "Quitting..."
+                echo "Quitting... Progress saved. Run the command again to resume."
                 _codex_unset
                 return 0
             fi
@@ -98,7 +132,7 @@ function pdfAudiobookReader {
     echo "Finished reading."
     _codex_unset
     return 0
-}
+}   
 function pdfAudiobookReaderSleep {
     source "$_SCRIPT_DIR/_codex.sh"
     _play_stream() {
