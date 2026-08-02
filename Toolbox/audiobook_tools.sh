@@ -190,7 +190,7 @@ function pdfAudiobookReaderSleep {
         if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
             gtts-cli -l "$language" -f - | \
             _play_stream; then
-            crit_echo "Error processing page $current_page. Stopping."
+            crit_echo "Error processing page $current_page. Skipping the page."
             # Save state on error too
             echo "$current_page" > "$journal_file"
             continue
