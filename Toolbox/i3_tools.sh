@@ -10,11 +10,12 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=6
     toolbox_title "i3 Window Manager Tools"
+    info_echo "... requires i3 window manager and jq for json manipulation"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "listApplications" "list applications on active workspaces" $width
     toolbox_item "toggleAllWindowsFloatMode" "toggle float mode for all windows in current workspace" $width
-    toolbox_item "transferApplications" "transfers all tiling applications from the current workspace to the specified one" $width
+    toolbox_item "listApplications" "list applications on active workspaces" $width
+    toolbox_item "transferApplications" "transfers applications from workspaces" $width
     toolbox_item "closeApplications" "sends a safe closing message (SIGTERM) to all applications in the specified workspace" $width
     #toolbox_item "..." "..." $width
     toolbox_endl
@@ -72,25 +73,31 @@ function toggleAllWindowsFloatMode {
     return 0
 }   
 function transferApplications {
-    # Usage: transferApplications <workspace_label>
-    # Transfers all tiling applications from the current workspace to the specified one.
     source "$_SCRIPT_DIR/_codex.sh"
+    # ... | $target_ws
     if [[ -z "$1" ]]; then
         warn_echo "Usage: transferApplications <workspace_label>"
+        warn_echo "Usage: transferApplications <dest_ws_label> <source_ws_label>"
+        listApplications
         _codex_unset
         return 1
     fi
     local target_ws="$1"
+    # ... | $current_ws
     local current_ws
-    local ids
-    # 1. Identify current workspace
-    current_ws=$(i3-msg -t get_workspaces | jq -r '.[] | select(.focused == true) | .name')
+    if [[ -z "$2" ]]; then
+        current_ws=$(i3-msg -t get_workspaces | jq -r '.[] | select(.focused == true) | .name')
+    else 
+        current_ws="$2"
+    fi
     if [[ "$current_ws" == "$target_ws" ]]; then
         info_echo "Source and target workspaces are the same."
         _codex_unset
         return 0
     fi
     info_echo "Transferring windows from '$current_ws' to '$target_ws'..."
+    # ... | $ids
+    local ids
     # 2. Get container IDs of tiling windows in current workspace
     # We select 'con' with a '.window' property to ignore empty containers or the workspace itself
     ids=$(i3-msg -t get_tree | jq -r --arg ws "$current_ws" '
