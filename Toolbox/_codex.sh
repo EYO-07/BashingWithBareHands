@@ -133,7 +133,7 @@ function token_prompt {
     if [ -z "$title" ]; then
         title='Token Confirmation Dialog'
     fi
-    warn_echo "$title :"
+    warn_echo "--- $title ---"
     echo "$description"
     echo "- type the following token to confirm:"
     warn_echo "> $confirm_token <"
