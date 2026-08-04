@@ -334,7 +334,14 @@ function tgptReader {
     [ -n "$_LLM_READER_KEY" ] && cmd_args+=("--key" "$_LLM_READER_KEY")
     [ -n "$_LLM_READER_URL" ] && cmd_args+=("--url" "$_LLM_READER_URL")
     # Add the user prompt as the final argument
-    "${cmd_args[@]}" "$prompt" | gtts-cli - | _play_stream
+    local generated_text
+    generated_text=$("${cmd_args[@]}" "$prompt")
+    # 2. Echo the text to the terminal
+    # Using 'echo' or 'printf'. printf is safer for preserving exact formatting.
+    echo "$generated_text"
+    # 3. Pipe the stored text to gtts-cli and then to the player
+    echo "$generated_text" | gtts-cli - | _play_stream
+    #"${cmd_args[@]}" "$prompt" | gtts-cli - | _play_stream
     _codex_unset
     return 0
 }

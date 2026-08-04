@@ -137,9 +137,9 @@ function installPackage {
     if sudo pacman -S --needed "$@"; then 
         _codex_unset
         return 0
-    else 
-        searchPackages "$@"
+    else
         warn_echo "WARNING: packages not found, check for spelling errors"
+        searchPackages "$@"
         _codex_unset
         return 1
     fi
