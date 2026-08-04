@@ -9,29 +9,55 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Audiobook Tools"
-    info_echo "... requires gtts-cli, vlc and pdftotext (poppler)"
     toolbox_item "tools" "print this ..." $width
-    #toolbox_item "inv" "print built-in commands ..." $width
+    
     toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
+    info_echo "... requires gtts-cli, vlc"
+    
     toolbox_item "pdfAudiobookReader" "read pdf books using gtts-cli and vlc" $width
     toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 25 pages and suspend the system at end" $width
+    info_echo "... requires gtts-cli, vlc and pdftotext (poppler)"
+    
     toolbox_item "webpageReader" "read a web page using gtts-cli, vlc. Requires lynx or w3m." $width
+    info_echo "... requires gtts-cli, vlc and lynx or w3m"
+    
+    toolbox_item "tgptReader" "reads a llm response using tgpt (default: koboldai)" $width
+    #toolbox_item "saveSafe_LLM_READER" "optional, save variables to optional arguments for tgpt" $width
+    #toolbox_item "loadSafe_LLM_READER" "load variables used for tgpt" $width
+    info_echo "... requires gtts-cli, vlc and tgpt"
     toolbox_endl
     _codex_unset
 }
 tools
+
+# -- helper functions 
+_play_stream() {
+    # cvlc needs --play-and-exit and often benefits from --no-loop
+    # If cvlc hangs, try: mpg123 -  OR  play -t mp3 -
+    cvlc --play-and-exit --no-loop -
+}
+_extract_text() {
+        local url="$1"
+        # Try w3m first, fallback to lynx if not found
+        if command -v w3m &> /dev/null; then
+            w3m -dump "$url"
+        elif command -v lynx &> /dev/null; then
+            lynx -dump -nolist "$url"
+        else
+            crit_echo "Error: Neither w3m nor lynx is installed." >&2
+            return 1
+        fi
+    }
+_play_text_stream() {
+    # Reads text from stdin -> gtts-cli -> stdout (MP3) -> cvlc
+    gtts-cli -f - | cvlc --play-and-exit --no-loop -
+}
 
 # -- implementation
 function textReader {
     source "$_SCRIPT_DIR/_codex.sh"
     # Usage: textReader <text_or_file>
     # Usage: <text_or_file> | textReader
-    # Helper to play audio stream
-    _play_stream() {
-        # cvlc needs --play-and-exit and often benefits from --no-loop
-        # If cvlc hangs, try: mpg123 -  OR  play -t mp3 -
-        cvlc --play-and-exit --no-loop -
-    }
     # Check if input is piped (stdin is not a terminal)
     if [ -n "$1" ]; then
         # ARGUMENT MODE
@@ -53,9 +79,6 @@ function textReader {
 }
 function pdfAudiobookReader {
     source "$_SCRIPT_DIR/_codex.sh"
-    _play_stream() {
-        cvlc --play-and-exit --no-loop -
-    }
     # Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]
     if [ $# -lt 1 ]; then
         ls -a | grep ".pdf"
@@ -136,9 +159,6 @@ function pdfAudiobookReader {
 function pdfAudiobookReaderSleep {
     source "$_SCRIPT_DIR/_codex.sh"
     # Define the player function locally (or source it if defined in _codex.sh)
-    _play_stream() {
-        cvlc --play-and-exit --no-loop -
-    }
     # Usage: pdfAudiobookReaderSleep <pdf> [start_page_or_chunk] [language]
     # If start_page is 0 or omitted, it attempts to resume from journal.
     # If a specific page is given, it starts there.
@@ -215,23 +235,6 @@ function webpageReader {
     # Helper: Extract text from a single URL using w3m (preferred) or lynx
     # w3m -dump: Renders HTML to text and outputs to stdout
     # -T text/html: Ensures correct parsing if piped
-    _extract_text() {
-        local url="$1"
-        # Try w3m first, fallback to lynx if not found
-        if command -v w3m &> /dev/null; then
-            w3m -dump "$url"
-        elif command -v lynx &> /dev/null; then
-            lynx -dump -nolist "$url"
-        else
-            crit_echo "Error: Neither w3m nor lynx is installed." >&2
-            return 1
-        fi
-    }
-    # Helper: Play the extracted text
-    _play_text_stream() {
-        # Reads text from stdin -> gtts-cli -> stdout (MP3) -> cvlc
-        gtts-cli -f - | cvlc --play-and-exit --no-loop -
-    }
     if [ -z "$1" ]; then
         crit_echo "Usage: webpageReader <textfile_or_url>" >&2
         _codex_unset
@@ -257,5 +260,83 @@ function webpageReader {
     _codex_unset
     return 0
 }   
+
+# -- implementation | llm 
+_LLM_READER_PROVIDER="koboldai" # default
+_LLM_READER_MODEL=""
+_LLM_READER_KEY=""
+_LLM_READER_URL=""
+function saveSafe_LLM_READER {
+    # Usage: saveSafe_LLM_READER [ <filename> ]
+    # Saves the variables used by tgptReader to a secure file.
+    # Defaults to ~/.config/tgpt_reader_config if no filename is provided.
+    # Sets permissions to 600 (Owner Read/Write only) for security.
+    local config_file="${1:-$HOME/.config/tgpt_reader_config}"
+    local config_dir
+    config_dir=$(dirname "$config_file")
+    # Ensure directory exists
+    if [ ! -d "$config_dir" ]; then
+        mkdir -p "$config_dir" || { crit_echo "Error: Cannot create directory $config_dir" >&2; return 1; }
+    fi
+    # Write variables to file
+    cat > "$config_file" <<EOF
+_LLM_READER_PROVIDER="$_LLM_READER_PROVIDER"
+_LLM_READER_MODEL="$_LLM_READER_MODEL"
+_LLM_READER_KEY="$_LLM_READER_KEY"
+_LLM_READER_URL="$_LLM_READER_URL"
+EOF
+    # Restrict permissions: Owner can read/write, no one else can access.
+    chmod 600 "$config_file" || { crit_echo "Error: Failed to set permissions on $config_file" >&2; return 1; }
+    info_echo "Configuration saved securely to $config_file"
+    _codex_unset
+    return 0
+}
+function loadSafe_LLM_READER {
+    # Usage: loadSafe_LLM_READER [ <filename> ]
+    # Loads llm safe config by filename, sourcing the contents of variables.
+    # Defaults to ~/.config/tgpt_reader_config if no filename is provided.
+    local config_file="${1:-$HOME/.config/tgpt_reader_config}"
+    if [ ! -f "$config_file" ]; then
+        warn_echo "Config file not found: $config_file (Using defaults)" >&2
+        _codex_unset
+        return 0
+    fi
+    # Security Check: Ensure file is not world-readable before sourcing
+    local perms
+    perms=$(stat -c "%a" "$config_file" 2>/dev/null || stat -f "%Lp" "$config_file" 2>/dev/null)
+    if [ "$perms" != "600" ] && [ "$perms" != "400" ]; then
+        crit_echo "Security Warning: $config_file has insecure permissions ($perms). Expected 600." >&2
+        crit_echo "Refusing to source insecure file. Run 'saveSafe_LLM_READER' to fix." >&2
+        _codex_unset
+        return 1
+    fi
+    source "$config_file"
+    info_echo "Configuration loaded from $config_file"
+    _codex_unset
+    return 0
+}
+function tgptReader {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Default to koboldai if not overridden
+    local llm_provider="${_LLM_READER_PROVIDER:-koboldai}"
+    if [ "$#" -eq 0 ]; then
+        warn_echo 'Usage: tgptReader <prompt>' >&2
+        _codex_unset
+        return 0
+    fi 
+    local prompt="$*"
+    info_echo "... starting llm reader "
+    info_echo "Provider : $llm_provider"
+    warn_echo "... be patient, this could take time depending on provider."
+    local cmd_args=("tgpt" "--provider" "$llm_provider" "-w" "-q")
+    # Append optional arguments only if variables are set
+    [ -n "$_LLM_READER_MODEL" ] && cmd_args+=("--model" "$_LLM_READER_MODEL")
+    [ -n "$_LLM_READER_KEY" ] && cmd_args+=("--key" "$_LLM_READER_KEY")
+    [ -n "$_LLM_READER_URL" ] && cmd_args+=("--url" "$_LLM_READER_URL")
+    # Add the user prompt as the final argument
+    "${cmd_args[@]}" "$prompt" | gtts-cli - | _play_stream
+    _codex_unset
+    return 0
+}
 
 # END
