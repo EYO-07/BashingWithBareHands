@@ -133,9 +133,10 @@ function token_prompt {
     if [ -z "$title" ]; then
         title='Token Confirmation Dialog'
     fi
-    warn_echo "$title : $description"
-    echo "- please type the following token to confirm:"
-    warn_echo ">>> $confirm_token <<<"
+    warn_echo "$title :"
+    echo "$description"
+    echo "- type the following token to confirm:"
+    warn_echo "> $confirm_token <"
     # Read input silently? No, usually we want them to see what they type for tokens
     # unless it's a password. For confirmation tokens, visible input is standard.
     read -p "> " user_input
