@@ -24,6 +24,7 @@ function tools {
     toolbox_item "restoreBackup <file.7z> [out_dir]" "..." $width
     toolbox_item "restoreBackup <file.7z>" "... current directory" $width
     toolbox_item "viewBackupContents" "view the contents of a compressed archive" $width
+    toolbox_item "showFileTree" "display files recursively" $width
     toolbox_endl
     _codex_unset
 }
@@ -499,6 +500,101 @@ function deleteFile {
         _codex_unset
         return 1
     fi
+}   
+function showFileTree {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Usage: showFileTree <folder_path> [ <keyword1> <keyword2> ... ]
+    if [ $# -eq 0 ]; then 
+        ls -a
+        warn_echo "Usage: showFileTree <folder_path>"
+        _codex_unset
+        return 0
+    fi
+    if [ -t 0 ] || [ -c /dev/tty ]; then
+        echo "" 2> /dev/null
+    else
+        crit_echo "Error: non-interactive mode"
+        return 1
+    fi
+    local dir="${1:-.}"
+    shift
+    local keywords=("$@")
+    # Global line counter for pagination
+    local PRINT_COUNT=0
+    local PAGE_LIMIT=50
+    # Internal recursive function
+    _print_tree() {
+        local current_dir="$1"
+        local indent="$2"
+        local items=()
+        local i=0
+        # Read directory contents into an array
+        while IFS= read -r -d '' item; do
+            items+=("$item")
+        done < <(find "$current_dir" -maxdepth 1 -mindepth 1 -print0 | sort -z)
+        local count=${#items[@]}
+        local last_index=$((count - 1))
+        for ((i=0; i<count; i++)); do
+            local item="${items[$i]}"
+            local name=$(basename "$item")
+            local connector="├── "
+            local next_indent="│   "
+            if [ $i -eq $last_index ]; then
+                connector="└── "
+                next_indent="    "
+            fi
+            # --
+            local should_print=0
+            if [ -d "$item" ]; then
+                # Always print directories to keep tree structure
+                should_print=1
+            elif [ ${#keywords[@]} -eq 0 ]; then
+                # No keywords: print all files
+                should_print=1
+            else
+                # Keywords exist: print file ONLY if it matches
+                for kw in "${keywords[@]}"; do
+                    if [[ "$name" == *"$kw"* ]]; then
+                        should_print=1
+                        break
+                    fi
+                done
+            fi
+            # --
+            if [ $should_print -eq 1 ]; then
+                echo -e "${indent}${connector}${name}"
+                ((PRINT_COUNT++))
+                # Pagination Check: Prompt every PAGE_LIMIT lines
+                if (( PRINT_COUNT % PAGE_LIMIT == 0 )); then
+                    echo -n $'\n'"--- Press any key to continue (Ctrl+C to exit) ---"$'\n'
+                    # Read from /dev/tty to ensure we get keyboard input
+                    # -n 1: read 1 char, -s: silent, -r: raw                    
+                    if ! read -n 1 -s -r < /dev/tty; then
+                        # Handle Ctrl+C or EOF gracefully
+                        echo ""
+                        _codex_unset
+                        return 1
+                    fi
+                    echo "" # Newline after keypress
+                fi
+            fi
+            # Recurse if directory
+            if [ -d "$item" ]; then
+                _print_tree "$item" "${indent}${next_indent}"
+            fi
+        done
+    }
+    # Validate input directory
+    if [ ! -d "$dir" ]; then
+        crit_echo "Error: '$dir' is not a valid directory." >&2
+        _codex_unset
+        return 1
+    fi
+    # Print root
+    echo "$(basename "$dir")"
+    ((PRINT_COUNT++))
+    _print_tree "$dir" ""
+    _codex_unset
 }   
 
 # ""
