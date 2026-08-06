@@ -10,13 +10,15 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
-    local width=3
+    local width=5
     toolbox_title "Change File Mode Tools"
+    info_echo "... requires: bash, chmod, ls, stat (optional fallback used)"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "showAttributes" "display file attributes" $width
     toolbox_item "activate" "turn script or file executable (chmod +x)" $width
     toolbox_item "deactivate" "turn off the executable attribute (chmod -x)" $width
+    toolbox_item "setStrictUserPermission" "set strict user read and write permissions (bypassed by root)" $width
     toolbox_endl
     _codex_unset
 }
@@ -163,5 +165,45 @@ function deactivate {
     done
     _codex_unset
 }   
+function setStrictUserPermission {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local target="$1"
+    # Check if argument is provided
+    if [[ -z "$target" ]]; then
+        ls -a
+        warn_echo "Usage: setStrictUserPermission <file_or_folder>"
+        _codex_unset
+        return 0
+    fi
+    # Check if target exists
+    if [[ ! -e "$target" ]]; then
+        crit_echo "Error: '$target' does not exist." >&2
+        _codex_unset
+        return 1
+    fi
+    # Apply permissions
+    if [[ -d "$target" ]]; then
+        # If it's a directory, owner needs execute (x) to access contents
+        # u=rwx: Owner gets Read, Write, Execute
+        # go=: Group and Others get nothing
+        chmod u=rwx,go= "$target"
+    else
+        # If it's a file, owner gets Read and Write only (no Execute)
+        # u=rw: Owner gets Read, Write
+        # go=: Group and Others get nothing
+        chmod u=rw,go= "$target"
+    fi
+    # Check if chmod succeeded
+    if [[ $? -eq 0 ]]; then
+        good_echo "Permissions set successfully for '$target'."
+        _codex_unset
+        return 0
+    else
+        crit_echo "Error: Failed to set permissions for '$target'." >&2
+        _codex_unset
+        return 1
+    fi
+    _codex_unset
+}
 
 # END   
