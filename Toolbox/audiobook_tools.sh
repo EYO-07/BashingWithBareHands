@@ -1,4 +1,5 @@
 # BEGIN Toolbox/audiobook_tools.sh
+# {TextMarker|cyan:_play_stream|magenta:_play_text_stream}
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
@@ -9,22 +10,23 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Audiobook Tools"
+    info_echo "... requires gtts-cli or flite to transform text to speech"
     toolbox_item "tools" "print this ..." $width
     
     toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
-    info_echo "... requires gtts-cli, vlc"
+    echo "... requires vlc"
     
     toolbox_item "pdfAudiobookReader" "read pdf books using gtts-cli and vlc" $width
     toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 25 pages and suspend the system at end" $width
-    info_echo "... requires gtts-cli, vlc and pdftotext (poppler)"
+    echo "... requires vlc and pdftotext (poppler)"
     
     toolbox_item "webpageReader" "read a web page using gtts-cli, vlc. Requires lynx or w3m." $width
-    info_echo "... requires gtts-cli, vlc and lynx or w3m"
+    echo "... requires vlc and lynx or w3m"
     
     toolbox_item "tgptReader" "reads a llm response using tgpt (default: koboldai)" $width
     #toolbox_item "saveSafe_LLM_READER" "optional, save variables to optional arguments for tgpt" $width
     #toolbox_item "loadSafe_LLM_READER" "load variables used for tgpt" $width
-    info_echo "... requires gtts-cli, vlc and tgpt"
+    echo "... requires vlc and tgpt"
     toolbox_endl
     _codex_unset
 }
@@ -32,25 +34,36 @@ tools
 
 # -- helper functions 
 _play_stream() {
-    # cvlc needs --play-and-exit and often benefits from --no-loop
-    # If cvlc hangs, try: mpg123 -  OR  play -t mp3 -
     cvlc --play-and-exit --no-loop -
 }
-_extract_text() {
-        local url="$1"
-        # Try w3m first, fallback to lynx if not found
-        if command -v w3m &> /dev/null; then
-            w3m -dump "$url"
-        elif command -v lynx &> /dev/null; then
-            lynx -dump -nolist "$url"
-        else
-            crit_echo "Error: Neither w3m nor lynx is installed." >&2
-            return 1
-        fi
-    }
 _play_text_stream() {
-    # Reads text from stdin -> gtts-cli -> stdout (MP3) -> cvlc
-    gtts-cli -f - | cvlc --play-and-exit --no-loop -
+    source "$_SCRIPT_DIR/_codex.sh"
+    if is_command_valid "gtts-cli --version"; then 
+        gtts-cli -f - | _play_stream
+        _codex_unset
+        return 0
+    fi 
+    if is_command_valid "flite -t ''"; then 
+        local text=$(cat)
+        flite -voice slt -t "$text"
+        _codex_unset
+        return 0
+    fi 
+    crit_echo "Error: no voice backend available"
+    _codex_unset
+    return 1
+}
+_extract_text() {
+    local url="$1"
+    # Try w3m first, fallback to lynx if not found
+    if command -v w3m &> /dev/null; then
+        w3m -dump "$url"
+    elif command -v lynx &> /dev/null; then
+        lynx -dump -nolist "$url"
+    else
+        crit_echo "Error: Neither w3m nor lynx is installed." >&2
+        return 1
+    fi
 }
 
 # -- implementation
@@ -63,11 +76,11 @@ function textReader {
         # ARGUMENT MODE
         if [ -f "$1" ]; then
             # File argument: Stream file -> gtts-cli -> player
-            gtts-cli -f "$1" | _play_stream
+            echo "$1" | _play_text_stream
         else
             # Text argument: Echo text -> gtts-cli -> player
             # Using echo avoids variable storage limits for very long strings
-            echo "$*" | gtts-cli -f - | _play_stream
+            echo "$*" | _play_text_stream
         fi
     else
         crit_echo "Usage: textReader <text_or_file>" >&2
@@ -130,11 +143,19 @@ function pdfAudiobookReader {
         # 1. Extract single page to stdout using pdftotext
         # 2. Pipe directly to gtts-cli
         # 3. Pipe MP3 stream to player
-        if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
-            gtts-cli -l "$language" -f - | \
-            _play_stream; then
-            crit_echo "Error processing page $current_page. Stopping."
-            break
+        if is_command_valid "gtts-cli --version"; then 
+            if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
+                gtts-cli -l "$language" -f - | \
+                _play_stream; then
+                crit_echo "Error processing page $current_page. Stopping."
+                break
+            fi
+        else
+            if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
+                _play_text_stream ; then
+                crit_echo "Error processing page $current_page. Stopping."
+                break
+            fi
         fi
         # Pause Logic
         if [ "$pause_chunk" -gt 0 ] && [ $(( current_page % pause_chunk )) -eq 0 ] && [ $current_page -lt $total_pages ]; then
@@ -207,13 +228,23 @@ function pdfAudiobookReaderSleep {
     while [ $current_page -le $total_pages ]; do
         echo "Reading Page $current_page..."
         # Process the page
-        if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
-            gtts-cli -l "$language" -f - | \
-            _play_stream; then
-            crit_echo "Error processing page $current_page. Skipping the page."
-            # Save state on error too
-            echo "$current_page" > "$journal_file"
-            continue
+        if is_command_valid "gtts-cli --version"; then 
+            if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
+                gtts-cli -l "$language" -f - | \
+                _play_stream; then
+                crit_echo "Error processing page $current_page. Skipping the page."
+                # Save state on error too
+                echo "$current_page" > "$journal_file"
+                continue
+            fi        
+        else
+            if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
+                _play_text_stream ; then
+                crit_echo "Error processing page $current_page. Skipping the page."
+                # Save state on error too
+                echo "$current_page" > "$journal_file"
+                continue
+            fi
         fi
         # Save progress to journal BEFORE suspending
         # We save the NEXT page to read, so if we wake up, we don't repeat the current one
@@ -340,8 +371,8 @@ function tgptReader {
     # Using 'echo' or 'printf'. printf is safer for preserving exact formatting.
     echo "$generated_text"
     # 3. Pipe the stored text to gtts-cli and then to the player
-    echo "$generated_text" | gtts-cli - | _play_stream
-    #"${cmd_args[@]}" "$prompt" | gtts-cli - | _play_stream
+    echo "$generated_text" | _play_text_stream
+    #"${cmd_args[@]}" "$prompt" | _play_text_stream
     _codex_unset
     return 0
 }
