@@ -244,7 +244,7 @@ function checkFilesystemErrors {
     local FSCK_EXIT
     local RESPONSE
     # --- L: Extract device name from label ---
-    DEVICE=$(blkid -L "$LABEL" 2>/dev/null)
+    DEVICE=$(sudo blkid -L "$LABEL" 2>/dev/null)
     if [[ -z "$DEVICE" ]]; then
         crit_echo "Error: Label '$LABEL' not found."
         _codex_unset
