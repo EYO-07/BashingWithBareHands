@@ -11,6 +11,7 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=9
     toolbox_title "Pacman Package Manager Tools"
+    info_echo "... exclusive for pacman package manager (arch-linux)"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "listInstalledPackages [ <kw1> <kw2> ... ]" "search packages by matching keywords" $width
