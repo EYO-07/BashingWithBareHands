@@ -31,7 +31,7 @@ function _codex_unset {
     unset -f inventory_title inventory_item inventory_endl 
     unset -f token_prompt yn_prompt
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
-    unset -f get_abs_path
+    unset -f get_abs_path create_intermediate_dirs
     unset -f is_command_valid
 }
 
@@ -199,6 +199,20 @@ function get_abs_path {
             fi
         fi
     fi
+}
+function create_intermediate_dirs {
+    if [ $# -ne 1 ]; then 
+        return 1
+    fi
+    local absolute_path="$1"
+    local dir_part="$(dirname "$absolute_path")"
+    if [[ -d "$dir_part" ]]; then
+        return 0
+    fi 
+    mkdir -p "$dir_part" || {
+        return 1
+    }
+    return 0
 }
 
 # -- git-like directories

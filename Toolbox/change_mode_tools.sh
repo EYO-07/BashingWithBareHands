@@ -19,6 +19,7 @@ function tools {
     toolbox_item "activate" "turn script or file executable (chmod +x)" $width
     toolbox_item "deactivate" "turn off the executable attribute (chmod -x)" $width
     toolbox_item "setStrictUserPermission" "set strict user read and write permissions (bypassed by root)" $width
+    toolbox_item "takeOwnership" "make the current user the owner of the file or directory (bypassed by root)." $width
     toolbox_endl
     _codex_unset
 }
@@ -205,5 +206,45 @@ function setStrictUserPermission {
     fi
     _codex_unset
 }
+function takeOwnership {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Check if path is provided
+    if [ -z "$1" ]; then
+        ls -a
+        warn_echo "Usage: takeOwnership <path>"
+        _codex_unset
+        return 1
+    fi
+    local target_path="$1"
+    # Resolve to absolute path and check if it's a directory
+    if [ ! -d "$target_path" ]; then
+        crit_echo "Error: '$target_path' is not a valid directory."
+        _codex_unset
+        return 1
+    fi
+    # Prevent accidental use on critical system directories
+    case "$target_path" in
+        /|/etc|/usr|/bin|/sbin|/lib|/lib64|/boot|/dev|/proc|/sys)
+            crit_echo "Error: Refusing to change ownership of critical system directory: $target_path"
+            _codex_unset
+            return 1
+            ;;
+    esac
+    # Confirm with the user
+    if ! token_prompt "Confirmation" "This will recursively change ownership of '$target_path' to $USER:$USER. Some files may be intended to be owned by root. Proceed?" ; then 
+        _codex_unset
+        return 0
+    fi 
+    info_echo "Taking ownership of $target_path..."
+    # Execute chown with error handling
+    if sudo chown -R "$USER":"$USER" "$target_path"; then
+        good_echo "Successfully changed ownership of $target_path to $USER:$USER"
+    else
+        crit_echo "Error: Failed to change ownership of some files in $target_path"
+        _codex_unset
+        return 1
+    fi
+    _codex_unset
+}   
 
 # END   

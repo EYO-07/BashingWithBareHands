@@ -9,6 +9,7 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Files/Filesystem Tools"
+    info_echo "... wrap filesystem tools: touch, rm, makedir."
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "createFile" "if not exists creates a regular file by filename" $width
@@ -20,11 +21,12 @@ function tools {
     toolbox_item "getHashInfo" "sha256 and other useful hashs for a file" $width
     toolbox_item "getSize" "estimate or get metadata of filesize of folder or file" $width
     toolbox_item "showMetadata" "show metadata info for file or folder" $width
+    toolbox_item "showFileTree" "display files recursively" $width
+    info_echo "... backup functions requires 7z"
     toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp" $width
     toolbox_item "restoreBackup <file.7z> [out_dir]" "..." $width
     toolbox_item "restoreBackup <file.7z>" "... current directory" $width
     toolbox_item "viewBackupContents" "view the contents of a compressed archive" $width
-    toolbox_item "showFileTree" "display files recursively" $width
     toolbox_endl
     _codex_unset
 }
@@ -36,12 +38,21 @@ function inv {
     inventory_item 1 "7z x" "extracts a compressed file preserving the folder structure" $width
     inventory_item 2 "7z e <archive> <path_in_archive> -o<out_dir>" "extracts a single file from compressed archive" $width
     inventory_item 3 "7z t" "test file integrity" $width
+    inventory_item 4 "touch FILENAME" "creates a regular empty file" $width
+    inventory_item 5 "mkdir -p PATH" "creates a directory" $width
     inventory_endl 
     _codex_unset
 }
 
 # -- implementation
 function createFile {
+    # Logic
+    # C := createFile 
+    # -> C || % no args || info | usage | return 
+    # -> C || % no args | $absolute_path || % can check if exists | % else 
+    # -> C || % no args | $absolute_path | % file exists || return 
+    # -> C || % no args | $absolute_path | % file exists | % else || % touch || return 
+    # -> C || % no args | $absolute_path | % file exists | % else || % touch | % else || return 
     source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
         ls -a
@@ -79,7 +90,7 @@ function renameFile {
     # Validate arguments (expects 2: old_name new_name)
     if [ $# -ne 2 ]; then 
         ls -a
-        warn_echo "USAGE: renameFile <current_filename> <new_filename>"
+        warn_echo "Usage: renameFile <current_filename> <new_filename>"
         return 1
     fi
     local old_filename="$1"
@@ -597,6 +608,42 @@ function showFileTree {
     _codex_unset
 }   
 
-# ""
+# <<< OLD 
+
+
+
+# REFACTORED >>>
+
+function createFile {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [ $# -ne 1 ]; then 
+        ls -a
+        warn_echo "Usage: createFile <filename>"
+        _codex_unset
+        return 1
+    fi
+    local filename="$1"
+    # Quote "$filename" to handle spaces
+    local absolute_path="$(get_abs_path "$filename")"
+    if [[ -f "$absolute_path" ]]; then
+        warn_echo "File Already Exists: $absolute_path"  
+        _codex_unset
+        return 0
+    fi 
+    if ! create_intermediate_dirs "$absolute_path"; then
+        crit_echo "Error: Could not create directories for '$absolute_path'"
+        _codex_unset
+        return 1
+    fi
+    if touch "$absolute_path"; then
+        good_echo "Created file: $absolute_path"
+        _codex_unset 
+        return 0
+    else
+        crit_echo "Error: Failed to create file '$absolute_path'"
+        _codex_unset
+        return 1
+    fi
+}   
 
 # END
