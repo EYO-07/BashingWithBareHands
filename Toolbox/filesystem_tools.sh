@@ -9,7 +9,8 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Files/Filesystem Tools"
-    info_echo "... wrap filesystem tools: touch, rm, makedir."
+    info_echo "... requires: sudo, touch, rm, makedir"
+    info_echo "... backup functions requires: 7z"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "createFile" "if not exists creates a regular file by filename" $width
@@ -22,7 +23,6 @@ function tools {
     toolbox_item "getSize" "estimate or get metadata of filesize of folder or file" $width
     toolbox_item "showMetadata" "show metadata info for file or folder" $width
     toolbox_item "showFileTree" "display files recursively" $width
-    info_echo "... backup functions requires 7z"
     toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp" $width
     toolbox_item "restoreBackup <file.7z> [out_dir]" "..." $width
     toolbox_item "restoreBackup <file.7z>" "... current directory" $width
@@ -33,7 +33,7 @@ function tools {
 tools
 function inv {
     source "$_SCRIPT_DIR/_codex.sh"
-    inventory_title "7z {File Compression}"
+    inventory_title "File/Filesystem Tools"
     local width=9
     inventory_item 1 "7z x" "extracts a compressed file preserving the folder structure" $width
     inventory_item 2 "7z e <archive> <path_in_archive> -o<out_dir>" "extracts a single file from compressed archive" $width
@@ -45,158 +45,6 @@ function inv {
 }
 
 # -- implementation
-function createFile {
-    # Logic
-    # C := createFile 
-    # -> C || % no args || info | usage | return 
-    # -> C || % no args | $absolute_path || % can check if exists | % else 
-    # -> C || % no args | $absolute_path | % file exists || return 
-    # -> C || % no args | $absolute_path | % file exists | % else || % touch || return 
-    # -> C || % no args | $absolute_path | % file exists | % else || % touch | % else || return 
-    source "$_SCRIPT_DIR/_codex.sh"
-    if [ $# -ne 1 ]; then 
-        ls -a
-        warn_echo "USAGE: createFile <filename>"
-        return 1
-    fi
-    local filename="$1"
-    local absolute_path
-    if [[ -e "$filename" ]]; then
-        absolute_path="$(cd "$(dirname "$filename")" && pwd)/$(basename "$filename")"
-    else
-        local dir_part="$(dirname "$filename")"
-        local file_part="$(basename "$filename")"
-        if [[ ! -d "$dir_part" ]]; then
-            mkdir -p "$dir_part" || {
-                warn_echo "Error: Could not create directory '$dir_part'"
-                return 1
-            }
-        fi        
-        absolute_path="$(cd "$dir_part" && pwd)/$file_part"
-    fi
-    if [[ -f "$absolute_path" ]]; then
-        warn_echo "File Already Exists"
-    else 
-        if touch "$absolute_path"; then
-            echo "Created file: $absolute_path"
-        else
-            warn_echo "Error: Failed to create file '$absolute_path'"
-        fi
-    fi
-    _codex_unset
-}
-function renameFile {
-    source "$_SCRIPT_DIR/_codex.sh"
-    # Validate arguments (expects 2: old_name new_name)
-    if [ $# -ne 2 ]; then 
-        ls -a
-        warn_echo "Usage: renameFile <current_filename> <new_filename>"
-        return 1
-    fi
-    local old_filename="$1"
-    local new_filename="$2"
-    local old_absolute_path
-    local new_absolute_path
-    local dir_part
-    local file_part
-    # --- Resolve Old Absolute Path ---
-    if [[ ! -e "$old_filename" ]]; then
-        crit_echo "Error: Source file does not exist: $old_filename"
-        _codex_unset
-        return 1
-    fi
-    old_absolute_path="$(cd "$(dirname "$old_filename")" && pwd)/$(basename "$old_filename")"
-    # --- Resolve New Absolute Path ---
-    # Check if target exists or if only the parent path exists
-    if [[ -e "$new_filename" ]]; then
-        new_absolute_path="$(cd "$(dirname "$new_filename")" && pwd)/$(basename "$new_filename")"
-    else
-        dir_part="$(dirname "$new_filename")"
-        file_part="$(basename "$new_filename")"
-        # Ensure parent directory for new name exists
-        if [[ ! -d "$dir_part" ]]; then
-            if ! mkdir -p "$dir_part"; then
-                crit_echo "Error: Could not create directory '$dir_part' for new filename"
-                _codex_unset
-                return 1
-            fi
-        fi
-        new_absolute_path="$(cd "$dir_part" && pwd)/$file_part"
-    fi
-    # --- Check for Collision ---
-    if [[ -e "$new_absolute_path" ]]; then
-        # If old and new resolve to the same file, do nothing
-        if [[ "$old_absolute_path" == "$new_absolute_path" ]]; then
-            echo "Source and destination are identical. No action taken."
-        else 
-            warn_echo "Target already exists: $new_absolute_path"
-            crit_echo "Operation Cancelled"
-        fi
-        _codex_unset
-        return 0
-    fi
-    # --- Perform Rename ---
-    if token_prompt "Confirm Renaming" "$old_filename to $new_absolute_path"; then 
-        if mv -- "$old_absolute_path" "$new_absolute_path"; then
-            echo "Renamed: $old_absolute_path -> $new_absolute_path"
-            _codex_unset
-            return 0
-        else
-            warn_echo "Error: Failed to rename file"
-            _codex_unset
-            return 1
-        fi
-    fi
-}
-function createFolder {
-    source "$_SCRIPT_DIR/_codex.sh"
-    if [ $# -ne 1 ]; then 
-        ls -a
-        warn_echo "USAGE: createFolder <foldername>"
-        return 1
-    fi
-    local foldername="$1"
-    local absolute_path
-    local dir_part
-    local folder_part
-    # --- Resolve Absolute Path ---
-    if [[ -d "$foldername" ]]; then
-        # Folder exists, resolve directly
-        absolute_path="$(cd "$(dirname "$foldername")" && pwd)/$(basename "$foldername")"
-    else
-        # Folder does not exist, resolve parent dir
-        dir_part="$(dirname "$foldername")"
-        folder_part="$(basename "$foldername")"
-        # Ensure parent directory exists
-        if [[ ! -d "$dir_part" ]]; then
-            crit_echo "this function was not intended to create nested subfolders structure"
-            warn_echo "create the parent folder first"
-            _codex_unset
-            return 1
-        fi
-        absolute_path="$(cd "$dir_part" && pwd)/$folder_part"
-    fi
-    # --- Check Existence & Create ---
-    if [[ -d "$absolute_path" ]]; then
-        warn_echo "Folder already exists: $absolute_path"
-    else
-        # Check if a FILE with the same name exists (safety check)
-        if [[ -e "$absolute_path" ]]; then
-            crit_echo "Error: A file with this name already exists: $absolute_path"
-            _codex_unset
-            return 1
-        fi
-        if mkdir -- "$absolute_path"; then
-            echo "Created folder: $absolute_path"
-        else
-            crit_echo "Error: Failed to create folder '$absolute_path'"
-            _codex_unset
-            return 1
-        fi
-    fi
-    _codex_unset
-    return 0
-}   
 function getSize { # estimate or get metadata of filesize of folder or file 
     source "$_SCRIPT_DIR/_codex.sh"
     # estimate or get metadata of filesize of folder or file 
@@ -234,33 +82,6 @@ function getSize { # estimate or get metadata of filesize of folder or file
         du -s "$path" | cut -f1
     fi
     _codex_unset
-}
-function createFileFromTemplate { # create a template file from ~/Template folder 
-    source "$_SCRIPT_DIR/_codex.sh"
-    if [[ "$#" -ne 2 ]]; then
-        info_echo "Available Templates (~/Templates): "
-        ls ~/Templates
-        warn_echo "USAGE: createFileFromTemplate <template_filename> <filename>"
-        _codex_unset
-        return 0
-    fi
-    if [[ ! -f ~/Templates/"$1" ]]; then
-        echo "Error: Template '$1' not found in ~/Templates/"
-        ls ~/Templates -l
-        _codex_unset
-        return 1
-    fi
-    local new_absolute_path
-    new_absolute_path="$(get_abs_path $2)"
-    if [ -e "$new_absolute_path" ]; then 
-        crit_echo "File Already Exists"
-        _codex_unset
-        return 1
-    fi
-    cp --verbose ~/Templates/"$1" "$new_absolute_path"
-    color_echo 32 "File Created Successfully from Template"
-    _codex_unset
-    return 0
 }
 function getHashInfo { # sha256 and other useful hashs for a file
     source "$_SCRIPT_DIR/_codex.sh"
@@ -426,92 +247,6 @@ function viewBackupContents { # view the contents of a compressed archive
     esac
     _codex_unset
 }
-function deleteFolder { 
-    source "$_SCRIPT_DIR/_codex.sh"
-    # USAGE: deleteFolder <path>
-    # Recursively deletes a folder after confirming with a random token.
-    local target_path="${1:-}"
-    # 1. Validate Input
-    if [ -z "$target_path" ]; then
-        ls -a
-        warn_echo "Usage: deleteFolder <path>"
-        _codex_unset
-        return 0
-    fi
-    # 2. Check Existence
-    if [ ! -d "$target_path" ]; then
-        crit_echo "Error: Directory '$target_path' does not exist or is not a directory."
-        _codex_unset
-        return 1
-    fi
-    # 3. Gather Information (Size & Contents)
-    # Get human-readable size
-    local dir_size
-    dir_size=$(du -sh "$target_path" 2>/dev/null | cut -f1)
-    # Count items
-    local item_count
-    item_count=$(find "$target_path" -mindepth 1 | wc -l | tr -d ' ')
-    info_echo "--- Deletion Preview ---"
-    echo "Target: $target_path"
-    echo "Total Size: $dir_size"
-    echo "Items to delete: $item_count"
-    if token_prompt "Confirm deletion" "this action is irreversible" ; then 
-        rm -rf "$target_path"
-        if [ $? -eq 0 ]; then
-            good_echo "=== Deletion Successful ==="
-            _codex_unset
-            return 0
-        else
-            crit_echo "=== Deletion Failed (Permission error?) ==="
-            _codex_unset
-            return 1
-        fi
-    else
-        _codex_unset
-        return 1
-    fi
-}
-function deleteFile { 
-    source "$_SCRIPT_DIR/_codex.sh"
-    local target_path="${1:-}"
-    if [ -z "$target_path" ]; then
-        ls -a
-        echo "Usage: deleteFile <path>"
-        _codex_unset
-        return 0
-    fi
-    # --
-    if [ ! -f "$target_path" ]; then
-        if [ -d "$target_path" ]; then
-            crit_echo "Error: '$target_path' is a directory. Use deleteFolder instead."
-        else
-            crit_echo "Error: File '$target_path' does not exist."
-        fi
-        _codex_unset
-        return 1
-    fi
-    # -- 
-    local file_size
-    file_size=$(du -h "$target_path" 2>/dev/null | cut -f1)
-    info_echo "--- Deletion Preview ---"
-    echo "Target: $target_path"
-    echo "Size: $file_size"
-    if token_prompt "Confirm deletion" "this is irreversible"; then
-        rm -f "$target_path"
-        if [ $? -eq 0 ]; then
-            good_echo "=== Deletion Successful ==="
-            _codex_unset
-            return 0
-        else
-            crit_echo "=== Deletion Failed (Permission error?) ==="
-            _codex_unset
-            return 1
-        fi
-    else
-        _codex_unset
-        return 1
-    fi
-}   
 function showFileTree {
     source "$_SCRIPT_DIR/_codex.sh"
     # Usage: showFileTree <folder_path> [ <keyword1> <keyword2> ... ]
@@ -608,8 +343,7 @@ function showFileTree {
     _codex_unset
 }   
 
-# <<< OLD | REFACTORED >>>
-
+# REFACTORED >>>
 function renameFile {
     source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 2 ]; then 
@@ -714,5 +448,119 @@ function createFolder {
         return 1
     fi
 }
+function createFileFromTemplate { # create a template file from ~/Template folder 
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [[ "$#" -ne 2 ]]; then
+        info_echo "Available Templates (~/Templates): "
+        ls ~/Templates
+        warn_echo "Usage: createFileFromTemplate <template_filename> <filename>"
+        _codex_unset
+        return 0
+    fi
+    if [[ ! -f ~/Templates/"$1" ]]; then
+        echo "Error: Template '$1' not found in ~/Templates/"
+        ls ~/Templates -l
+        _codex_unset
+        return 1
+    fi
+    local new_absolute_path
+    new_absolute_path="$(get_abs_path "$2")"
+    if [ -e "$new_absolute_path" ]; then 
+        crit_echo "File Already Exists"
+        _codex_unset
+        return 1
+    fi
+    if ! auto_escalate cp --verbose ~/Templates/"$1" "$new_absolute_path"; then 
+        warn_echo "failed to create the template"
+        _codex_unset 
+        return 1
+    else 
+        good_echo "File Created Successfully from Template"
+        _codex_unset
+        return 0
+    fi     
+}
+function deleteFolder { 
+    source "$_SCRIPT_DIR/_codex.sh"
+    # USAGE: deleteFolder <path>
+    # Recursively deletes a folder after confirming with a random token.
+    local target_path="${1:-}"
+    # 1. Validate Input
+    if [ -z "$target_path" ]; then
+        ls -a
+        warn_echo "Usage: deleteFolder <path>"
+        _codex_unset
+        return 0
+    fi
+    # 2. Check Existence
+    if [ ! -d "$target_path" ]; then
+        crit_echo "Error: Directory '$target_path' does not exist or is not a directory."
+        _codex_unset
+        return 1
+    fi
+    # 3. Gather Information (Size & Contents)
+    # Get human-readable size
+    local dir_size
+    dir_size=$(du -sh "$target_path" 2>/dev/null | cut -f1)
+    # Count items
+    local item_count
+    item_count=$(find "$target_path" -mindepth 1 | wc -l | tr -d ' ')
+    info_echo "--- Deletion Preview ---"
+    echo "Target: $target_path"
+    echo "Total Size: $dir_size"
+    echo "Items to delete: $item_count"
+    if ! token_prompt "Confirm deletion" "this action is irreversible" ; then 
+        _codex_unset
+        return 1
+    fi
+    if auto_escalate rm -rf "$target_path"; then 
+        good_echo "Deletion Successful"
+        _codex_unset
+        return 0
+    else
+        crit_echo "Deletion Failed"
+        _codex_unset
+        return 1
+    fi
+}
+function deleteFile { 
+    source "$_SCRIPT_DIR/_codex.sh"
+    local target_path="${1:-}"
+    if [ -z "$target_path" ]; then
+        ls -a
+        echo "Usage: deleteFile <path>"
+        _codex_unset
+        return 0
+    fi
+    # --
+    if [ ! -f "$target_path" ]; then
+        if [ -d "$target_path" ]; then
+            crit_echo "Error: '$target_path' is a directory. Use deleteFolder instead."
+        else
+            crit_echo "Error: File '$target_path' does not exist."
+        fi
+        _codex_unset
+        return 1
+    fi
+    # -- 
+    local file_size
+    file_size=$(du -h "$target_path" 2>/dev/null | cut -f1)
+    info_echo "--- Deletion Preview ---"
+    echo "Target: $target_path"
+    echo "Size: $file_size"
+    if ! token_prompt "Confirm deletion" "this is irreversible"; then
+        _codex_unset
+        return 1
+    fi
+    if auto_escalate rm -f "$target_path"; then
+        good_echo "Deletion Successful"
+        _codex_unset
+        return 0
+    else
+        crit_echo "Deletion Failed"
+        _codex_unset
+        return 1
+    fi
+}   
 
 # END
