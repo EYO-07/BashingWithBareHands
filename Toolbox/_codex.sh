@@ -29,7 +29,7 @@ function _codex_unset {
     unset -f color_echo warn_echo crit_echo info_echo good_echo
     unset -f toolbox_title toolbox_item toolbox_endl 
     unset -f inventory_title inventory_item inventory_endl 
-    unset -f token_prompt yn_prompt
+    unset -f token_prompt yn_prompt auto_escalate
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
     unset -f get_abs_path create_intermediate_dirs
     unset -f is_command_valid
@@ -164,6 +164,32 @@ function yn_prompt {
         [yY]|[yY][eE][sS]) return 0 ;;
         *) return 1 ;;
     esac
+}
+function auto_escalate {
+    if [ $# -eq 0 ]; then
+        return 1
+    fi
+    local cmd=("$@")
+    local output
+    local exit_code
+    # 1. Attempt normal execution
+    output=$("${cmd[@]}" 2>&1)
+    exit_code=$?
+    if [ $exit_code -eq 0 ]; then
+        return 0
+    fi
+    # 2. Show command and ask for confirmation
+    # Ensure yn_prompt returns 0 for Yes, 1 for No
+    echo "Command failed: ${cmd[*]}"
+    if ! yn_prompt "Privilege Escalation" "Retry this command with root privileges?"; then 
+        return 1 # User said No
+    fi 
+    # 3. Execute with sudo
+    sudo "${cmd[@]}"
+    local status=$?
+    # 4. Security: Reset sudo timestamp immediately
+    sudo -k
+    return $status
 }
 
 # -- paths 
@@ -334,7 +360,7 @@ function parse_variable_from_tracking_file {
 }
 
 # -- misc 
-function is_command_valid {
+function is_command_valid { # wild eval here, use only to check if a tool exists
     eval "$@" &> /dev/null    
 }   
 

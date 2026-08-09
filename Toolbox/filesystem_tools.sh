@@ -608,12 +608,49 @@ function showFileTree {
     _codex_unset
 }   
 
-# <<< OLD 
+# <<< OLD | REFACTORED >>>
 
-
-
-# REFACTORED >>>
-
+function renameFile {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [ $# -ne 2 ]; then 
+        ls -a
+        warn_echo "Usage: renameFile <current_filename> <new_filename>"
+        return 1
+    fi
+    local old_filename="$1"
+    local new_filename="$2"
+    local old_absolute_path="$(get_abs_path "$old_filename")"
+    if [[ ! -e "$old_absolute_path" ]]; then
+        crit_echo "Error: Source file does not exist: $old_absolute_path"
+        _codex_unset
+        return 1
+    fi
+    local new_absolute_path="$(get_abs_path "$new_filename")"
+    # --- Check for Collision ---
+    if [[ -e "$new_absolute_path" ]]; then
+        # If old and new resolve to the same file, do nothing
+        if [[ "$old_absolute_path" == "$new_absolute_path" ]]; then
+            echo "Source and destination are identical. No action taken."
+        else 
+            warn_echo "Target already exists: $new_absolute_path"
+            crit_echo "Operation Cancelled"
+        fi
+        _codex_unset
+        return 0
+    fi
+    # --- Perform Rename ---
+    if token_prompt "Confirm Renaming" "$old_filename to $new_absolute_path"; then 
+        if auto_escalate mv -- "$old_absolute_path" "$new_absolute_path"; then
+            echo "Renamed: $old_absolute_path -> $new_absolute_path"
+            _codex_unset
+            return 0
+        else
+            warn_echo "Error: Failed to rename file"
+            _codex_unset
+            return 1
+        fi
+    fi
+}
 function createFile {
     source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
@@ -635,7 +672,7 @@ function createFile {
         _codex_unset
         return 1
     fi
-    if touch "$absolute_path"; then
+    if auto_escalate touch "$absolute_path"; then
         good_echo "Created file: $absolute_path"
         _codex_unset 
         return 0
@@ -645,5 +682,37 @@ function createFile {
         return 1
     fi
 }   
+function createFolder {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [ $# -ne 1 ]; then 
+        ls -a
+        warn_echo "Usage: createFolder <foldername>"
+        return 1
+    fi
+    local foldername="$1"
+    local absolute_path="$(get_abs_path "$foldername")"
+    # --- Check Existence & Create ---
+    # Check if a FILE with the same name exists (safety check)
+    if [[ -e "$absolute_path" && ! -d "$absolute_path" ]]; then
+        crit_echo "Error: A file with this name already exists: $absolute_path"
+        _codex_unset
+        return 1
+    fi
+    if [[ -d "$absolute_path" ]]; then
+        warn_echo "Folder already exists: $absolute_path"
+        _codex_unset 
+        return 0
+    fi
+    # The '--' protects against folder names starting with '-'
+    if auto_escalate mkdir -- "$absolute_path"; then
+        echo "Created folder: $absolute_path"
+        _codex_unset
+        return 0
+    else
+        crit_echo "Error: Failed to create folder '$absolute_path'"
+        _codex_unset
+        return 1
+    fi
+}
 
 # END
