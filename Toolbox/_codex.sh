@@ -191,7 +191,6 @@ function auto_escalate {
     sudo -k
     return $status
 }
-
 # -- paths 
 function get_abs_path {
     if [ $# -ne 1 ]; then 
@@ -240,7 +239,6 @@ function create_intermediate_dirs {
     }
     return 0
 }
-
 # -- git-like directories
 function get_tracking_file {
     # Only locate and return the path to the tracking file.
@@ -358,7 +356,6 @@ function save_to_tracking_file {
 function parse_variable_from_tracking_file {
     return 1 # todo
 }
-
 # -- misc 
 function is_command_valid { # wild eval here, use only to check if a tool exists
     eval "$@" &> /dev/null    

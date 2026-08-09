@@ -18,7 +18,7 @@ function tools {
     toolbox_item "createFolder" "if not exists creates a folder" $width
     toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token." $width
     toolbox_item "deleteFolder <path>" "recursively deletes a folder after confirming with a random token." $width
-    toolbox_item "createFileFromTemplate" "create a template file from ~/Template folder " $width
+    toolbox_item "createFromTemplate" "create a template file or folder from ~/Template folder " $width
     toolbox_item "getHashInfo" "sha256 and other useful hashs for a file" $width
     toolbox_item "getSize" "estimate or get metadata of filesize of folder or file" $width
     toolbox_item "showMetadata" "show metadata info for file or folder" $width
@@ -448,38 +448,6 @@ function createFolder {
         return 1
     fi
 }
-function createFileFromTemplate { # create a template file from ~/Template folder 
-    source "$_SCRIPT_DIR/_codex.sh"
-    if [[ "$#" -ne 2 ]]; then
-        info_echo "Available Templates (~/Templates): "
-        ls ~/Templates
-        warn_echo "Usage: createFileFromTemplate <template_filename> <filename>"
-        _codex_unset
-        return 0
-    fi
-    if [[ ! -f ~/Templates/"$1" ]]; then
-        echo "Error: Template '$1' not found in ~/Templates/"
-        ls ~/Templates -l
-        _codex_unset
-        return 1
-    fi
-    local new_absolute_path
-    new_absolute_path="$(get_abs_path "$2")"
-    if [ -e "$new_absolute_path" ]; then 
-        crit_echo "File Already Exists"
-        _codex_unset
-        return 1
-    fi
-    if ! auto_escalate cp --verbose ~/Templates/"$1" "$new_absolute_path"; then 
-        warn_echo "failed to create the template"
-        _codex_unset 
-        return 1
-    else 
-        good_echo "File Created Successfully from Template"
-        _codex_unset
-        return 0
-    fi     
-}
 function deleteFolder { 
     source "$_SCRIPT_DIR/_codex.sh"
     # USAGE: deleteFolder <path>
@@ -562,5 +530,58 @@ function deleteFile {
         return 1
     fi
 }   
+function createFromTemplate { 
+    source "$_SCRIPT_DIR/_codex.sh"    
+    # Validate arguments
+    if [[ "$#" -ne 2 ]]; then
+        info_echo "Available Templates (~/Templates): "
+        ls ~/Templates
+        warn_echo "Usage: createFromTemplate <template_name> <destination_path>"
+        _codex_unset
+        return 0
+    fi
+    local template_name="$1"
+    local dest_path="$2"
+    local template_source=~/Templates/"$template_name"
+    local new_absolute_path
+    new_absolute_path="$(get_abs_path "$dest_path")"
+    # Check if source exists (file OR directory)
+    if [[ ! -e "$template_source" ]]; then
+        echo "Error: Template '$template_name' not found in ~/Templates/"
+        ls ~/Templates -l
+        _codex_unset
+        return 1
+    fi
+    # Check if destination already exists
+    if [ -e "$new_absolute_path" ]; then 
+        crit_echo "Destination Already Exists: $new_absolute_path"
+        _codex_unset
+        return 1
+    fi
+    # Create parent directories for the destination if they don't exist
+    # This is crucial for recursive structures where parents might not exist
+    create_intermediate_dirs "$new_absolute_path"
+    # Perform Recursive Copy if source is a directory, otherwise single file copy
+    if [[ -d "$template_source" ]]; then
+        info_echo "Detected directory template. Copying recursively..."
+        # cp -r copies the directory and all its contents
+        if ! auto_escalate cp -r --verbose "$template_source" "$new_absolute_path"; then 
+            warn_echo "Failed to create the template directory structure"
+            _codex_unset 
+            return 1
+        fi
+    else
+        info_echo "Detected file template. Copying single file..."
+        if ! auto_escalate cp --verbose "$template_source" "$new_absolute_path"; then 
+            warn_echo "Failed to create the template file"
+            _codex_unset 
+            return 1
+        fi
+    fi
+    good_echo "Template Created Successfully at: $new_absolute_path"
+    _codex_unset
+    return 0
+} 
+
 
 # END
