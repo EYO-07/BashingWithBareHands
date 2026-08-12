@@ -1,5 +1,5 @@
 # BEGIN : ~/Toolbox/net_tools.sh
-# {TextMarker|magenta:turnConnectionDown|cyan:turnDownConnection}
+# {TextMarker|magenta:turnNetworkOff|cyan:turnOffNetwork}
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
@@ -14,8 +14,8 @@ function tools {
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "showNetworkDevices" "Display status of all network devices" $width
-    toolbox_item "showConnections" "List all saved connection profiles" $width
-    toolbox_item "turnNetworkOn / turnNetworkOff" "enable / disable all networking" $width
+    #toolbox_item "showConnections" "List all saved connection profiles" $width
+    toolbox_item "turnNetworkOn / turnOffNetwork" "enable / disable all networking" $width
     toolbox_item "wifiList" "Scan and list available WiFi networks" $width
     toolbox_item "wifiConnect <SSID>" "Connect to a WiFi network by SSID" $width
     toolbox_item "turnWifiOn / turnWifiOff" "Enable / Disable WiFi radio only" $width
@@ -48,7 +48,7 @@ function inv {
 alias showNetworkDevices='nmcli device status'
 alias showConnections='nmcli connection show'
 alias turnNetworkOn='nmcli networking on'
-alias turnNetworkOff='nmcli networking off'
+alias turnOffNetwork='nmcli networking off'
 
 # WiFi Management
 # Ensures radio is on before listing, then lists available APs
