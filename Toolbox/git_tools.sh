@@ -82,7 +82,11 @@ function projectInfo {
     echo "Repository: $(git config --get remote.origin.url)"
     echo "Current Branch: $branch"
     # Fetch latest info from remote (does not change local files)
-    git fetch --quiet
+    if ! git fetch --quiet; then 
+        crit_echo "fail to connect to repository"
+        _codex_unset
+        return 1
+    fi
     # Get commit hashes
     local local_hash=$(git rev-parse @)
     local remote_hash=$(git rev-parse @{u})
@@ -167,23 +171,20 @@ function projectUpdate {
         _codex_unset
         return 1
     fi
-    echo "=== Download Sync (Overwrite Mode) ==="
+    info_echo "=== Download Sync (Overwrite Mode) ==="
     echo "Target: $upstream"
     echo ""
     echo "WARNING: This operation will:"
     echo "  1. Discard ALL local commits not on remote."
     echo "  2. Overwrite ALL modified tracked files."
     echo "  3. Delete ALL untracked files and directories."
-    echo ""
     echo "Your local clone will become an EXACT copy of the remote."
-    echo ""
     # Safety Confirmation Dialog
-    read -r -p "Are you sure you want to proceed? Type 'yes' to confirm: " response
-    if [ "$response" != "yes" ]; then
-        echo "Sync aborted. Your local changes are safe."
+    if ! token_prompt "Confirmation Update" "are you sure you want to proceed?"; then 
         _codex_unset
-        return 1
-    fi
+        return 0
+    fi 
+    # --
     echo "Fetching latest changes..."
     git fetch --quiet origin
     echo "Resetting local branch to match remote..."
