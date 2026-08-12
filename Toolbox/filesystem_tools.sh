@@ -267,7 +267,7 @@ function showFileTree {
     local keywords=("$@")
     # Global line counter for pagination
     local PRINT_COUNT=0
-    local PAGE_LIMIT=50
+    local PAGE_LIMIT=150
     # Internal recursive function
     _print_tree() {
         local current_dir="$1"
@@ -582,6 +582,5 @@ function createFromTemplate {
     _codex_unset
     return 0
 } 
-
 
 # END
