@@ -1,5 +1,5 @@
 # BEGIN : ~/Toolbox/net_tools.sh
-# {TextMarker|red:}
+# {TextMarker|magenta:turnConnectionDown|cyan:turnDownConnection}
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
@@ -10,7 +10,7 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Networking Tools"
-    info_echo "... requires: nmcli (NetworkManager)"
+    info_echo "... terminal user interface wrapper for nmcli (NetworkManager)"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "showNetworkDevices" "Display status of all network devices" $width
@@ -19,15 +19,14 @@ function tools {
     toolbox_item "wifiList" "Scan and list available WiFi networks" $width
     toolbox_item "wifiConnect <SSID>" "Connect to a WiFi network by SSID" $width
     toolbox_item "turnWifiOn / turnWifiOff" "Enable / Disable WiFi radio only" $width
-    toolbox_item "turnConnectionUp <NAME>" "Activate a specific connection" $width
-    toolbox_item "turnConnectionDown <NAME>" "Deactivate a specific connection" $width
-    toolbox_item "turnDeviceUp" "turn internet interface device up" $width
-    toolbox_item "turnDeviceDown" "turn internet interface device down" $width
-    toolbox_item "deleteConnection <NAME>" "Delete a connection profile" $width
+    toolbox_item "turnConnectionUp" "Activate a specific connection by connection or device name" $width
+    toolbox_item "turnDownConnection" "Deactivate a specific connection" $width
+    toolbox_item "turnDeviceDown" "turn down an internet interface device" $width
+    toolbox_item "renameConnection" "rename an existing connection" $width
+    toolbox_item "deleteConnection" "Delete a connection profile" $width
     toolbox_item "enable_ipv6 <NAME>" "Enable IPv6 (auto) for a specific connection" $width
     toolbox_item "disable_ipv6 <NAME>" "Disable IPv6 for a specific connection" $width
-    toolbox_item "listConnectionPreferences" "List the Connections Metric (lower~preferred)" $width
-    toolbox_item "setConnectionMetric <interface_name> <metric_value>" "lower the metric higher the connection preference, useful to handle multiple available connections." $width
+    toolbox_item "setConnectionMetric" "set connection metric, the lower the metric, higher the connection preference." $width
     toolbox_item "shareConnection" "creates an access point for other devices to access internet" $width
     toolbox_item "connectionInfo" "short connection information" $width
     toolbox_endl
@@ -56,8 +55,6 @@ alias turnNetworkOff='nmcli networking off'
 alias wifiList='nmcli radio wifi on && nmcli device wifi list'
 alias turnWifiOff='nmcli radio wifi off'
 alias turnWifiOn='nmcli radio wifi on'
-
-# Connect to WiFi by SSID
 function wifiConnect {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
@@ -94,11 +91,11 @@ function deleteConnection {
     _codex_unset
     return 0
 }
-function turnConnectionDown {
+function turnDownConnection {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         crit_echo "Error: Connection name required."
-        warn_echo "Usage: turnConnectionDown <CONNECTION_NAME>"
+        warn_echo "Usage: turnDownConnection <CONNECTION_NAME>"
         showConnections
         _codex_unset
         return 1
@@ -122,7 +119,7 @@ function turnDeviceDown {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         crit_echo "Error: internet interface device name required."
-        warn_echo "Usage: turnConnectionDown <CONNECTION_NAME>"
+        warn_echo "Usage: turnDeviceDown <CONNECTION_NAME>"
         showConnections
         _codex_unset
         return 1
@@ -130,18 +127,18 @@ function turnDeviceDown {
     nmcli device disconnect "$1"
     _codex_unset
 }
-function turnDeviceUp {
-    source "$_SCRIPT_DIR/_codex.sh"
-    if [[ -z "$1" ]]; then
-        crit_echo "Error: internet interface device name required."
-        warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
-        showConnections
-        _codex_unset
-        return 1
-    fi
-    nmcli device connect "$1"
-    _codex_unset
-}
+#function turnDeviceUp {
+    #source "$_SCRIPT_DIR/_codex.sh"
+    #if [[ -z "$1" ]]; then
+        #crit_echo "Error: internet interface device name required."
+        #warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
+        #showConnections
+        #_codex_unset
+        #return 1
+    #fi
+    #nmcli device connect "$1"
+    #_codex_unset
+#}
 function disable_ipv6 {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
@@ -202,7 +199,9 @@ function setConnectionMetric {
     local dev="$1"
     local metric="$2"
     if [ -z "$dev" ] || [ -z "$metric" ]; then
-        color_echo 33 "Usage: setConnectionMetric <interface_name> <metric_value>"
+        warn_echo "Usage: setConnectionMetric <interface_name> <metric_value>"
+        echo "... this function only works for multiple device sources."
+        echo "... is not intended to manage multiple connections on same device."
         listConnectionPreferences 
         _codex_unset
         return 1
@@ -306,6 +305,63 @@ function connectionInfo {
     nmcli connection show "$conn_name" | grep --color=never -E "^(ipv6.addresses|ipv6.gateway|ipv6.dns|ipv6.method|IP6.ADDRESS|IP6.GATEWAY)"
     _codex_unset
     return 0
+}   
+
+# NEW FUNCTIONS >>>
+# REFACTORED FUNCTIONS >>> 
+function turnConnectionUp {
+    # 1. this function is designed to be direct user interface
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [[ -z "$1" ]]; then
+        crit_echo "Error: Connection name required."
+        warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
+        warn_echo "Usage: turnConnectionUp <DEVICE_NAME>"
+        showConnections
+        _codex_unset
+        return 0
+    fi
+    info_echo "Assuming the name is a connection ..."
+    if nmcli connection up "$1"; then 
+        good_echo "Connection Established"
+        _codex_unset
+        return 0
+    fi 
+    warn_echo "Failed to connect, assuming the name is a device ..."
+    if nmcli device connect "$1"; then 
+        good_echo "Connection Established"
+        _codex_unset
+        return 0
+    fi 
+    _codex_unset
+    return 1
+}
+function renameConnection {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # 1. Validate arguments (still need at least 2)
+    if [[ -z "$1" || -z "$2" ]]; then
+        crit_echo "Error: Current name and new name required."
+        warn_echo "Usage: renameConnection <CURRENT_NAME> <NEW_NAME>"
+        showConnections
+        _codex_unset
+        return 1
+    fi
+    local current_name="$1"
+    shift
+    local new_name="$*"
+    if ! nmcli connection show "$current_name" &> /dev/null; then
+        crit_echo "Error: Connection '$current_name' not found."
+        _codex_unset
+        return 1
+    fi
+    if nmcli connection modify "$current_name" connection.id "$new_name"; then
+        good_echo "Connection renamed from '$current_name' to '$new_name'."
+        _codex_unset
+        return 0
+    else
+        crit_echo "Error: Failed to rename connection."
+        _codex_unset
+        return 1
+    fi
 }   
 
 # END   
