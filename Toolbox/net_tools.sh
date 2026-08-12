@@ -20,12 +20,9 @@ function tools {
     toolbox_item "wifiConnect <SSID>" "Connect to a WiFi network by SSID" $width
     toolbox_item "turnWifiOn / turnWifiOff" "Enable / Disable WiFi radio only" $width
     toolbox_item "turnConnectionUp" "Activate a specific connection by connection or device name" $width
-    toolbox_item "turnDownConnection" "Deactivate a specific connection" $width
-    toolbox_item "turnDeviceDown" "turn down an internet interface device" $width
-    toolbox_item "renameConnection" "rename an existing connection" $width
-    toolbox_item "deleteConnection" "Delete a connection profile" $width
-    toolbox_item "enable_ipv6 <NAME>" "Enable IPv6 (auto) for a specific connection" $width
-    toolbox_item "disable_ipv6 <NAME>" "Disable IPv6 for a specific connection" $width
+    toolbox_item "turnDownConnection / turnDeviceDown" "Deactivate a specific connection / network interface device" $width
+    toolbox_item "renameConnection / deleteConnection" "rename / delete an existing connection profile" $width
+    toolbox_item "enable_ipv6 / disable_ipv6" "Enable IPv6 (auto) / Disable for a specific connection" $width
     toolbox_item "setConnectionMetric" "set connection metric, the lower the metric, higher the connection preference." $width
     toolbox_item "shareConnection" "creates an access point for other devices to access internet" $width
     toolbox_item "connectionInfo" "short connection information" $width
