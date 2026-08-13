@@ -37,8 +37,9 @@ function inv {
     inventory_item 1 "yay -Qu" "check update status for AUR and official packages" $width
     inventory_item 2 "yay -S <package>" "install/update an AUR package using yay" $width
     inventory_item 3 "yay -Ss <package>" "search for AUR package" $width
-    inventory_item 4 "fc-cache -fv" "update the font cache" $width
-    inventory_item 5 "mkinitcpio -P" "regenerate initramfs, necessary on drivers and kernel updates" $width
+    inventory_item 4 "pacman -Qc <package>" "changelog for package" $width
+    inventory_item 5 "fc-cache -fv" "update the font cache" $width
+    inventory_item 6 "mkinitcpio -P" "regenerate initramfs, necessary on drivers and kernel updates" $width
     #inventory_item 0 "" "" $width
     inventory_endl 
     _codex_unset
