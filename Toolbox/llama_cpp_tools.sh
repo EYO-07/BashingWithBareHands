@@ -5,7 +5,7 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=5
-    toolbox_title "Artificial Inteligence Inference Tools"
+    toolbox_title "Artificial Inteligence Local Inference Tools"
     info_echo "... requires llama-cpp package and their backends ggml-vulkan ggml-cpu"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width

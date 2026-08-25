@@ -14,6 +14,7 @@ function tools {
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "createFile" "if not exists creates a regular file by filename" $width
+    toolbox_item "createLink" "creates a symlink" $width
     toolbox_item "renameFile" "rename file/folder with token confirmation prompt" $width
     toolbox_item "createFolder" "if not exists creates a folder" $width
     toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token." $width
@@ -346,36 +347,35 @@ function showFileTree {
 # REFACTORED >>>
 function renameFile {
     source "$_SCRIPT_DIR/_codex.sh"
-    if [ $# -ne 2 ]; then 
+    if [ $# -ne 2 ]; then
         ls -a
         warn_echo "Usage: renameFile <current_filename> <new_filename>"
         return 1
     fi
     local old_filename="$1"
     local new_filename="$2"
-    local old_absolute_path="$(get_abs_path "$old_filename")"
-    if [[ ! -e "$old_absolute_path" ]]; then
-        crit_echo "Error: Source file does not exist: $old_absolute_path"
+    # Check that the source exists, including symlinks.
+    if [[ ! -e "$old_filename" && ! -L "$old_filename" ]]; then
+        crit_echo "Error: Source file does not exist: $old_filename"
         _codex_unset
         return 1
     fi
-    local new_absolute_path="$(get_abs_path "$new_filename")"
     # --- Check for Collision ---
-    if [[ -e "$new_absolute_path" ]]; then
-        # If old and new resolve to the same file, do nothing
-        if [[ "$old_absolute_path" == "$new_absolute_path" ]]; then
+    if [[ -e "$new_filename" || -L "$new_filename" ]]; then
+        # If old and new are literally the same path, do nothing.
+        if [[ "$old_filename" == "$new_filename" ]]; then
             echo "Source and destination are identical. No action taken."
-        else 
-            warn_echo "Target already exists: $new_absolute_path"
+        else
+            warn_echo "Target already exists: $new_filename"
             crit_echo "Operation Cancelled"
         fi
         _codex_unset
         return 0
     fi
     # --- Perform Rename ---
-    if token_prompt "Confirm Renaming" "$old_filename to $new_absolute_path"; then 
-        if auto_escalate mv -- "$old_absolute_path" "$new_absolute_path"; then
-            echo "Renamed: $old_absolute_path -> $new_absolute_path"
+    if token_prompt "Confirm Renaming" "$old_filename to $new_filename"; then
+        if auto_escalate mv -- "$old_filename" "$new_filename"; then
+            echo "Renamed: $old_filename -> $new_filename"
             _codex_unset
             return 0
         else
@@ -384,6 +384,8 @@ function renameFile {
             return 1
         fi
     fi
+    _codex_unset
+    return 0
 }
 function createFile {
     source "$_SCRIPT_DIR/_codex.sh"
@@ -582,5 +584,31 @@ function createFromTemplate {
     _codex_unset
     return 0
 } 
+function createLink {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [ $# -ne 2 ]; then 
+        ls -a
+        warn_echo "Usage: createLink <original_path> <link_name>"
+        _codex_unset
+        return 1
+    fi 
+    local original_path link_name
+    original_path="$1"
+    link_name="$2"
+    info_echo "Creating a Symlink"
+    echo "Original : $original_path"
+    echo "Symlink : $link_name"
+    echo "Output Directory : $PWD"
+    if ! token_prompt "Confirmation" "are you sure to create this symlink $link_name?" ; then 
+        _codex_unset
+        return 0
+    fi 
+    if ! auto_escalate ln -s "$original_path" "$link_name"; then
+        _codex_unset
+        crit_echo "failed to create the symlink"
+        return 1
+    fi
+    _codex_unset
+}
 
 # END
