@@ -79,6 +79,14 @@ function lightInteractiveInference {
         # Append timestamp header and content to journal
         {
             echo ""
+            echo "# === LLM : $timestamp ==="
+            echo "1. model : $model"
+            echo "2. device : $device"
+            echo "3. gpu offload : $gpu_offload_int"
+            echo "4. context : $_CONTEXT_SIZE_LLM tokens"
+        } >> "./_llm_history"
+        {
+            echo ""
             echo ""
             echo "# === LLM Journal Entry: $timestamp ==="
             echo "1. model : $model"
