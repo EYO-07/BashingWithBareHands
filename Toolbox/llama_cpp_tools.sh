@@ -5,7 +5,7 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=5
-    toolbox_title "Artificial Inteligence Inference Tools (v2026-08-25_00)"
+    toolbox_title "Artificial Inteligence Inference Tools"
     info_echo "... requires llama-cpp package and their backends ggml-vulkan ggml-cpu"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
@@ -72,9 +72,12 @@ function lightInteractiveInference {
         # Append timestamp header and content to journal
         {
             echo ""
-            echo "---"
-            echo "### Journal Entry: $timestamp"
-            echo "---"
+            echo ""
+            echo "# === LLM Journal Entry: $timestamp ==="
+            echo "1. model : $model"
+            echo "2. device : $device"
+            echo "3. gpu offload : $gpu_offload_int"
+            echo ""
             cat "$temp_output"
         } >> "$file_path"
         echo "Session saved to $file_path"
