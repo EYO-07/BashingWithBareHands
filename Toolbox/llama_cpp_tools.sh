@@ -18,29 +18,29 @@ tools
 # -- implementation 
 function lightInteractiveInference {
     local model=""
-    local gpu_offload_int=15  # Default to 15 layers for safety (e.g., GTX 1650)
+    local gpu_offload_int=15
     local device="none"
     local arg_count=$#
+    local file_path="./llm_journal.txt"
+    local temp_output=""
+    local timestamp=""
     if [ "$arg_count" -gt 2 ]; then
         device="$3"
     fi 
     # --- Validation ---
-    # Need at least the model path
     if [ "$arg_count" -lt 1 ]; then
-        ls -a
+        ls -a 2>/dev/null
         echo ""
-        llama-cli --list-devices
+        llama-cli --list-devices 2>/dev/null
         echo ""
-        echo "Light Inference: Interactive Mode (Low-VRAM Optimized)"
-        echo "   Config: 4 Threads | 1024 Context | 512 Batch | Flash Attention"
+        echo "Light Journal: Interactive Mode with Timestamps"
+        echo "   Logs to: $file_path"
         echo ""
-        echo "Usage: lightInference <model_path> [gpu_layers] [device]"
-        echo "Example: lightInference ~/models/llama-3-8b.Q4_K_M.gguf 30"
+        echo "Usage: lightInteractiveInference <model_path> [gpu_layers] [device]"
         return 1
     fi
     model="$1"
     shift
-    # Check if the next argument is a number (GPU layers)
     if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
         gpu_offload_int="$1"
     fi
@@ -49,11 +49,12 @@ function lightInteractiveInference {
         echo "Error: Model file not found: $model"
         return 1
     fi
-    # Create a temporary file for the new output
-    temp_output=$(mktemp)
-    file_path="./llm_journal"
+    # --- Prepare Journal ---
+    temp_output="./llm_session_output.txt"
+    # Generate ISO 8601 style timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     # --- Execution ---
-    # Run in interactive conversation mode
+    echo "Starting journal session at $timestamp..."
     llama-cli -m "$model" \
         --device "$device" \
         -ngl "$gpu_offload_int" \
@@ -66,22 +67,25 @@ function lightInteractiveInference {
         --cache-type-v q8_0 \
         -cnv \
         -o "$temp_output"
-    # Capture exit code
     local exit_code=$?
     if [ $exit_code -eq 0 ] && [ -f "$temp_output" ] && [ -s "$temp_output" ]; then
-        # Append the generated content to the original file
-        # We add a newline before appending to ensure separation if the file didn't end with one
-        echo "" >> "$file_path"
-        cat "$temp_output" >> "$file_path"
-        echo "Output appended to $file_path"
+        # Append timestamp header and content to journal
+        {
+            echo ""
+            echo "---"
+            echo "### Journal Entry: $timestamp"
+            echo "---"
+            cat "$temp_output"
+        } >> "$file_path"
+        echo "Session saved to $file_path"
     elif [ $exit_code -ne 0 ]; then
         echo ""
         echo "llama-cli exited with error code: $exit_code"
         echo "Tip: If OOM, try lowering GPU layers."
     else
-        echo "Warning: Generation produced no output."
+        echo "Warning: No output generated."
     fi
     return $exit_code
-}
+}   
 
 # END 
