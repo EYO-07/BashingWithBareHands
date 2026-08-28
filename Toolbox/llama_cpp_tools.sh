@@ -10,6 +10,7 @@ function tools {
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "lightInteractiveInference" "interactive inference for low vram (4GB)" $width
+    toolbox_item "lightFileInference" "llm inference over a file (backup the file to avoid data loss)" $width
     toolbox_item "setContextSize" "set context size in tokens (Default 1024)" $width
     toolbox_endl
     _codex_unset
@@ -117,6 +118,85 @@ function setContextSize {
     info_echo "Current LLM Context Size : $_CONTEXT_SIZE_LLM tokens"
     _codex_unset
     return 1
+}
+function lightFileInference {
+    source "${_SCRIPT_DIR}/_codex.sh"
+    local arg_count=$#
+    local file_path="$1"
+    local model="$2"
+    local gpu_offload_int=15
+    local temp_output=""
+    local timestamp=""
+    local device="none"
+    if [ "$arg_count" -gt 3 ]; then
+        device="$4"
+    fi 
+    # --- Validation ---
+    if [ "$arg_count" -lt 2 ]; then
+        ls -a
+        echo ""
+        llama-cli --list-devices 2>/dev/null
+        echo ""
+        info_echo "Light File Inference"
+        echo ""
+        warn_echo "Usage: lightFileInference <file_path> <model_path> [gpu_layers] [device]"
+        _codex_unset
+        return 1
+    fi
+    # -- 
+    shift
+    shift
+    if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+        gpu_offload_int="$1"
+    fi
+    # --- Pre-flight Checks ---
+    if [ ! -f "$model" ]; then
+        crit_echo "Error: Model file not found: $model"
+        _codex_unset
+        return 1
+    fi
+    # --- Prepare Journal ---
+    temp_output="$(mktemp)"
+    # Generate ISO 8601 style timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    # --- Execution ---
+    echo "Starting Inference"
+    echo "Context : $_CONTEXT_SIZE_LLM tokens"
+    llama-cli -m "$model" \
+        --device "$device" \
+        -ngl "$gpu_offload_int" \
+        -t 4 \
+        -c "$_CONTEXT_SIZE_LLM" \
+        -b 512 \
+        -ub 256 \
+        -fa on \
+        --cache-type-k q8_0 \
+        --cache-type-v q8_0 \
+        --single-turn \
+        --file "$file_path" \
+        -o "$temp_output"
+    local exit_code=$?
+    if [ $exit_code -eq 0 ] && [ -f "$temp_output" ] && [ -s "$temp_output" ]; then
+        {
+            echo ""
+            echo "# === LLM : $timestamp ==="
+            echo "1. model : $model"
+            echo "2. device : $device"
+            echo "3. gpu offload : $gpu_offload_int"
+            echo "4. context : $_CONTEXT_SIZE_LLM tokens"
+            echo ""
+            cat "$temp_output"
+        } > "$file_path"
+        echo "Session saved to $file_path"
+    elif [ $exit_code -ne 0 ]; then
+        echo ""
+        crit_echo "llama-cli exited with error code: $exit_code"
+        echo "Tip: If OOM, try lowering GPU layers."
+    else
+        echo "Warning: No output generated."
+    fi
+    _codex_unset
+    return $exit_code
 }
 
 # END 
