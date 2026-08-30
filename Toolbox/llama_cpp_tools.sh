@@ -11,7 +11,9 @@ function tools {
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "lightInteractiveInference" "interactive inference for low vram (4GB)" $width
     toolbox_item "lightFileInference" "llm inference over a file (backup the file to avoid data loss)" $width
-    toolbox_item "setContextSize" "set context size in tokens (Default 1024)" $width
+    toolbox_item "setContextSize" "set context size in tokens (Default: 1024)" $width
+    toolbox_item "setDeviceLLM" "set the device used for processing (Default: none)" $width
+    toolbox_item "setGpuOffloadLayers" "numbers of layers processed by gpu (Default: 15)" $width
     toolbox_endl
     _codex_unset
 }
@@ -19,11 +21,13 @@ tools
 
 # -- implementation 
 _CONTEXT_SIZE_LLM=1024
+_DEVICE_LLM="none"
+_GPU_OFFLOAD_LLM=15
 function lightInteractiveInference {
     source "${_SCRIPT_DIR}/_codex.sh"
     local model=""
-    local gpu_offload_int=15
-    local device="none"
+    local gpu_offload_int="$_GPU_OFFLOAD_LLM"
+    local device="$_DEVICE_LLM"
     local arg_count=$#
     local file_path="./llm_journal.txt"
     local temp_output=""
@@ -60,9 +64,15 @@ function lightInteractiveInference {
     # Generate ISO 8601 style timestamp
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     # --- Execution ---
-    echo "Starting Interactive Session Inference"
+    info_echo "Starting Interactive Session Inference"
     echo "Context : $_CONTEXT_SIZE_LLM tokens"
+    echo "GPU Layers : $gpu_offload_int"
+    echo "Device : $device"
     echo "... temporary session output $temp_output"
+    if ! yn_prompt "Confirmation" "initiate the interactive session?"; then
+        _codex_unset
+        return 0
+    fi 
     llama-cli -m "$model" \
         --device "$device" \
         -ngl "$gpu_offload_int" \
@@ -111,11 +121,23 @@ function setContextSize {
     source "${_SCRIPT_DIR}/_codex.sh"
     if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
         _CONTEXT_SIZE_LLM="$1"
-        info_echo "Current LLM Context Size : $_CONTEXT_SIZE_LLM tokens"
+        warn_echo "Current LLM Context Size : $_CONTEXT_SIZE_LLM tokens"
         _codex_unset
         return 0
     fi
     info_echo "Current LLM Context Size : $_CONTEXT_SIZE_LLM tokens"
+    _codex_unset
+    return 1
+}
+function setGpuOffloadLayers {
+    source "${_SCRIPT_DIR}/_codex.sh"
+    if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+        _GPU_OFFLOAD_LLM="$1"
+        warn_echo "Current LLM GPU Offload : $_GPU_OFFLOAD_LLM layers"
+        _codex_unset
+        return 0
+    fi
+    info_echo "Current LLM GPU Offload : $_GPU_OFFLOAD_LLM layers"
     _codex_unset
     return 1
 }
@@ -124,10 +146,10 @@ function lightFileInference {
     local arg_count=$#
     local file_path="$1"
     local model="$2"
-    local gpu_offload_int=15
+    local gpu_offload_int="$_GPU_OFFLOAD_LLM"
     local temp_output=""
     local timestamp=""
-    local device="none"
+    local device="$_DEVICE_LLM"
     if [ "$arg_count" -gt 3 ]; then
         device="$4"
     fi 
@@ -160,8 +182,14 @@ function lightFileInference {
     # Generate ISO 8601 style timestamp
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     # --- Execution ---
-    echo "Starting Inference"
+    info_echo "Starting Inference"
     echo "Context : $_CONTEXT_SIZE_LLM tokens"
+    echo "GPU Layers : $gpu_offload_int"
+    echo "Device : $device"
+    if ! yn_prompt "Confirmation" "perform the inference?"; then
+        _codex_unset
+        return 0
+    fi 
     llama-cli -m "$model" \
         --device "$device" \
         -ngl "$gpu_offload_int" \
@@ -197,6 +225,19 @@ function lightFileInference {
     fi
     _codex_unset
     return $exit_code
+}
+function setDeviceLLM {
+    source "${_SCRIPT_DIR}/_codex.sh"
+    if [ "$#" -gt 0 ]; then
+        _DEVICE_LLM="$1"
+        warn_echo "Current LLM Device : $_DEVICE_LLM"
+        _codex_unset
+        return 0
+    fi
+    info_echo "Current LLM Device : $_DEVICE_LLM"
+    llama-cli --list-devices 2>/dev/null
+    _codex_unset
+    return 1
 }
 
 # END 
