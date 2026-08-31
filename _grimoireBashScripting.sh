@@ -54,6 +54,33 @@
 # 23. unset var ; Delete variable or clear array element.
 # 24. export VAR="val" ; Export variable to environment of child processes.
 
+# Inventory : special variables { Linux, Bash Scripting }
+# 1. $0 ; Name of current script file or shell executable.
+# 2. $1, $2, ... $9 ; Positional parameters passed to script or function (1st through 9th).
+# 3. ${10} ; Positional parameter beyond 9 (requires curly braces).
+# 4. $# ; Number of positional parameters passed to script or function.
+# 5. $@ ; All positional parameters expanded as separate double-quoted strings ("$1" "$2"...).
+# 6. $* ; All positional parameters concatenated into single string separated by first char of IFS ("$1 c $2").
+# 7. $? ; Exit status code of most recently executed foreground command (0 = success, 1-255 = error).
+# 8. $$ ; Process ID (PID) of current shell process executing the script.
+# 9. $! ; Process ID (PID) of most recently executed background job/command.
+# 10. $- ; Current option flags active in shell environment (e.g., `hBBefhHims`).
+# 11. $_ ; Last argument of previous command, or absolute path used to invoke current script.
+# 12. $IFS ; Internal Field Separator used for word splitting and string parsing (default: space, tab, newline).
+# 13. $RANDOM ; Returns dynamic pseudo-random integer between 0 and 32767 on each reference.
+# 14. $LINENO ; Returns current line number within script or function execution environment.
+# 15. $FUNCNAME ; Array of function names currently in execution stack ($FUNCNAME[0] is current function).
+# 16. $BASH_SOURCE ; Array of source filenames corresponding to function call stack frames.
+# 17. $BASH_ARGV ; Array of all arguments passed to functions in current execution stack.
+# 18. $BASH_VERSINFO ; Read-only array containing 6 elements detailing Bash version release numbers.
+# 19. $BASH_VERSION ; Full string detailing version version number of running Bash instance.
+# 20. $BASH_REMATCH ; Array containing results of regular expression evaluation via `=~` operator.
+# 21. $PIPESTATUS ; Array listing exit status codes of each command in most recently run foreground pipeline.
+# 22. $SECONDS ; Number of seconds elapsed since script execution began or variable was reset.
+# 23. $PWD ; Absolute pathname of current working directory.
+# 24. $OLDPWD ; Previous working directory before last execution of `cd`.
+# 25. $REPLY ; Default variable storing input read by `read` command when no variable name is supplied.
+
 # Inventory : functions { Linux, Bash Scripting }
 # 1. func() { ... } ; Standard Bash function definition syntax.
 # 2. function func { ... } ; Alternative explicit keyword function definition syntax.
