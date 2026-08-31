@@ -13,6 +13,7 @@ function tools {
     info_echo "... backup functions requires: 7z"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "icd" "simple interactive version of cd" $width
     toolbox_item "createFile" "if not exists creates a regular file by filename" $width
     toolbox_item "createLink" "creates a symlink" $width
     toolbox_item "renameFile" "rename file/folder with token confirmation prompt" $width
@@ -343,8 +344,6 @@ function showFileTree {
     _print_tree "$dir" ""
     _codex_unset
 }   
-
-# REFACTORED >>>
 function renameFile {
     source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 2 ]; then
@@ -610,5 +609,84 @@ function createLink {
     fi
     _codex_unset
 }
+
+# NEW >>> 
+function icd {
+    source "$_SCRIPT_DIR/_codex.sh"
+    trap 'tput cnorm; stty echo' RETURN
+    stty -echo
+    tput civis
+    local selected=0
+    local files=()
+    local total=0
+    local start=0 end=0
+    local filerange=15
+    local dirty=1   # 1 = list needs rebuilding
+    # Build the file list (called only when dirty)
+    _build_list() {
+        local dirs=() plain=()
+        shopt -s dotglob
+        for entry in *; do
+            if [[ -d "$entry" ]]; then
+                dirs+=("${entry%/}/")
+            else
+                plain+=("$entry")
+            fi
+        done
+        shopt -u dotglob
+        files=("../")
+        for d in "${dirs[@]}"; do files+=("$d"); done
+        for f in "${plain[@]}"; do files+=("$f"); done
+        total=${#files[@]}
+    }
+    _build_list
+    while true; do
+        # Rebuild only if directory changed
+        (( dirty )) && _build_list && dirty=0
+        (( selected >= total )) && selected=$(( total - 1 ))
+        (( selected < 0 )) && selected=0
+        # --- Compute visible window ---
+        start=$(( selected - $filerange ))
+        (( start < 0 )) && start=0
+        end=$(( selected + $filerange ))
+        (( end >= total )) && end=$(( total - 1 ))
+        # --- Render ---
+        clear
+        warn_echo "Current Directory: $(pwd) ... [Q] Quit [ARROWS] Navigation"
+        (( start > 0 )) && echo "   ..."
+        for (( i = start; i <= end; i++ )); do
+            if [[ $i -eq $selected ]]; then
+                echo -e "\033[7m > ${files[$i]} \033[0m"
+            else
+                echo "   ${files[$i]}"
+            fi
+        done
+        (( end < total - 1 )) && echo "   ..."
+        # --- Input ---
+        read -rsn1 key
+        if [[ $key == $'\x1b' ]]; then
+            read -rsn2 -t 0.1 key
+            case "$key" in
+                '[A') ((selected--)) || true ;;
+                '[B') ((selected++)) || true ;;
+                '[C') key="" ;;
+                '[D') cd .. && { selected=0; dirty=1; }; continue ;;
+                *)    key=$'\x1b' ;;
+            esac
+        fi
+        case "$key" in
+            q|Q) break ;;
+            "")
+                local target="${files[$selected]}"
+                if [[ -d "$target" ]]; then
+                    cd "$target" && { selected=0; dirty=1; } || break
+                fi
+                ;;
+        esac
+    done
+    unset _build_list
+    _codex_unset
+}
+
 
 # END
