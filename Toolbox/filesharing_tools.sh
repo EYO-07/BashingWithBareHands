@@ -9,10 +9,23 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- description 
 function tools {
+    if [[ "$#" -eq 1 ]]; then
+        local import_tool="$1"
+        if [[ "$import_tool" == "mount" ]]; then
+            source "$_SCRIPT_DIR/mounting_tools.sh"
+            return 0
+        fi 
+        if [[ "$import_tool" == "files" ]]; then
+            source "$_SCRIPT_DIR/filesystem_tools.sh"
+            return 0
+        fi 
+    fi 
     source "$_SCRIPT_DIR/_codex.sh"
     local width=15
     toolbox_title "File Sharing Tools"
     toolbox_item "tools" "show this ..." $width
+    toolbox_item "tools files" "import filesystem tools" $width
+    toolbox_item "tools mount" "import mounting tools" $width
     toolbox_item "inv" "show helpful built-in commands" $width
     toolbox_item "checkLocalFileSharingBridge" "check the connection between local network machines" $width
     toolbox_item "remoteShell <remoteusername> <remotehostname>" "open a remote terminal" $width

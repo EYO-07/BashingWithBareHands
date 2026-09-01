@@ -6,12 +6,25 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- description
 function tools {
+    if [[ "$#" -eq 1 ]]; then
+        local import_tool="$1"
+        if [[ "$import_tool" == "files" ]]; then
+            source "$_SCRIPT_DIR/filesystem_tools.sh"
+            return 0
+        fi 
+        if [[ "$import_tool" == "share" ]]; then
+            source "$_SCRIPT_DIR/filesharing_tools.sh"
+            return 0
+        fi 
+    fi 
     source "$_SCRIPT_DIR/_codex.sh"
     local width=6
     toolbox_title "Mounting Tools"
-    info_echo "... requires: udisksctl; basic filesystem tools: fsck, lsblk, blkid"
     toolbox_item "tools" "print this ..." $width
+    toolbox_item "tools files" "import filesystem tools" $width
+    toolbox_item "tools share" "import filesharing tools" $width
     toolbox_item "inv" "print built-in commands ..." $width
+    info_echo "... requires: udisksctl; basic filesystem tools: fsck, lsblk, blkid"
     toolbox_item "showMountPoints" "show mounted units devices" $width
     toolbox_item "showStorageDevicesInfo" "..." $width
     toolbox_item "mountIsoFile" "mount iso file as storage device" $width
@@ -205,13 +218,13 @@ function showLabelsMounted { # show ONLY mounted storage device labels
     local labels
     labels=$(findmnt -n -r -o LABEL 2>/dev/null | sort -u)
     if [[ -z "$labels" ]]; then
-        echo "No mounted storage devices with labels found."
+        warn_echo "No mounted storage devices with labels found."
         _codex_unset
         return 0
     fi
-    echo ""
-    echo "--- Available mounted storage labels ---"
+    warn_echo "--- Available mounted storage labels ---"
     echo "$labels"
+    echo ""
     _codex_unset
 }
 function checkFilesystemErrors {

@@ -6,20 +6,29 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- description
 function tools {
+    if [[ "$#" -eq 1 ]]; then
+        local import_tool="$1"
+        if [[ "$import_tool" == "mount" ]]; then
+            source "$_SCRIPT_DIR/mounting_tools.sh"
+            return 0
+        fi 
+        if [[ "$import_tool" == "share" ]]; then
+            source "$_SCRIPT_DIR/filesharing_tools.sh"
+            return 0
+        fi 
+    fi 
     source "$_SCRIPT_DIR/_codex.sh"
-    local width=7
+    local width=8
     toolbox_title "Files/Filesystem Tools"
+    toolbox_item "tools" "print this ..." $width
+    toolbox_item "tools mount" "import mounting tools" $width
+    toolbox_item "tools share" "import filesharing tools" $width
+    toolbox_item "inv" "print built-in commands ..." $width
     info_echo "... requires: sudo, touch, rm, makedir"
     info_echo "... backup functions requires: 7z"
-    toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "icd" "simple interactive version of cd" $width
-    toolbox_item "createFile" "if not exists creates a regular file by filename" $width
-    toolbox_item "createLink" "creates a symlink" $width
-    toolbox_item "renameFile" "rename file/folder with token confirmation prompt" $width
-    toolbox_item "createFolder" "if not exists creates a folder" $width
-    toolbox_item "deleteFile <path>" "safely deletes a file after confirming with a random token." $width
-    toolbox_item "deleteFolder <path>" "recursively deletes a folder after confirming with a random token." $width
+    toolbox_item "createFile / createLink / createFolder" "if not exists creates a regular file/symlink/folder" $width
+    toolbox_item "renameFile / deleteFile / deleteFolder" "safely rename/deletes a file/folder after confirming with a random token." $width
     toolbox_item "createFromTemplate" "create a template file or folder from ~/Template folder " $width
     toolbox_item "getHashInfo" "sha256 and other useful hashs for a file" $width
     toolbox_item "getSize" "estimate or get metadata of filesize of folder or file" $width
