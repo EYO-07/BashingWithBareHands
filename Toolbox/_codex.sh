@@ -356,19 +356,15 @@ function save_to_tracking_file {
 function parse_variable_from_tracking_file {
     return 1 # todo
 }
-
 # -- environment variable settings 
 function save_variables {
-    # Usage: save_variables <filename> [var1] [var2] [var3] ...
-    # ... save the variables current values on a file 
-    return 0
+    local file="$1"; shift
+    declare -p "$@" > "$file"
 }
 function load_variables {
-    # Usage: load_variables <filename>
-    # ... source the contents of filename, consistent with save_variables
-    return 0
-}
-
+    local file="$1"
+    source "$file"
+}   
 # -- misc 
 function is_command_valid { # wild eval here, use only to check if a tool exists
     eval "$@" &> /dev/null    

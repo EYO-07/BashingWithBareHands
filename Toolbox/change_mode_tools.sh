@@ -12,9 +12,9 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Change File Mode Tools"
-    info_echo "... requires: bash, chmod, ls, stat (optional fallback used)"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
+    info_echo "... requires: bash, chmod, ls, stat (optional fallback used)"
     toolbox_item "showAttributes" "display file attributes" $width
     toolbox_item "activate" "turn script or file executable (chmod +x)" $width
     toolbox_item "deactivate" "turn off the executable attribute (chmod -x)" $width
