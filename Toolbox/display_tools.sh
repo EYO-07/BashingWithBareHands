@@ -11,9 +11,9 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=10
     toolbox_title "Display/Monitors Tools"
-    info_echo "... requires: xrandr (XOrg)"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
+    info_echo "... requires: xrandr (XOrg)"
     toolbox_item "listDisplays" "short list of display monitor names and connection state" $width
     toolbox_item "listConnectedDisplays" "show only connected displays" $width
     toolbox_item "mirrorDisplay <main> <target>" "set secondary display to mirror the main display" $width

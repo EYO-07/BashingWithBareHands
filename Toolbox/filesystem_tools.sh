@@ -21,8 +21,8 @@ function tools {
     local width=8
     toolbox_title "Files/Filesystem Tools"
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "tools mount" "import mounting tools" $width
-    toolbox_item "tools share" "import filesharing tools" $width
+    #toolbox_item "tools mount" "import mounting tools" $width
+    #toolbox_item "tools share" "import filesharing tools" $width
     toolbox_item "inv" "print built-in commands ..." $width
     info_echo "... requires: sudo, touch, rm, makedir"
     info_echo "... backup functions requires: 7z"

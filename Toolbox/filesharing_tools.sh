@@ -24,8 +24,8 @@ function tools {
     local width=15
     toolbox_title "File Sharing Tools"
     toolbox_item "tools" "show this ..." $width
-    toolbox_item "tools files" "import filesystem tools" $width
-    toolbox_item "tools mount" "import mounting tools" $width
+    #toolbox_item "tools files" "import filesystem tools" $width
+    #toolbox_item "tools mount" "import mounting tools" $width
     toolbox_item "inv" "show helpful built-in commands" $width
     toolbox_item "checkLocalFileSharingBridge" "check the connection between local network machines" $width
     toolbox_item "remoteShell <remoteusername> <remotehostname>" "open a remote terminal" $width

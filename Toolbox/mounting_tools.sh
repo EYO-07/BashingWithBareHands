@@ -21,8 +21,8 @@ function tools {
     local width=6
     toolbox_title "Mounting Tools"
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "tools files" "import filesystem tools" $width
-    toolbox_item "tools share" "import filesharing tools" $width
+    #toolbox_item "tools files" "import filesystem tools" $width
+    #toolbox_item "tools share" "import filesharing tools" $width
     toolbox_item "inv" "print built-in commands ..." $width
     info_echo "... requires: udisksctl; basic filesystem tools: fsck, lsblk, blkid"
     toolbox_item "showMountPoints" "show mounted units devices" $width

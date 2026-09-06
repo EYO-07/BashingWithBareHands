@@ -6,11 +6,11 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # -- description 
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
-    local width=5
+    local width=2
     toolbox_title "Bashing With Bare Hands"
     info_echo "... interactive verbose bash aliases and functions"
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "toolsInteractiveMenu" "import (source in terminal session) a specific toolbox" $width
+    toolbox_item "bmenu" "bashing with bare hands terminal interactive menu" $width
     toolbox_endl
     _codex_unset
 }
@@ -18,17 +18,19 @@ tools
 
 __SELECTED_ITEM=0
 # -- implementation
-function toolsInteractiveMenu {
-    trap 'tput cnorm; stty echo' RETURN
-    stty -echo
-    tput civis
+function bmenu {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local bmenu_title="Bashing With Bare Hands"
+    trap 'tput cnorm; stty echo' RETURN # cleanup on function return 
+    stty -echo # disables echo 
+    tput civis # hides cursor
     local selected=$__SELECTED_ITEM
     local items=(
-        "Tools Menu"
+        "Reload tools.sh"
         "Files / Filesystem"
-        "Mounting Storage Devices / Filesystem Integrity"
+        "Mounting Devices / Filesystem Integrity"
         "File Change Mode"
-        "Filesharing with RSync"
+        "Filesharing (RSync)"
         "USB and Removable Storage Devices"
         "Errors"
         "XOrg/X11 Display"
@@ -38,10 +40,10 @@ function toolsInteractiveMenu {
         "Sockets"
         "Audio"
         "Sensors"
-        "Git Tools"
+        "Git"
         "Date/Calendar"
         "Wine"
-        "Python/Python Environment Management"
+        "Python (Environment Management)"
         "Pacman Package Manager"
         "i3 Window Manager"
         "Misc Audiobook"
@@ -86,7 +88,7 @@ function toolsInteractiveMenu {
         (( selected < 0 )) && selected=0
         # --- Render ---
         clear
-        echo "Select a Toolbox [Q] Quit [ARROWS] Navigate [ENTER] Select"
+        warn_echo "$bmenu_title"
         for (( i = 0; i < total; i++ )); do
             if [[ $i -eq $selected ]]; then
                 echo -e "\033[7m > ${items[$i]} \033[0m"
@@ -109,23 +111,18 @@ function toolsInteractiveMenu {
             "")
                 # Execute the selected action
                 local action="${actions[$selected]}"
-                if [[ "$action" == "return" ]]; then 
-                    break
+                if [[ "$action" != "return" ]]; then 
+                    trap - RETURN
+                    tput cnorm
+                    stty echo
+                    source "$_SCRIPT_DIR/$action"
                 fi
-                # Restore terminal before running the command
-                trap - RETURN
-                tput cnorm
-                stty echo
-                source "$_SCRIPT_DIR/$action"
                 break # every action will break 
-                # Re-enter raw mode if we're still in the loop
-                stty -echo
-                tput civis
-                trap 'tput cnorm; stty echo' RETURN
                 ;;
         esac
     done
     __SELECTED_ITEM=$selected
+    _codex_unset
 }
 
 # END 
