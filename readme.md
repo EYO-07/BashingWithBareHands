@@ -21,4 +21,4 @@ TOOLBOX="PATH_TO/Toolbox" # modify me, actual path of Toolbox folder
 alias toolsImport="source $TOOLBOX/tools.sh"
 ```
 
-Just add the script above to your preferred aliases file `.bash_aliases`, source the `.bash_aliases` again or re-open the terminal and execute `toolsImport` to import the `tools.sh` script. You can create aliases pointing directly to a specific file or use `toolsImport` and `toolsInteractiveMenu` to select the toolbox interactively.
+Just add the script above to your preferred aliases file `.bash_aliases`, source the `.bash_aliases` again or re-open the terminal and execute `toolsImport` to import the `tools.sh` script. You can create aliases pointing directly to a specific file or use `toolsImport` and `bmenu` to select the toolbox interactively.
