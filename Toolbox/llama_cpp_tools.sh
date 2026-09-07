@@ -83,7 +83,6 @@ function lightInteractiveInference {
         -fa on \
         --cache-type-k q8_0 \
         --cache-type-v q8_0 \
-        -cnv \
         -o "$temp_output"
     local exit_code=$?
     if [ $exit_code -eq 0 ] && [ -f "$temp_output" ] && [ -s "$temp_output" ]; then

@@ -667,6 +667,7 @@ function gotoMountedStorage { # goto default mounted storage by label
 }
 function icd {
     source "$_SCRIPT_DIR/_codex.sh"
+    declare -A __ASS_ARR_ICD
     trap 'tput cnorm; stty echo' RETURN INT TERM
     stty -echo
     tput civis
@@ -706,7 +707,7 @@ function icd {
         (( end >= total )) && end=$(( total - 1 ))
         # --- Render ---
         clear
-        warn_echo "Current Directory: $(pwd) ... [Q] Quit [ARROWS] Navigation"
+        warn_echo "$(pwd) [ Q | ARROWS ]"
         (( start > 0 )) && echo "   ..."
         for (( i = start; i <= end; i++ )); do
             if [[ $i -eq $selected ]]; then
@@ -723,8 +724,14 @@ function icd {
             case "$key" in
                 '[A') ((selected--)) || true ;;
                 '[B') ((selected++)) || true ;;
-                '[C') key="" ;;
-                '[D') cd .. && { selected=0; dirty=1; }; continue ;;
+                '[C') { 
+                    __ASS_ARR_ICD["$(pwd)"]=$selected ; 
+                    key=""; 
+                } ;;
+                '[D') { 
+                    __ASS_ARR_ICD["$(pwd)"]=$selected
+                    cd .. 
+                } && { selected=${__ASS_ARR_ICD["$(pwd)"]:-0}; dirty=1; }; continue ;;
                 *)    key=$'\x1b' ;;
             esac
         fi
@@ -733,14 +740,13 @@ function icd {
             "")
                 local target="${files[$selected]}"
                 if [[ -d "$target" ]]; then
-                    cd "$target" && { selected=0; dirty=1; } || break
+                    cd "$target" && { selected=${__ASS_ARR_ICD["$(pwd)"]:-0}; dirty=1; } || break
                 fi
                 ;;
         esac
     done
-    unset _build_list
+    unset -f _build_list
     _codex_unset
 }
-
 
 # END
