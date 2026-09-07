@@ -32,8 +32,9 @@ function _codex_unset {
     unset -f token_prompt yn_prompt auto_escalate
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
     unset -f get_abs_path create_intermediate_dirs
+    unset -f save_variables load_variables
     unset -f is_command_valid
-    unset -f _INTERACTIVE_MENU
+    unset -f INTERACTIVE_MENU
 }
 
 # -- color echos
@@ -372,11 +373,11 @@ function is_command_valid { # wild eval here, use only to check if a tool exists
 }   
 
 # -- menu
-function _INTERACTIVE_MENU {
-    [[ -t 0 && -t 1 ]] || return 1
-    (( $# >= 2 )) || return 1
-    [[ "$1" == "_ref_items_in" || "$1" == "_ref_actions_in" ]] && return 1 
-    [[ "$2" == "_ref_items_in" || "$2" == "_ref_actions_in" ]] && return 1   
+function INTERACTIVE_MENU {
+    [[ -t 0 && -t 1 ]] || return 0
+    (( $# >= 2 )) || return 0
+    [[ "$1" == "_ref_items_in" || "$1" == "_ref_actions_in" ]] && return 0
+    [[ "$2" == "_ref_items_in" || "$2" == "_ref_actions_in" ]] && return 0   
     # Expects nameref names: _INTERACTIVE_MENU items_var actions_var "Title"
     local -n _ref_items_in="$1" 2>/dev/null
     local -n _ref_actions_in="$2" 2>/dev/null
@@ -419,7 +420,7 @@ function _INTERACTIVE_MENU {
     local key
     local action
     local b_clear="true"
-    (( total > 0 )) || return 1
+    (( total > 0 )) || return 0
     while true; do
         # Boundary constraints
         (( selected >= total )) && selected=$((total - 1))
@@ -479,6 +480,7 @@ function _INTERACTIVE_MENU {
                 ;;
         esac
     done
+    return $selected
 }
 
 # END 

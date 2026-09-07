@@ -142,7 +142,7 @@ function _MENU_EXAMPLE {
     list_users()  { echo "Listing all users..."; return 1; }
     view_logs()   { echo "Showing recent logs..."; }
     # Call the menu — pass variable *names*, not values
-    _INTERACTIVE_MENU my_items my_actions "User Management"
+    INTERACTIVE_MENU my_items my_actions "User Management"
     _codex_unset
 }
 
