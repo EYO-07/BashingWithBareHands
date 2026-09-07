@@ -18,7 +18,7 @@ Please read the dependencies to see if you can use it, as it relies primarily on
 # -- BashingWithBareHands
 # ... add this to your aliases script (.bash_aliases or .bashrc)
 TOOLBOX="PATH_TO/Toolbox" # modify me, actual path of Toolbox folder 
-alias toolsImport="source $TOOLBOX/tools.sh"
+source $TOOLBOX/tools.sh 2&> /dev/null
 ```
 
-Just add the script above to your preferred aliases file `.bash_aliases`, source the `.bash_aliases` again or re-open the terminal and execute `toolsImport` to import the `tools.sh` script. You can create aliases pointing directly to a specific file or use `toolsImport` and `bmenu` to select the toolbox interactively.
+Just add the script above to your preferred aliases file `.bash_aliases`, source the `.bash_aliases` again or re-open the terminal to import the `tools.sh` script. You can create aliases pointing directly to a specific file or use `bmenu` to select the toolbox interactively.
