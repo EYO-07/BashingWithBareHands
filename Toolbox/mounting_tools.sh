@@ -32,7 +32,7 @@ function tools {
     toolbox_item "storageDeviceLabels" "show the storage device labels" $width
     toolbox_item "mountStorageDevice <Label>" "mount storage device by label" $width
     toolbox_item "unmountStorageDevice" "unmount storage device by label" $width
-    toolbox_item "gotoMountedStorage" "go to default mounted storage by label" $width
+    toolbox_item "gotoMountedStorage" "go to default path mounted storage by label" $width
     toolbox_item "showLabelsMounted" "show ONLY mounted storage device labels" $width
     toolbox_item "checkFilesystemErrors" "check for filesystem errors on unmounted device by label" $width
     toolbox_endl

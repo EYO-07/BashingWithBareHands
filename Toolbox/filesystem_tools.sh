@@ -27,7 +27,7 @@ function tools {
     info_echo "... requires: sudo, touch, rm, makedir"
     info_echo "... backup functions requires: 7z"
     toolbox_item "icd" "simple interactive version of cd" $width
-    toolbox_item "gotoMountedStorage" "go to default mounted storage by label" $width
+    toolbox_item "gotoMountedStorage" "go to default path mounted storage by label" $width
     toolbox_item "createFile / createLink / createFolder" "if not exists creates a regular file/symlink/folder" $width
     toolbox_item "renameFile / deleteFile / deleteFolder" "safely rename/deletes a file/folder after confirming with a random token." $width
     toolbox_item "createFromTemplate" "create a template file or folder from ~/Template folder " $width
