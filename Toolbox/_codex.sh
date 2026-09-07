@@ -33,6 +33,7 @@ function _codex_unset {
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
     unset -f get_abs_path create_intermediate_dirs
     unset -f is_command_valid
+    unset -f _INTERACTIVE_MENU
 }
 
 # -- color echos
@@ -369,5 +370,115 @@ function load_variables {
 function is_command_valid { # wild eval here, use only to check if a tool exists
     eval "$@" &> /dev/null    
 }   
+
+# -- menu
+function _INTERACTIVE_MENU {
+    [[ -t 0 && -t 1 ]] || return 1
+    (( $# >= 2 )) || return 1
+    [[ "$1" == "_ref_items_in" || "$1" == "_ref_actions_in" ]] && return 1 
+    [[ "$2" == "_ref_items_in" || "$2" == "_ref_actions_in" ]] && return 1   
+    # Expects nameref names: _INTERACTIVE_MENU items_var actions_var "Title"
+    local -n _ref_items_in="$1" 2>/dev/null
+    local -n _ref_actions_in="$2" 2>/dev/null
+    local title="${3:-Menu}"
+    # Use distinct internal variable names to prevent nameref collision loops
+    local -a _menu_items=()
+    local -A _menu_actions=()
+    # Populate items
+    if (( ${#_ref_items_in[@]} > 0 )); then
+        _menu_items=("${_ref_items_in[@]}")
+    else
+        _menu_items=("Option 1" "Option 2" "Option 3" "Exit")
+    fi
+    # Populate actions
+    if (( ${#_ref_actions_in[@]} > 0 )); then
+        for k in "${!_ref_actions_in[@]}"; do
+            _menu_actions["$k"]="${_ref_actions_in[$k]}"
+        done
+    else
+        for i in "${_menu_items[@]}"; do
+            if [[ "$i" == "Exit" ]]; then
+                _menu_actions["$i"]="return"
+            else
+                _menu_actions["$i"]="echo_$i"
+            fi
+        done
+    fi
+    # Terminal cleanup helper
+    _menu_cleanup() {
+        tput cnorm 2>/dev/null
+        stty echo 2>/dev/null
+    }
+    trap '_menu_cleanup' RETURN INT TERM
+    stty -echo
+    tput civis 2>/dev/null
+    local selected="${4:-0}"
+    local start=0 end=0
+    local filerange=15
+    local total=${#_menu_items[@]}
+    local key
+    local action
+    local b_clear="true"
+    (( total > 0 )) || return 1
+    while true; do
+        # Boundary constraints
+        (( selected >= total )) && selected=$((total - 1))
+        (( selected < 0 )) && selected=0
+        # Compute visible window
+        start=$((selected - filerange))
+        (( start < 0 )) && start=0
+        end=$((selected + filerange))
+        (( end >= total )) && end=$((total - 1))
+        # Render
+        if [[ "$b_clear" == "true" ]]; then 
+            clear
+            warn_echo "$title"
+            (( start > 0 )) && echo "   ..."
+            for ((i = start; i <= end; i++)); do
+                if (( i == selected )); then
+                    printf '\033[7m > %s \033[0m\n' "${_menu_items[$i]}"
+                else
+                    printf '   %s\n' "${_menu_items[$i]}"
+                fi
+            done
+            (( end < total - 1 )) && echo "   ..."
+        else 
+            b_clear="true"
+        fi        
+        # Read key input
+        read -rsn1 key
+        if [[ "$key" == $'\x1b' ]]; then
+            read -rsn2 -t 0.2 key
+            case "$key" in
+                '[A') ((selected--)) || true ;;
+                '[B') ((selected++)) || true ;;
+                *)    key=$'\x1b' ;;
+            esac
+        fi
+        case "$key" in
+            q|Q)
+                break
+                ;;
+            "") # Enter
+                action="${_menu_actions[${_menu_items[$selected]}]:-}"
+                if [[ -z "$action" ]]; then 
+                    continue
+                fi 
+                _menu_cleanup
+                trap - RETURN INT TERM
+                if [[ -n "$action" && "$action" != "return" ]]; then
+                    if ! "$action"; then 
+                        trap '_menu_cleanup' RETURN INT TERM
+                        stty -echo 
+                        tput civis 
+                        b_clear="false"
+                        continue
+                    fi
+                fi
+                break
+                ;;
+        esac
+    done
+}
 
 # END 

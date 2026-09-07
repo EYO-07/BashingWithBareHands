@@ -21,7 +21,7 @@ __SELECTED_ITEM=0
 function bmenu {
     source "$_SCRIPT_DIR/_codex.sh"
     local bmenu_title="Bashing With Bare Hands"
-    trap 'tput cnorm; stty echo' RETURN # cleanup on function return 
+    trap 'tput cnorm; stty echo' RETURN INT TERM # cleanup on function return 
     stty -echo # disables echo 
     tput civis # hides cursor
     local selected=$__SELECTED_ITEM
@@ -99,7 +99,7 @@ function bmenu {
         # --- Input ---
         read -rsn1 key
         if [[ $key == $'\x1b' ]]; then
-            read -rsn2 -t 0.1 key
+            read -rsn2 -t 0.2 key
             case "$key" in
                 '[A') ((selected--)) || true ;;
                 '[B') ((selected++)) || true ;;
@@ -112,7 +112,7 @@ function bmenu {
                 # Execute the selected action
                 local action="${actions[$selected]}"
                 if [[ "$action" != "return" ]]; then 
-                    trap - RETURN
+                    trap - RETURN INT TERM
                     tput cnorm
                     stty echo
                     source "$_SCRIPT_DIR/$action"
@@ -122,6 +122,27 @@ function bmenu {
         esac
     done
     __SELECTED_ITEM=$selected
+    _codex_unset
+}
+function _MENU_EXAMPLE {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Define the menu items (indexed array)
+    my_items=("Create User" "Delete User" "List Users" "View Logs" "Exit")
+    # Define the actions (associative array: item label -> command to run)
+    declare -A my_actions=(
+        ["Create User"]="create_user"
+        ["Delete User"]="delete_user"
+        ["View Logs"]="view_logs"
+        ["Exit"]="return"
+        ["List Users"]="list_users"
+    )
+    # Define the functions that each action calls
+    create_user() { echo "Creating a new user..."; }
+    delete_user() { echo "Deleting a user..."; }
+    list_users()  { echo "Listing all users..."; return 1; }
+    view_logs()   { echo "Showing recent logs..."; }
+    # Call the menu — pass variable *names*, not values
+    _INTERACTIVE_MENU my_items my_actions "User Management"
     _codex_unset
 }
 

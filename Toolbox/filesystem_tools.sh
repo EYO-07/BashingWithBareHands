@@ -27,6 +27,7 @@ function tools {
     info_echo "... requires: sudo, touch, rm, makedir"
     info_echo "... backup functions requires: 7z"
     toolbox_item "icd" "simple interactive version of cd" $width
+    toolbox_item "gotoMountedStorage" "go to default mounted storage by label" $width
     toolbox_item "createFile / createLink / createFolder" "if not exists creates a regular file/symlink/folder" $width
     toolbox_item "renameFile / deleteFile / deleteFolder" "safely rename/deletes a file/folder after confirming with a random token." $width
     toolbox_item "createFromTemplate" "create a template file or folder from ~/Template folder " $width
@@ -618,11 +619,55 @@ function createLink {
     fi
     _codex_unset
 }
-
-# NEW >>> 
+function showLabelsMounted { # show ONLY mounted storage device labels 
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Use findmnt to list all mounted filesystems, outputting only the LABEL column
+    # -n: No headings
+    # -r: Raw output (easier to parse)
+    # -o LABEL: Output only the LABEL column
+    local labels
+    labels=$(findmnt -n -r -o LABEL 2>/dev/null | sort -u)
+    if [[ -z "$labels" ]]; then
+        warn_echo "No mounted storage devices with labels found."
+        _codex_unset
+        return 0
+    fi
+    warn_echo "--- Available mounted storage labels ---"
+    echo "$labels"
+    echo ""
+    _codex_unset
+}
+function gotoMountedStorage { # goto default mounted storage by label
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [[ "$#" -ne 1 ]]; then
+        showLabelsMounted
+        echo "USAGE: gotoMountedStorage <LABEL>"
+        _codex_unset
+        return 1
+    fi
+    local LABEL="$1"
+    local DEVICE="/dev/disk/by-label/${LABEL}"    
+    if [[ ! -e "$DEVICE" ]]; then
+        echo "Error: Device '$LABEL' not found."
+        _codex_unset
+        return 1
+    fi
+    local REAL_DEVICE
+    REAL_DEVICE=$(readlink -f "$DEVICE")
+    # Find mount point using findmnt (cleaner than parsing lsblk)
+    local MOUNT_POINT
+    MOUNT_POINT=$(findmnt -n -o TARGET "$REAL_DEVICE" 2>/dev/null)
+    if [[ -z "$MOUNT_POINT" ]]; then
+        echo "Error: Device '$LABEL' is not mounted."
+        _codex_unset
+        return 1
+    fi
+    cd "$MOUNT_POINT" && echo "Changed directory to: $MOUNT_POINT" || echo "Failed to change directory."
+    _codex_unset
+}
 function icd {
     source "$_SCRIPT_DIR/_codex.sh"
-    trap 'tput cnorm; stty echo' RETURN
+    trap 'tput cnorm; stty echo' RETURN INT TERM
     stty -echo
     tput civis
     local selected=0
@@ -674,7 +719,7 @@ function icd {
         # --- Input ---
         read -rsn1 key
         if [[ $key == $'\x1b' ]]; then
-            read -rsn2 -t 0.1 key
+            read -rsn2 -t 0.2 key
             case "$key" in
                 '[A') ((selected--)) || true ;;
                 '[B') ((selected++)) || true ;;

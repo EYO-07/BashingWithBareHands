@@ -26,7 +26,7 @@ function tools {
     toolbox_item "gotoWineDirectoryC" "go to C:/" $width
     toolbox_item "gotoWineDirectoryAppData" "go to %AppData%" $width
     toolbox_endl
-    #_codex_unset
+    _codex_unset
 }
 tools 
 function readmeWineTools {
@@ -66,7 +66,7 @@ function readmeWineTools {
     echo ""
     info_echo "If you know how to, you can use those functions to create a script executable on .local/bin"
     info_echo "... but be sure to use 'cd ...' to the wine directory and to source the script correctly."
-    #_codex_unset ""
+    _codex_unset
 }
 
 # RED = 31 - 41
@@ -93,6 +93,7 @@ function info_echo { color_echo 36 "$@"; }
 
 # -- implementation
 function makeWineKissable {
+    source "$_SCRIPT_DIR/_codex.sh"
     info_echo ">>> Starting Wine Desktop Cleanup..."
     # 2. Cleanup: Remove existing MIME types
     warn_echo ">> Removing MIME type packages..."
@@ -137,8 +138,10 @@ function makeWineKissable {
     info_echo "    Note: If you install new Windows software, associations might try to return."
     info_echo "    To permanently prevent this, run: winecfg -> Desktop Integration -> Uncheck 'Manage File Associations'"
     info_echo "    Also, run: winecfg -> Libraries -> Type: winemenubuilder.exe -> Add Edit Disable and Apply"
+    _codex_unset
 }
 function createWineDirectory {
+    source "$_SCRIPT_DIR/_codex.sh"
     # createWineDirectory <path>
     # 1. Creates a folder based on <path> with a wine prefix folder inside it
     # 2. Creates a tracking file .wineprefix_id to store the absolute wine prefix path
@@ -146,6 +149,7 @@ function createWineDirectory {
     if [ -z "$target_dir" ]; then
         crit_echo "Error: Target directory path is required."
         info_echo "Usage: createWineDirectory <path/to/project>"
+        _codex_unset
         return 1
     fi
     # Resolve absolute path
@@ -159,6 +163,7 @@ function createWineDirectory {
         warn_echo "Directory '$target_dir' already exists."
         if [ -f "$id_file" ]; then
             crit_echo "Error: This directory is already initialized as a Wine environment."
+            _codex_unset
             return 1
         fi
     else
@@ -173,19 +178,23 @@ function createWineDirectory {
         winecfg &> "$error_file"
     if [ $? -ne 0 ]; then
         crit_echo "Error: Failed to initialize Wine prefix."
+        _codex_unset
         return 1
     fi
     # Write the tracking file (stores the absolute path of the prefix)
     echo "$prefix_path" > "$id_file"
     info_echo ">>> Success! Wine environment linked to: $target_dir"
     info_echo "    Run 'cd $target_dir && wineDirectoryInfo' to view status."
+    _codex_unset
 }
 function wineInstallWinetricksPackage {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Install winetricks package only if .wineprefix_id exists in the CURRENT directory.
     # No Git dependency, no parent directory search.
     if [ "$#" -eq 0 ]; then
         crit_echo "Error: Package name required."
         info_echo "Usage: wineInstallWinetricksPackage <package1> [package2...]"
+        _codex_unset
         return 1
     fi
     local packages=("$@")
@@ -195,6 +204,7 @@ function wineInstallWinetricksPackage {
         crit_echo "Error: Not a Wine-managed directory."
         crit_echo "    File '.wineprefix_id' not found in current directory."
         info_echo "    Run 'createWineDirectory .' to initialize this folder."
+        _codex_unset
         return 1
     fi
     local prefix_path
@@ -202,10 +212,12 @@ function wineInstallWinetricksPackage {
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Target prefix not found at '$prefix_path'."
         crit_echo "    The path stored in '.wineprefix_id' does not exist."
+        _codex_unset
         return 1
     fi
     if ! command -v winetricks &> /dev/null; then
         crit_echo "Error: 'winetricks' command not found."
+        _codex_unset
         return 1
     fi
     info_echo ">>> Installing packages in: $prefix_path"
@@ -216,12 +228,15 @@ function wineInstallWinetricksPackage {
         info_echo ">>> Installation complete."
     else
         crit_echo ">>> Installation failed or was interrupted."
+        _codex_unset
         return 1
     fi
+    _codex_unset
 }
 
 # -- implementation | info
 function _showWineEnvVariables {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Helper to print specific Wine & Graphics environment variables if set
     local vars=(
         # Wine Renderers / Backends
@@ -246,8 +261,10 @@ function _showWineEnvVariables {
     if [ "$found_any" = false ]; then
         warn_echo "      (None of the tracked graphics/Wine variables are currently set)"
     fi
+    _codex_unset
 }
 function _confirmWinetricks {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Helper to prompt user before running winetricks list-installed
     local prefix_path="$1"
     echo ""
@@ -256,6 +273,7 @@ function _confirmWinetricks {
     echo "" # Move to a new line
     if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
         info_echo "      (Skipped Winetricks package listing)"
+        _codex_unset
         return 0
     fi
     info_echo "      Fetching installed packages..."
@@ -273,8 +291,10 @@ function _confirmWinetricks {
     else
         warn_echo "      (Winetricks command not found in PATH)"
     fi
+    _codex_unset
 }
 function wineDirectoryInfo {
+    source "$_SCRIPT_DIR/_codex.sh"
     local current_dir="$PWD"
     local id_file=""
     local project_root=""
@@ -290,12 +310,14 @@ function wineDirectoryInfo {
     # Fail out if we couldn't find the anchor file anywhere up the tree
     if [ -z "$id_file" ]; then
         crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
+        _codex_unset
         return 1
     fi
     local prefix_path
     prefix_path=$(cat "$id_file")
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Prefix not found at '$prefix_path'."
+        _codex_unset
         return 1
     fi
     info_echo "=== Wine Environment Info ==="
@@ -307,8 +329,10 @@ function wineDirectoryInfo {
     _showWineEnvVariables
     # Prompt for Winetricks
     _confirmWinetricks "$prefix_path"
+    _codex_unset
 }
 function wineSessionInfo {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Checks active Wine session variables and environment status.
     local prefix_path
     local is_default=false
@@ -325,6 +349,7 @@ function wineSessionInfo {
         else
             echo "    (WINEPREFIX is set to: $WINEPREFIX)"
         fi
+        _codex_unset
         return 1
     fi
     info_echo "=== Active Wine Session Info ==="
@@ -346,11 +371,13 @@ function wineSessionInfo {
     _showWineEnvVariables   
     # Prompt for Winetricks
     _confirmWinetricks "$prefix_path"
+    _codex_unset
     return 0
 }
 
 # -- implementation | run
 function wineDirectoryRun {
+    source "$_SCRIPT_DIR/_codex.sh"
     local current_dir="$PWD"
     local id_file=""
     local project_root=""
@@ -366,12 +393,14 @@ function wineDirectoryRun {
     # Fail out if we couldn't find the anchor file anywhere up the tree
     if [ -z "$id_file" ]; then
         crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
+        _codex_unset
         return 1
     fi
     local prefix_path
     prefix_path=$(cat "$id_file")
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Prefix not found at '$prefix_path'."
+        _codex_unset
         return 1
     fi
     # Log errors to the project root directory instead of the active subdirectory
@@ -393,23 +422,29 @@ function wineDirectoryRun {
         WINEPREFIX="$prefix_path" wine "$@" &>> "$log_file" &
     fi
     disown
+    _codex_unset
 }
 function exportWinePrefix {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Run a wine command in the current directory's prefix.
     if [ ! -f "./.wineprefix_id" ]; then
         crit_echo "Error: '.wineprefix_id' not found in current directory."
+        _codex_unset
         return 1
     fi
     local prefix_path
     prefix_path=$(cat "./.wineprefix_id")
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Prefix not found at '$prefix_path'."
+        _codex_unset
         return 1
     fi
     echo "Wine Prefix : $prefix_path"
     export WINEPREFIX="$prefix_path"
+    _codex_unset
 }
 function wineDesktop {
+    source "$_SCRIPT_DIR/_codex.sh"
     # Open just the Wine desktop environment (Explorer) in a virtual window.
     # USAGE: wineDesktop <resolution> <name>
     # Example: wineDesktop 1280x720 mysession
@@ -419,6 +454,7 @@ function wineDesktop {
         echo "Usage: wineDesktop <resolution> <name>"
         echo "Example: wineDesktop 1280x720 mysession"
         echo "... 1600x900 1366x768 1280x720 800x600"
+        _codex_unset
         return 1
     fi
     local resolution="$1"
@@ -426,6 +462,7 @@ function wineDesktop {
     # 2. Validate Prefix ID file
     if [ ! -f "./.wineprefix_id" ]; then
         crit_echo "Error: '.wineprefix_id' not found in current directory."
+        _codex_unset
         return 1
     fi
     local prefix_path
@@ -433,6 +470,7 @@ function wineDesktop {
     # 3. Validate Prefix Directory
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Prefix not found at '$prefix_path'."
+        _codex_unset
         return 1
     fi
     # 4. Launch Wine Explorer
@@ -446,8 +484,10 @@ function wineDesktop {
     WINEPREFIX="$prefix_path" wine explorer "/desktop=${name},${resolution}" explorer &>> ./errors.txt &
     # Optional: Disown the process so it survives if the script exits immediately
     disown
+    _codex_unset
 }
 function gotoWineDirectoryRoot {
+    source "$_SCRIPT_DIR/_codex.sh"
     # go to current prefix wine directory 
     local current_dir="$PWD"
     local id_file=""
@@ -464,18 +504,22 @@ function gotoWineDirectoryRoot {
     # Fail out if we couldn't find the anchor file anywhere up the tree
     if [ -z "$id_file" ]; then
         crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
+        _codex_unset
         return 1
     fi
     local prefix_path
     prefix_path=$(cat "$id_file")
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Prefix not found at '$prefix_path'."
+        _codex_unset
         return 1
     fi
     cd "$project_root"
+    _codex_unset
     return 0
 }
 function gotoWineDirectoryC {
+    source "$_SCRIPT_DIR/_codex.sh"
     # go to current prefix wine directory 
     local current_dir="$PWD"
     local id_file=""
@@ -492,17 +536,21 @@ function gotoWineDirectoryC {
     # Fail out if we couldn't find the anchor file anywhere up the tree
     if [ -z "$id_file" ]; then
         crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
+        _codex_unset
         return 1
     fi
     local prefix_path
     prefix_path=$(cat "$id_file")
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Prefix not found at '$prefix_path'."
+        _codex_unset
         return 1
     fi
     cd "$project_root/wine_prefix/drive_c"
+    _codex_unset
 }
 function gotoWineDirectoryAppData {
+    source "$_SCRIPT_DIR/_codex.sh"
     # go to current prefix wine directory 
     local current_dir="$PWD"
     local id_file=""
@@ -519,19 +567,23 @@ function gotoWineDirectoryAppData {
     # Fail out if we couldn't find the anchor file anywhere up the tree
     if [ -z "$id_file" ]; then
         crit_echo "Error: '.wineprefix_id' not found in this directory or any parent directories."
+        _codex_unset
         return 1
     fi
     local prefix_path
     prefix_path=$(cat "$id_file")
     if [ ! -d "$prefix_path" ]; then
         crit_echo "Error: Prefix not found at '$prefix_path'."
+        _codex_unset
         return 1
     fi
     cd "$project_root/wine_prefix/drive_c/users/$USER/AppData"
+    _codex_unset
 }
 
 # -- implementation | environment settings
 function exportWineNvidiaSetup {
+    source "$_SCRIPT_DIR/_codex.sh"
     info_echo "... Enabling NVIDIA PRIME Render Offload"
     # 1. Direct OpenGL applications to render on the NVIDIA GPU.
     export __NV_PRIME_RENDER_OFFLOAD=1
@@ -553,6 +605,7 @@ function exportWineNvidiaSetup {
     # 8. VKD3D debug output (optional).
     # export VKD3D_DEBUG=none
     warn_echo "Exported NVIDIA PRIME environment variables."
+    _codex_unset
     return 0
 }
 
