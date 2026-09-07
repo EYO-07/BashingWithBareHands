@@ -667,11 +667,13 @@ function gotoMountedStorage { # goto default mounted storage by label
 }
 function icd {
     source "$_SCRIPT_DIR/_codex.sh"
-    declare -A __ASS_ARR_ICD
+    if [[ ! -v __ASS_ARR_ICD ]]; then 
+        declare -gA __ASS_ARR_ICD
+    fi
     trap 'tput cnorm; stty echo' RETURN INT TERM
     stty -echo
     tput civis
-    local selected=0
+    local selected=${__ASS_ARR_ICD["$(pwd)"]:-0}
     local files=()
     local total=0
     local start=0 end=0
@@ -745,6 +747,7 @@ function icd {
                 ;;
         esac
     done
+    __ASS_ARR_ICD["$(pwd)"]=$selected
     unset -f _build_list
     _codex_unset
 }
