@@ -373,6 +373,27 @@ function is_command_valid { # wild eval here, use only to check if a tool exists
 }   
 
 # -- menu
+#function _MENU_EXAMPLE {
+    #source "$_SCRIPT_DIR/_codex.sh"
+    # Define the menu items (indexed array)
+    #my_items=("Create User" "Delete User" "List Users" "View Logs" "Exit")
+    # Define the actions (associative array: item label -> command to run)
+    #declare -A my_actions=(
+        #["Create User"]="create_user"
+        #["Delete User"]="delete_user"
+        #["View Logs"]="view_logs"
+        #["Exit"]="return"
+        #["List Users"]="list_users"
+    #)
+    # Define the functions that each action calls
+    #create_user() { echo "Creating a new user..."; }
+    #delete_user() { echo "Deleting a user..."; }
+    #list_users()  { echo "Listing all users..."; return 1; }
+    #view_logs()   { echo "Showing recent logs..."; }
+    # Call the menu — pass variable *names*, not values
+    #INTERACTIVE_MENU my_items my_actions "User Management"
+    #_codex_unset
+#}
 function INTERACTIVE_MENU {
     [[ -t 0 && -t 1 ]] || return 0
     (( $# >= 2 )) || return 0
