@@ -24,17 +24,24 @@ function tools {
     #toolbox_item "tools files" "import filesystem tools" $width
     #toolbox_item "tools share" "import filesharing tools" $width
     toolbox_item "inv" "print built-in commands ..." $width
-    info_echo "... requires: udisksctl; basic filesystem tools: fsck, lsblk, blkid"
-    toolbox_item "showMountPoints" "show mounted units devices" $width
-    toolbox_item "showStorageDevicesInfo" "..." $width
-    toolbox_item "mountIsoFile" "mount iso file as storage device" $width
-    toolbox_item "safelyRemoveUsb" "safely unmount and power-off usb device" $width
-    toolbox_item "storageDeviceLabels" "show the storage device labels" $width
-    toolbox_item "mountStorageDevice <Label>" "mount storage device by label" $width
-    toolbox_item "unmountStorageDevice" "unmount storage device by label" $width
-    toolbox_item "gotoMountedStorage" "go to default path mounted storage by label" $width
     toolbox_item "showLabelsMounted" "show ONLY mounted storage device labels" $width
-    toolbox_item "checkFilesystemErrors" "check for filesystem errors on unmounted device by label" $width
+    toolbox_item "storageDeviceLabels" "show the storage device labels" $width
+    toolbox_item "gotoMountedStorage" "go to default path mounted storage by label" $width
+    if all_commands_valid "fsck" "lsblk" "blkid" "tee"; then 
+        toolbox_item "showMountPoints" "show mounted units devices" $width
+        toolbox_item "showStorageDevicesInfo" "..." $width
+        toolbox_item "checkFilesystemErrors" "check for filesystem errors on unmounted device by label" $width
+    else 
+        crit_echo "... missing one of: fsck, lsblk, blkid, tee"
+    fi 
+    if is_command_valid "udisksctl" "sed" "readlink"; then
+        toolbox_item "mountStorageDevice <Label>" "mount storage device by label" $width
+        toolbox_item "unmountStorageDevice" "unmount storage device by label" $width
+        toolbox_item "mountIsoFile" "mount iso file as storage device" $width
+        toolbox_item "safelyRemoveUsb" "safely unmount and power-off usb device" $width
+    else 
+        crit_echo "... missing: udisksctl sed readlink"
+    fi 
     toolbox_endl
     _codex_unset
 }

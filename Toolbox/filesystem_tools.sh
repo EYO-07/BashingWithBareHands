@@ -24,21 +24,35 @@ function tools {
     #toolbox_item "tools mount" "import mounting tools" $width
     #toolbox_item "tools share" "import filesharing tools" $width
     toolbox_item "inv" "print built-in commands ..." $width
-    info_echo "... requires: sudo, touch, rm, makedir"
-    info_echo "... backup functions requires: 7z"
-    toolbox_item "icd" "simple interactive version of cd" $width
+    toolbox_item "icd" "simple interactive version of cd (change dir)" $width
     toolbox_item "gotoMountedStorage" "go to default path mounted storage by label" $width
-    toolbox_item "createFile / createLink / createFolder" "if not exists creates a regular file/symlink/folder" $width
-    toolbox_item "renameFile / deleteFile / deleteFolder" "safely rename/deletes a file/folder after confirming with a random token." $width
-    toolbox_item "createFromTemplate" "create a template file or folder from ~/Template folder " $width
-    toolbox_item "getHashInfo" "sha256 and other useful hashs for a file" $width
-    toolbox_item "getSize" "estimate or get metadata of filesize of folder or file" $width
-    toolbox_item "showMetadata" "show metadata info for file or folder" $width
     toolbox_item "showFileTree" "display files recursively" $width
-    toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp" $width
-    toolbox_item "restoreBackup <file.7z> [out_dir]" "..." $width
-    toolbox_item "restoreBackup <file.7z>" "... current directory" $width
-    toolbox_item "viewBackupContents" "view the contents of a compressed archive" $width
+    if all_commands_valid "cp" "touch" "rm" "mkdir"; then 
+        toolbox_item "createFile / createLink / createFolder" "if not exists creates a regular file/symlink/folder" $width
+        toolbox_item "renameFile / deleteFile / deleteFolder" "safely rename/deletes a file/folder after confirming with a random token." $width
+        toolbox_item "createFromTemplate" "create a template file or folder from ~/Template folder " $width
+    else 
+        crit_echo "... missing one of: sudo, cp, touch, rm, mkdir"
+    fi
+    if all_commands_valid "du" "find" "cut" "wc" "stat" "file"; then 
+        toolbox_item "getSize" "estimate or get metadata of filesize of folder or file" $width
+        toolbox_item "showMetadata" "show metadata info for file or folder" $width
+    else 
+        crit_echo "... missing one of: du find cut wc stat file"
+    fi    
+    if all_commands_valid "awk" "sha256sum"; then 
+        toolbox_item "getHashInfo" "sha256 and other useful hashs for a file" $width
+    else 
+        crit_echo "... missing one of: awk sha256sum"
+    fi 
+    if is_command_valid 7z ; then
+        toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp" $width
+        toolbox_item "restoreBackup <file.7z> [out_dir]" "..." $width
+        toolbox_item "restoreBackup <file.7z>" "... current directory" $width
+        toolbox_item "viewBackupContents" "view the contents of a compressed archive" $width
+    else 
+        crit_echo "... backup functions requires: 7z"
+    fi
     toolbox_endl
     _codex_unset
 }

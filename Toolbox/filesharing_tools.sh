@@ -26,15 +26,23 @@ function tools {
     toolbox_item "tools" "show this ..." $width
     #toolbox_item "tools files" "import filesystem tools" $width
     #toolbox_item "tools mount" "import mounting tools" $width
-    toolbox_item "inv" "show helpful built-in commands" $width
-    toolbox_item "checkLocalFileSharingBridge" "check the connection between local network machines" $width
-    toolbox_item "remoteShell <remoteusername> <remotehostname>" "open a remote terminal" $width
-    toolbox_item "leftload <remoteusername> <remotehostname> <remotepath> [ <localpath> ]" "download from local network machines" $width
-    toolbox_item "1. leftload <remoteusername> <remotehostname> <remotepath>" "Lists remote files (Dry Run / Preview)" $width
-    toolbox_item "2. leftload <remoteusername> <remotehostname> <remotepath> ." "Starts the download to current directory" $width
-    toolbox_item "3. leftload <remoteusername> <remotehostname> <remotepath> /some/path" "Starts the download to specific path" $width
-    toolbox_item "activateFileSharingServices" "activate related services for filesharing" $width
-    toolbox_item "deactivateFileSharingServices" "deactivate related services for filesharing" $width
+    toolbox_item "inv" "useful commands syntax" $width
+    if all_commands_valid "avahi-daemon" "avahi-resolve" "ip" "ssh" "grep" "rsync" ; then 
+        toolbox_item "checkLocalFileSharingBridge" "check the connection between local network machines" $width
+        toolbox_item "remoteShell <remoteusername> <remotehostname>" "open a remote terminal" $width
+        toolbox_item "leftload <remoteusername> <remotehostname> <remotepath> [ <localpath> ]" "download from local network machines" $width
+        toolbox_item "1. leftload <remoteusername> <remotehostname> <remotepath>" "Lists remote files (Dry Run / Preview)" $width
+        toolbox_item "2. leftload <remoteusername> <remotehostname> <remotepath> ." "Starts the download to current directory" $width
+        toolbox_item "3. leftload <remoteusername> <remotehostname> <remotepath> /some/path" "Starts the download to specific path" $width
+    else 
+        crit_echo "... missing one of: avahi, openssh, nss-mdns, rsync"
+    fi 
+    if all_commands_valid "systemctl" "tr" "grep" ; then 
+        toolbox_item "activateFileSharingServices" "activate related services for filesharing" $width
+        toolbox_item "deactivateFileSharingServices" "deactivate related services for filesharing" $width
+    else
+        crit_echo "... missing: systemctl"
+    fi 
     toolbox_endl
     _codex_unset
 }

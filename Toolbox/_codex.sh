@@ -368,9 +368,17 @@ function load_variables {
     source "$file"
 }   
 # -- misc 
-function is_command_valid { # wild eval here, use only to check if a tool exists
-    eval "$@" &> /dev/null    
-}   
+function is_command_valid {
+    command -v "$1" &>/dev/null
+}
+function all_commands_valid {
+    for k in "$@"; do
+        if ! command -v "$k" &>/dev/null; then
+            return 1
+        fi
+    done
+    return 0
+}
 
 # -- menu
 #function _MENU_EXAMPLE {

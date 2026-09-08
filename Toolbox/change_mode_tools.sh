@@ -13,13 +13,16 @@ function tools {
     local width=5
     toolbox_title "Change File Mode Tools"
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
-    info_echo "... requires: bash, chmod, ls, stat (optional fallback used)"
-    toolbox_item "showAttributes" "display file attributes" $width
-    toolbox_item "activate" "turn script or file executable (chmod +x)" $width
-    toolbox_item "deactivate" "turn off the executable attribute (chmod -x)" $width
-    toolbox_item "setStrictUserPermission" "set strict user read and write permissions (bypassed by root)" $width
-    toolbox_item "takeOwnership" "make the current user the owner of the file or directory (bypassed by root)." $width
+    toolbox_item "inv" "print command syntax ..." $width
+    if all_commands_valid "bash" "chmod" "ls" "stat"; then 
+        toolbox_item "showAttributes" "display file attributes" $width
+        toolbox_item "activate" "turn script or file executable (chmod +x)" $width
+        toolbox_item "deactivate" "turn off the executable attribute (chmod -x)" $width
+        toolbox_item "setStrictUserPermission" "set strict user read and write permissions (bypassed by root)" $width
+        toolbox_item "takeOwnership" "make the current user the owner of the file or directory (bypassed by root)." $width
+    else 
+        info_echo "... requires: bash, chmod, ls, stat"
+    fi     
     toolbox_endl
     _codex_unset
 }
@@ -32,31 +35,6 @@ function inv {
     inventory_item 2 "chmod <MODE> <FILE>" "change file permissions" $width
     inventory_endl 
     _codex_unset
-}
-
-# RED = 31 - 41
-# GREEN = 32 - 42
-# YELLOW = 33 - 43
-# BLUE = 34 - 44
-# MAGENTA = 35 - 45
-# CYAN = 36 - 46
-# WHITE = 37 - 47
-function color_echo {
-    local color=$1
-    shift
-    if [ "$#" -gt 0 ]; then
-        echo -e "\e[${color}m$@\e[0m"
-    else
-        while IFS= read -r line; do
-            echo -e "\e[${color}m${line}\e[0m"
-        done
-    fi
-}
-function warn_echo {
-    color_echo 33 "$@"
-}
-function crit_echo {
-    color_echo 31 "$@"
 }
 
 # -- implementation
@@ -86,7 +64,7 @@ function showAttributes {
     foctal=$($stat_cmd $stat_format="%a" "$file")
     # Display
     echo ""
-    color_echo 36 "$fname"
+    info_echo "$fname"
     echo "   * Type: $ftype"
     echo "   * Owner: $fowner"
     # Translate mode to plain English
