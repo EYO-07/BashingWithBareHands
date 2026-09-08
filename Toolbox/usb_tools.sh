@@ -58,12 +58,15 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=4
     toolbox_title "Usb Tools"
-    info_echo "... requires jq"
-    info_echo "... may require dosfstools for formatting"
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "showUsbDeviceInfo" "show information only for usb sticks" $width
-    toolbox_item "formatUsbDevice" "format usb storage device" $width
-    toolbox_item "setUsbDeviceLabel" "change the name label of usb storage device" $width
+    if all_commands_valid "jq" "udevadm" "lsblk"; then 
+        toolbox_item "showUsbDeviceInfo" "show information only for usb sticks" $width    
+        toolbox_item "formatUsbDevice" "format usb storage device" $width
+        toolbox_item "setUsbDeviceLabel" "change the name label of usb storage device" $width
+    else 
+        crit_echo "... requires jq"
+        crit_echo "... may require dosfstools for formatting"
+    fi
     toolbox_endl
     _codex_unset
 }

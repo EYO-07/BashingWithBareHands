@@ -11,15 +11,24 @@ function tools {
     local width=11
     toolbox_title "Error/Issues Tools"
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "getSystemErrorMessages [ <keyword> [<fileoutput>] ]" "Scan kernel log for critical system failures" $width
-    toolbox_item "getDeviceErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve hardware/device errors" $width
-    toolbox_item "getDriverErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve kernel module/driver failures" $width
-    toolbox_item "getUserErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve user-space application errors" $width
-    toolbox_item "getX11ErrorMessages [ <keyword> [<fileoutput>]" "x11/xorg specific errors" $width
-    toolbox_item "getGraphicCardErrorMessages [ <keyword> [<fileoutput>]" "..." $width
+    toolbox_item "inv" "commands syntax ..." $width
+    toolbox_item "bmenuErrors" "interactive menu" $width
     toolbox_item "systemInformation" "... info attached to fileoutputs" $width
-    toolbox_item "queryMessagesByUnit <unit>" "query journalctl by unit name" $width
+    if is_command_valid dmesg ; then 
+        toolbox_item "getSystemErrorMessages [ <keyword> [<fileoutput>] ]" "Scan kernel log for critical system failures" $width
+        toolbox_item "getDeviceErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve hardware/device errors" $width
+        toolbox_item "getDriverErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve kernel module/driver failures" $width
+        toolbox_item "getGraphicCardErrorMessages [ <keyword> [<fileoutput>]" "..." $width
+    else 
+        crit_echo "... dmesg not found"
+    fi
+    if is_command_valid journalctl ; then 
+        toolbox_item "getUserErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve user-space application errors" $width
+        toolbox_item "queryMessagesByUnit <unit>" "query journalctl by unit name" $width
+    fi
+    if is_command_valid xset ; then 
+        toolbox_item "getX11ErrorMessages [ <keyword> [<fileoutput>]" "x11/xorg specific errors" $width
+    fi
     toolbox_endl
     _codex_unset
 }
@@ -317,6 +326,45 @@ function queryMessagesByUnit {
         return 1
     fi
     journalctl -u "$1"
+    _codex_unset
+}
+__SELECTED_ITEM_ERRORS=0
+function bmenuErrors {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Define the menu items (indexed array)
+    local items=(
+        "System Info"
+        "System Errors"
+        "Device Errors"
+        "Driver Errors"
+        "Graphic Card Errors"
+        "User Errors"
+        "XOrg/X11 Errors"
+        "Exit"
+    )
+    # Define the actions (associative array: item label -> command to run)
+    declare -A actions=(
+        ["Exit"]="return"
+        ["System Info"]="__system_info"
+        ["System Errors"]="__system_errors"
+        ["Device Errors"]="__dev_errors"
+        ["Driver Errors"]="__driv_errors"
+        ["Graphic Card Errors"]="__grap_errors"
+        ["User Errors"]="__user_errors"
+        ["XOrg/X11 Errors"]="__xorg_errors"
+    )
+    # Define the functions that each action calls
+    __system_info() { systemInformation ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __system_errors() { getSystemErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __dev_errors() { getDeviceErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __driv_errors() { getDriverErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __grap_errors() { getGraphicCardErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __user_errors() { getUserErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __xorg_errors() { getX11ErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    # Call the menu — pass variable *names*, not values
+    INTERACTIVE_MENU items actions "Error Menu" $__SELECTED_ITEM_ERRORS
+    __SELECTED_ITEM_ERRORS=$?
+    unset -f __system_info __system_errors __dev_errors __driv_errors __grap_errors __user_errors __xorg_errors
     _codex_unset
 }
 
