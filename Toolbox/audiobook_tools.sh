@@ -38,12 +38,12 @@ _play_stream() {
 }
 _play_text_stream() {
     source "$_SCRIPT_DIR/_codex.sh"
-    if is_command_valid "gtts-cli --version"; then 
+    if is_command_valid "gtts-cli"; then 
         gtts-cli -f - | _play_stream
         _codex_unset
         return 0
     fi 
-    if is_command_valid "flite -t ''"; then 
+    if is_command_valid "flite"; then 
         local text=$(cat)
         flite -voice slt -t "$text"
         _codex_unset

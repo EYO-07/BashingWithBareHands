@@ -766,4 +766,26 @@ function icd {
     _codex_unset
 }
 
+__SELECTED_ITEM_GOTO=0
+function igoto {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Define the menu items (indexed array)
+    local items=(
+        "local binaries"
+        "/etc"
+        "/run/media"
+        "Exit"
+    )
+    # Define the actions (associative array: item label -> command to run)
+    declare -A actions=(
+        ["Exit"]="return"
+    )
+    # -- functions
+    # Call the menu — pass variable *names*, not values
+    INTERACTIVE_MENU items actions "Goto Path" $__SELECTED_ITEM_GOTO
+    __SELECTED_ITEM_GOTO=$?
+    unset -f 
+    _codex_unset
+}
+
 # END

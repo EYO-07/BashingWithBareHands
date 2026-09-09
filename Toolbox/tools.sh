@@ -267,6 +267,7 @@ function bmenuMiscellaneous {
         ["Local Python Server"]="_local_server"
         ["Screenshot"]="_screenshot"
     )
+    # -- functions
     _git_tools() {
         source "$_SCRIPT_DIR/git_tools.sh"
     }
@@ -294,7 +295,6 @@ function bmenuMiscellaneous {
     _screenshot() {
         source "$_SCRIPT_DIR/screenshot_tools.sh"
     }
-    # -- functions
     # Call the menu — pass variable *names*, not values
     INTERACTIVE_MENU items actions "Miscellaneous Tools Menu" $__SELECTED_ITEM_MISC
     __SELECTED_ITEM_MISC=$?
