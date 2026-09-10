@@ -1,28 +1,52 @@
 # BEGIN : Toolbox/_codex.sh 
-_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# -- dependencies 
+# -- variables
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
+__SELECTED_ITEM=0 # ~ bmenu 
+__SELECTED_ITEM_FILESYSTEM=0 # ~ bmenuFilesystem
+__SELECTED_ITEM_SYSTEM=0 # ~ bmenuSystem
+__SELECTED_ITEM_MISC=0 # ~ bmenuMiscellaneous
+
+# -- load/save config
+__BWBH_SAVE_CONFIG_tools() {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
+    if [[ ! -f "$config_path" ]]; then 
+        crit_echo "... config file not found"
+        good_echo "... creating config file"
+        create_intermediate_dirs "$config_path"
+        echo "$config_path"
+    fi 
+    save_variables "$config_path" \
+        "__SELECTED_ITEM" "__SELECTED_ITEM_FILESYSTEM" "__SELECTED_ITEM_SYSTEM" "__SELECTED_ITEM_MISC"
+}
 
 # -- description 
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
+    # -- tool print
     local width=4
     toolbox_title "Bashing With Bare Hands"
     info_echo "... interactive verbose bash aliases and functions"
     toolbox_item "tools" "print this ..." $width
+    toolbox_item "hsearch" "search command history by keyword" $width
     toolbox_item "bmenu" "bashing with bare hands terminal interactive menu" $width
     toolbox_item "bmenuFilesystem" "menu for filesystem tools" $width
     toolbox_item "bmenuSystem" "menu for system tools" $width
     toolbox_item "bmenuMiscellaneous" "menu for miscellaneous tools" $width
     toolbox_endl
+    # --    
     _codex_unset
 }
 tools
 
 # -- implementation
-__SELECTED_ITEM=0
 function bmenu {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
+    # --
     local bmenu_title="Bashing With Bare Hands"
     trap 'tput cnorm; stty echo' RETURN INT TERM # cleanup on function return 
     stty -echo # disables echo 
@@ -125,11 +149,13 @@ function bmenu {
         esac
     done
     __SELECTED_ITEM=$selected
+    __BWBH_SAVE_CONFIG_tools
     _codex_unset
 }
-__SELECTED_ITEM_FILESYSTEM=0
 function bmenuFilesystem {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # Define the menu items (indexed array)
     local items=(
         "Files / Filesystem"
@@ -168,11 +194,13 @@ function bmenuFilesystem {
     INTERACTIVE_MENU items actions "Filesystem Tools Menu" $__SELECTED_ITEM_FILESYSTEM
     __SELECTED_ITEM_FILESYSTEM=$?
     unset -f _files _mount _modes _share _usb
+    __BWBH_SAVE_CONFIG_tools
     _codex_unset
 } 
-__SELECTED_ITEM_SYSTEM=0
 function bmenuSystem {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # Define the menu items (indexed array)
     local items=(
         "Errors"
@@ -236,11 +264,13 @@ function bmenuSystem {
     INTERACTIVE_MENU items actions "System Tools Menu" $__SELECTED_ITEM_SYSTEM
     __SELECTED_ITEM_SYSTEM=$?
     unset -f _errors _internet _processes _services _sockets _audio _sensors _pacman _display_xorg _i3winmanager
+    __BWBH_SAVE_CONFIG_tools
     _codex_unset
 } 
-__SELECTED_ITEM_MISC=0
 function bmenuMiscellaneous {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # Define the menu items (indexed array)
     local items=(
         "Git"
@@ -299,7 +329,15 @@ function bmenuMiscellaneous {
     INTERACTIVE_MENU items actions "Miscellaneous Tools Menu" $__SELECTED_ITEM_MISC
     __SELECTED_ITEM_MISC=$?
     unset -f _git_tools _wine_tools _python_env_tools _audiobook _calendar _local_inf _viddown _local_server _screenshot
+    __BWBH_SAVE_CONFIG_tools
     _codex_unset
 }
+function hsearch {
+    if [[ "$#" -eq 0 ]]; then
+        history 25
+        return 0
+    fi
+    history | grep -v "hsearch" | grep --color=auto -i "$*"
+}   
 
 # END 

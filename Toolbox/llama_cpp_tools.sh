@@ -1,9 +1,30 @@
 # BEGIN : Toolbox/_llama_cpp.sh 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# -- variables
+_CONTEXT_SIZE_LLM=1024
+_DEVICE_LLM="none"
+_GPU_OFFLOAD_LLM=15
+
+# -- load and save config 
+__BWBH_SAVE_CONFIG_llama() {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
+    if [[ ! -f "$config_path" ]]; then 
+        crit_echo "... config file not found"
+        good_echo "... creating config file"
+        create_intermediate_dirs "$config_path"
+        echo "$config_path"
+    fi 
+    save_variables "$config_path" \
+        "_CONTEXT_SIZE_LLM" "_DEVICE_LLM" "_GPU_OFFLOAD_LLM"
+}
+
 # -- description 
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     local width=5
     toolbox_title "Artificial Inteligence Local Inference Tools"
     info_echo "... requires llama-cpp package and their backends ggml-vulkan ggml-cpu"
@@ -11,20 +32,20 @@ function tools {
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "lightInteractiveInference" "interactive inference for low vram (4GB)" $width
     toolbox_item "lightFileInference" "llm inference over a file (backup the file to avoid data loss)" $width
-    toolbox_item "setContextSize" "set context size in tokens (Default: 1024)" $width
-    toolbox_item "setDeviceLLM" "set the device used for processing (Default: none)" $width
-    toolbox_item "setGpuOffloadLayers" "numbers of layers processed by gpu (Default: 15)" $width
+    toolbox_item "setContextSize" "set context size in tokens (Default: 1024 Current: $_CONTEXT_SIZE_LLM)" $width
+    toolbox_item "setDeviceLLM" "set the device for processing (Default: none Current: $_DEVICE_LLM)" $width
+    toolbox_item "setGpuOffloadLayers" "numbers of layers processed by gpu (Default: 15 Current: $_GPU_OFFLOAD_LLM)" $width
     toolbox_endl
     _codex_unset
 }
 tools
 
 # -- implementation 
-_CONTEXT_SIZE_LLM=1024
-_DEVICE_LLM="none"
-_GPU_OFFLOAD_LLM=15
+
 function lightInteractiveInference {
     source "${_SCRIPT_DIR}/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     local model=""
     local gpu_offload_int="$_GPU_OFFLOAD_LLM"
     local device="$_DEVICE_LLM"
@@ -121,6 +142,7 @@ function setContextSize {
     if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
         _CONTEXT_SIZE_LLM="$1"
         warn_echo "Current LLM Context Size : $_CONTEXT_SIZE_LLM tokens"
+        __BWBH_SAVE_CONFIG_llama
         _codex_unset
         return 0
     fi
@@ -133,6 +155,7 @@ function setGpuOffloadLayers {
     if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
         _GPU_OFFLOAD_LLM="$1"
         warn_echo "Current LLM GPU Offload : $_GPU_OFFLOAD_LLM layers"
+        __BWBH_SAVE_CONFIG_llama
         _codex_unset
         return 0
     fi
@@ -142,6 +165,8 @@ function setGpuOffloadLayers {
 }
 function lightFileInference {
     source "${_SCRIPT_DIR}/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     local arg_count=$#
     local file_path="$1"
     local model="$2"
@@ -230,6 +255,7 @@ function setDeviceLLM {
     if [ "$#" -gt 0 ]; then
         _DEVICE_LLM="$1"
         warn_echo "Current LLM Device : $_DEVICE_LLM"
+        __BWBH_SAVE_CONFIG_llama
         _codex_unset
         return 0
     fi

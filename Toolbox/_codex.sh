@@ -32,7 +32,7 @@ function _codex_unset {
     unset -f token_prompt yn_prompt auto_escalate
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
     unset -f get_abs_path create_intermediate_dirs
-    unset -f save_variables load_variables
+    unset -f save_variables # load_variables
     unset -f is_command_valid
     unset -f INTERACTIVE_MENU
 }
@@ -363,10 +363,11 @@ function save_variables {
     local file="$1"; shift
     declare -p "$@" > "$file"
 }
-function load_variables {
-    local file="$1"
-    source "$file"
-}   
+#function load_variables {
+    #local file="$1"
+    #source "$file"
+#}   
+
 # -- misc 
 function is_command_valid {
     command -v "$1" &>/dev/null
