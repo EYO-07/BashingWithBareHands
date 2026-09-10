@@ -1,8 +1,19 @@
 # BEGIN : ~/Toolbox/filesystem_tools.sh 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# -- dependencies
-# 1. 7z : compressing and extracting tools 
+# -- load/save config
+__BWBH_SAVE_CONFIG_filesystem() {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
+    if [[ ! -f "$config_path" ]]; then 
+        crit_echo "... config file not found"
+        good_echo "... creating config file"
+        create_intermediate_dirs "$config_path"
+        echo "$config_path"
+    fi 
+    save_variables "$config_path" \
+        "__SELECTED_ITEM_GOTO" "__GOTO_SHORTCUTS"
+}
 
 # -- description
 function tools {
@@ -20,11 +31,12 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=8
     toolbox_title "Files/Filesystem Tools"
-    toolbox_item "tools" "print this ..." $width
+    toolbox_item "tools / inv" "print this ... / command syntax" $width
     #toolbox_item "tools mount" "import mounting tools" $width
     #toolbox_item "tools share" "import filesharing tools" $width
-    toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "icd" "simple interactive version of cd (change dir)" $width
+    toolbox_item "gotoShortcut / addShortcut" "go to custom path / add path to shortcuts" $width
+    toolbox_item "shortcutsDelete / shortcutsReset" "delete / reset goto path shortcuts" $width
     toolbox_item "gotoMountedStorage" "go to default path mounted storage by label" $width
     toolbox_item "showFileTree" "display files recursively" $width
     if all_commands_valid "cp" "touch" "rm" "mkdir"; then 
@@ -767,24 +779,236 @@ function icd {
 }
 
 __SELECTED_ITEM_GOTO=0
-function igoto {
+__GOTO_SHORTCUTS=("$HOME" "/etc" "/run/media" "$HOME/.local/bin")
+function gotoShortcut {
     source "$_SCRIPT_DIR/_codex.sh"
-    # Define the menu items (indexed array)
-    local items=(
-        "local binaries"
-        "/etc"
-        "/run/media"
-        "Exit"
-    )
-    # Define the actions (associative array: item label -> command to run)
-    declare -A actions=(
-        ["Exit"]="return"
-    )
+    local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # -- functions
+    INTERACTIVE_MENU_CD() {
+        [[ -t 0 && -t 1 ]] || return 0
+        (( $# >= 2 )) || return 0
+        [[ "$1" == "_ref_items_in" ]] && return 0
+        # Expects nameref names: _INTERACTIVE_MENU items_var actions_var "Title"
+        local -n _ref_items_in="$1" 2>/dev/null
+        local title="${2:-Menu}"
+        # Use distinct internal variable names to prevent nameref collision loops
+        local -a _menu_items=()
+        # Populate items
+        if (( ${#_ref_items_in[@]} > 0 )); then
+            _menu_items=("${_ref_items_in[@]}")
+        else
+            _menu_items=("Option 1" "Option 2" "Option 3" "Exit")
+        fi
+        # Terminal cleanup helper
+        _menu_cleanup() {
+            tput cnorm 2>/dev/null
+            stty echo 2>/dev/null
+        }
+        trap '_menu_cleanup' RETURN INT TERM
+        stty -echo
+        tput civis 2>/dev/null
+        local selected="${3:-0}"
+        local start=0 end=0
+        local filerange=15
+        local total=${#_menu_items[@]}
+        local key
+        local _path
+        local b_clear="true"
+        (( total > 0 )) || return 0
+        while true; do
+            # Boundary constraints
+            (( selected >= total )) && selected=$((total - 1))
+            (( selected < 0 )) && selected=0
+            # Compute visible window
+            start=$((selected - filerange))
+            (( start < 0 )) && start=0
+            end=$((selected + filerange))
+            (( end >= total )) && end=$((total - 1))
+            # Render
+            if [[ "$b_clear" == "true" ]]; then 
+                clear
+                warn_echo "$title"
+                (( start > 0 )) && echo "   ..."
+                for ((i = start; i <= end; i++)); do
+                    if (( i == selected )); then
+                        printf '\033[7m > %s \033[0m\n' "${_menu_items[$i]}"
+                    else
+                        printf '   %s\n' "${_menu_items[$i]}"
+                    fi
+                done
+                (( end < total - 1 )) && echo "   ..."
+            else 
+                b_clear="true"
+            fi        
+            # Read key input
+            read -rsn1 key
+            if [[ "$key" == $'\x1b' ]]; then
+                read -rsn2 -t 0.2 key
+                case "$key" in
+                    '[A') ((selected--)) || true ;;
+                    '[B') ((selected++)) || true ;;
+                    *)    key=$'\x1b' ;;
+                esac
+            fi
+            case "$key" in
+                q|Q)
+                    break
+                    ;;
+                "") # Enter
+                    local var_name="${_menu_items[$selected]}"
+                    _path="${var_name:-}"
+                    if [[ -z "$_path" ]]; then 
+                        continue
+                    fi 
+                    _menu_cleanup
+                    trap - RETURN INT TERM
+                    if [[ -n "$_path" && "$_path" != "Exit" ]]; then
+                        if ! cd "$_path"; then 
+                            trap '_menu_cleanup' RETURN INT TERM
+                            stty -echo 
+                            tput civis 
+                            b_clear="false"
+                            continue
+                        fi
+                    fi
+                    break
+                    ;;
+            esac
+        done
+        return $selected
+    }
     # Call the menu — pass variable *names*, not values
-    INTERACTIVE_MENU items actions "Goto Path" $__SELECTED_ITEM_GOTO
+    INTERACTIVE_MENU_CD __GOTO_SHORTCUTS "Goto Path [ Q | Enter ]" $__SELECTED_ITEM_GOTO
     __SELECTED_ITEM_GOTO=$?
-    unset -f 
+    unset -f INTERACTIVE_MENU_CD
+    __BWBH_SAVE_CONFIG_filesystem
+    _codex_unset
+}
+function addShortcut {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local _path="$*"
+    if [[ -z "$_path" ]]; then 
+        warn_echo "Usage: addShortcut <path>"
+        warn_echo "Add Current Directory: addShortcut $PWD" 
+        _codex_unset
+        return 0
+    fi
+    if [[ -d "$_path" ]]; then
+        __GOTO_SHORTCUTS+=("$_path")
+        __BWBH_SAVE_CONFIG_filesystem
+        _codex_unset
+        return 0
+    else 
+        crit_echo "Invalid Path"
+        _codex_unset
+        return 1
+    fi 
+}
+function shortcutsDelete {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
+    # -- functions
+    INTERACTIVE_MENU_DEL() {
+        [[ -t 0 && -t 1 ]] || return 0
+        (( $# >= 2 )) || return 0
+        [[ "$1" == "_ref_items_in" ]] && return 0
+        # Expects nameref names: _INTERACTIVE_MENU items_var actions_var "Title"
+        local -n _ref_items_in="$1" 2>/dev/null
+        local title="${2:-Menu}"
+        # Use distinct internal variable names to prevent nameref collision loops
+        local -a _menu_items=()
+        # Populate items
+        if (( ${#_ref_items_in[@]} > 0 )); then
+            _menu_items=("${_ref_items_in[@]}")
+        else
+            _menu_items=("Option 1" "Option 2" "Option 3" "Exit")
+        fi
+        # Terminal cleanup helper
+        _menu_cleanup() {
+            tput cnorm 2>/dev/null
+            stty echo 2>/dev/null
+        }
+        trap '_menu_cleanup' RETURN INT TERM
+        stty -echo
+        tput civis 2>/dev/null
+        local selected="${3:-0}"
+        local start=0 end=0
+        local filerange=15
+        local total=${#_menu_items[@]}
+        local key
+        local _path
+        local b_clear="true"
+        (( total > 0 )) || return 0
+        while true; do
+            # Boundary constraints
+            (( selected >= total )) && selected=$((total - 1))
+            (( selected < 0 )) && selected=0
+            # Compute visible window
+            start=$((selected - filerange))
+            (( start < 0 )) && start=0
+            end=$((selected + filerange))
+            (( end >= total )) && end=$((total - 1))
+            # Render
+            if [[ "$b_clear" == "true" ]]; then 
+                clear
+                warn_echo "$title"
+                (( start > 0 )) && echo "   ..."
+                for ((i = start; i <= end; i++)); do
+                    if (( i == selected )); then
+                        printf '\033[7m > %s \033[0m\n' "${_menu_items[$i]}"
+                    else
+                        printf '   %s\n' "${_menu_items[$i]}"
+                    fi
+                done
+                (( end < total - 1 )) && echo "   ..."
+            else 
+                b_clear="true"
+            fi        
+            # Read key input
+            read -rsn1 key
+            if [[ "$key" == $'\x1b' ]]; then
+                read -rsn2 -t 0.2 key
+                case "$key" in
+                    '[A') ((selected--)) || true ;;
+                    '[B') ((selected++)) || true ;;
+                    *)    key=$'\x1b' ;;
+                esac
+            fi
+            case "$key" in
+                q|Q)
+                    break
+                    ;;
+                "") # Enter
+                    local var_name="${_menu_items[$selected]}"
+                    _path="${var_name:-}"
+                    if [[ -n "$_path" ]]; then
+                        unset "_ref_items_in[$selected]"
+                        _ref_items_in=("${_ref_items_in[@]}")
+                        _menu_items=("${_ref_items_in[@]}")
+                        total=${#_menu_items[@]}
+                        (( total == 0 )) && break
+                        (( selected >= total )) && selected=$((total - 1))
+                        b_clear="true"
+                    fi
+                    ;;   
+            esac
+        done
+        return $selected
+    }
+    # Call the menu — pass variable *names*, not values
+    INTERACTIVE_MENU_DEL __GOTO_SHORTCUTS "Delete Shortcut Path [ Q | Enter ]" $__SELECTED_ITEM_GOTO
+    __SELECTED_ITEM_GOTO=$?
+    unset -f INTERACTIVE_MENU_DEL
+    __BWBH_SAVE_CONFIG_filesystem
+    _codex_unset
+}
+function shortcutsReset {
+    source "$_SCRIPT_DIR/_codex.sh"
+    __GOTO_SHORTCUTS=("$HOME" "/etc" "/run/media" "$HOME/.local/bin")
+    good_echo "goto shortcuts reseted"
+    __BWBH_SAVE_CONFIG_filesystem
     _codex_unset
 }
 
