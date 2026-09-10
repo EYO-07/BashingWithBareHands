@@ -887,6 +887,8 @@ function gotoShortcut {
 }
 function addShortcut {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     local _path="$*"
     if [[ -z "$_path" ]]; then 
         warn_echo "Usage: addShortcut <path>"
