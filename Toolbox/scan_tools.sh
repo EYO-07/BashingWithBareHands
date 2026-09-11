@@ -150,10 +150,22 @@ function virusQuarantine {
 }
 function virusScanDirectoryList { 
     source "$_SCRIPT_DIR/_codex.sh"
-    local file="${1:-/etc/clamav/scan-targets}"
-    local mfilesize="$2"
+    local file="$1"
     if [ ! -f "$file" ]; then
         crit_echo "ERROR: $file not found" >&2
+        warn_echo "Usage: virusScanDirectoryList <filename>"
+        echo "... this file should contain a list of directory paths"
+        echo "... use # for comment-lines"
+        echo "File Example"
+        echo "  # light scan"
+        echo "  /var/tmp"
+        echo "  /var/www"
+        echo "  /var/spool"
+        echo "  /var/mail"
+        echo "  /home/user/Downloads"
+        echo "  /root"
+        echo "  /srv"
+        echo "  /tmp"
         _codex_unset
         return 1
     fi
@@ -181,18 +193,10 @@ function virusScanDirectoryList {
         #  - --max-filesize=50M   → skip huge files (saves RAM)
         #  - --max-scansize=100M  → cap total decompressed scan size
         #  - --quiet          → suppress non-infected output
-        #  - removed --multiscan → single thread, far less CPU
-        if [[ -z "$mfilesize" ]]; then
-            sudo nice -n 19 ionice -c3 clamdscan \
-                -i --fdpass --quiet \
-                -l "$log" "$dir"
-        else 
-            sudo nice -n 19 ionice -c3 clamdscan \
-                -i --fdpass --quiet \
-                --max-filesize="${mfilesize}M" \
-                -l "$log" "$dir"
-        fi 
-
+        #  - removed --multiscan → single thread, far less CPU        
+        sudo nice -n 19 ionice -c3 clamdscan \
+            -i --fdpass --quiet \
+            -l "$log" "$dir"
         local rc=$?
         if [ $rc -eq 1 ]; then
             infected=$((infected + 1))
