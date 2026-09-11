@@ -66,6 +66,7 @@ function bmenu {
         "Sockets"
         "Audio"
         "Sensors"
+        "Virus/Malware Scan"
         "Git"
         "Date/Calendar"
         "Wine"
@@ -95,6 +96,7 @@ function bmenu {
         "socket_tools.sh"
         "audio_tools.sh"
         "sensor_tools.sh"
+        "scan_tools.sh"
         "git_tools.sh"
         "date_tools.sh"
         "wine_tools.sh"
@@ -210,6 +212,7 @@ function bmenuSystem {
         "Sockets"
         "Audio"
         "Sensors"
+        "Virus/Malware Scan"
         "Pacman Package Manager"
         "XOrg/X11 Display"
         "i3 Window Manager"
@@ -228,8 +231,12 @@ function bmenuSystem {
         ["Pacman Package Manager"]="_pacman"
         ["XOrg/X11 Display"]="_display_xorg"
         ["i3 Window Manager"]="_i3winmanager"
+        ["Virus/Malware Scan"]="_virus_mal"
     )
     # -- functions
+    _virus_mal() {
+        source "$_SCRIPT_DIR/scan_tools.sh"
+    }
     _errors() {
         source "$_SCRIPT_DIR/errors_tools.sh"
     }
