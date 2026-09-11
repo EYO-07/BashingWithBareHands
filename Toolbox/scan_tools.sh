@@ -207,4 +207,57 @@ function virusQuarantine {
     fi
 }
 
+function virusScanDirectoryList { # lighter
+    source "$_SCRIPT_DIR/_codex.sh"
+    local file="${1:-/etc/clamav/scan-targets}"
+    if [ ! -f "$file" ]; then
+        crit_echo "ERROR: $file not found" >&2
+        _codex_unset
+        return 1
+    fi
+    if ! systemctl is-active --quiet clamav-daemon; then
+        info_echo "Starting clamav-daemon..."
+        sudo systemctl start clamav-daemon
+    fi
+    local log="/var/log/clamav/scan-$(date +%Y%m%d-%H%M%S).log"
+    local infected=0
+    local -a targets=()
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        line="${line%%[[:space:]]#*}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        targets+=("$line")
+    done < "$file"
+    for dir in "${targets[@]}"; do
+        [ -d "$dir" ] || { warn_echo "WARN: $dir is not a directory, skipping." >&2; continue; }
+        echo "Scanning: $dir"
+        # Key changes:
+        #  - nice -n 19       → lowest CPU priority
+        #  - ionice -c3       → idle I/O priority (only uses disk when idle)
+        #  - --max-filesize=50M   → skip huge files (saves RAM)
+        #  - --max-scansize=100M  → cap total decompressed scan size
+        #  - --quiet          → suppress non-infected output
+        #  - removed --multiscan → single thread, far less CPU
+        sudo nice -n 19 ionice -c3 clamdscan \
+            -i --fdpass --quiet \
+            -l "$log" "$dir"
+
+        local rc=$?
+        if [ $rc -eq 1 ]; then
+            infected=$((infected + 1))
+        elif [ $rc -gt 1 ]; then
+            warn_echo "WARN: clamdscan error on $dir (exit $rc)" >&2
+        fi
+    done
+    if [ $infected -gt 0 ]; then
+        crit_echo "!! $infected directory(ies) contained infected files. See: $log"
+        _codex_unset
+        return 1
+    fi
+    good_echo "Scan complete. No infections found."
+    _codex_unset
+}   
+
 # END
