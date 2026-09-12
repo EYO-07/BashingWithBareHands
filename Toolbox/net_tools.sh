@@ -374,7 +374,7 @@ function bmenuInternet {
         "showConnections"
         "listConnectionPreferences"
         "turnNetworkOn"
-        "turnNetworkOff"
+        "turnOffNetwork"
         "turnWifiOn"
         "turnWifiOff"
         "Exit"
@@ -384,7 +384,7 @@ function bmenuInternet {
         ["showNetworkDevices"]="_show_net_dev"
         ["showConnections"]="_show_conn"
         ["turnNetworkOn"]="_turn_net_on"
-        ["turnNetworkOff"]="_turn_net_off"
+        ["turnOffNetwork"]="_turn_net_off"
         ["turnWifiOn"]="_turn_wifi_on"
         ["turnWifiOff"]="_turn_wifi_off"
         ["listConnectionPreferences"]="_list_conn_pre"
@@ -393,7 +393,7 @@ function bmenuInternet {
     _show_net_dev(){ showNetworkDevices; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
     _show_conn(){ showConnections; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
     _turn_net_on(){ turnNetworkOn; }
-    _turn_net_off(){ turnNetworkOff; }
+    _turn_net_off(){ turnOffNetwork; }
     _turn_wifi_on(){ turnWifiOn; }
     _turn_wifi_off(){ turnWifiOff; }
     _list_conn_pre(){ listConnectionPreferences; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
