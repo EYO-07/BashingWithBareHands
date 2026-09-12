@@ -47,6 +47,7 @@
 # 16. declare -i var=10 ; Declare integer variable for arithmetic calculations.
 # 17. declare -a arr=(a b c) ; Declare indexed array.
 # 18. declare -A dict=([k]=v) ; Declare associative array (hashmap/dictionary).
+# ... dict[key]=value ; to add key value to associative 
 # 19. ${arr[0]} ; Access element at index 0 in array.
 # 20. ${arr[@]} ; Expand all elements of an array.
 # 21. ${#arr[@]} ; Return total element count in array.
@@ -80,6 +81,60 @@
 # 23. $PWD ; Absolute pathname of current working directory.
 # 24. $OLDPWD ; Previous working directory before last execution of `cd`.
 # 25. $REPLY ; Default variable storing input read by `read` command when no variable name is supplied.
+
+# Inventory : string manipulation { Linux, Bash Scripting }
+# 1. ${var} ; Expand variable value.
+# 2. ${var:-default} ; Use default if var is unset or empty.
+# 3. ${var:=default} ; Assign default to var if unset or empty, then expand.
+# 4. ${var:+alt} ; Expand alt only if var is set and non-empty.
+# 5. ${var:?error} ; Print error if var is unset or empty, abort otherwise.
+# 6. ${#var} ; Length of string in characters.
+# 7. ${var:offset} ; Substring from offset to end.
+# 8. ${var:offset:length} ; Substring of given length starting at offset.
+# 9. ${var/pattern/replacement} ; Replace first occurrence of pattern.
+# 10. ${var//pattern/replacement} ; Replace all occurrences of pattern.
+# 11. ${var/#pattern/replacement} ; Replace pattern only at the beginning.
+# 12. ${var/%pattern/replacement} ; Replace pattern only at the end.
+# 13. ${var^^} ; Convert entire string to uppercase.
+# 14. ${var,,} ; Convert entire string to lowercase.
+# 15. ${var^} ; Uppercase the first character only.
+# 16. ${var,} ; Lowercase the first character only.
+# 17. [[ $var == pattern ]] ; Glob-style pattern match (e.g. *.txt).
+# 18. [[ $var =~ regex ]] ; Extended regex match; BASH_REMATCH[] holds groups.
+# 19. $(echo "$var" | tr '[:lower:]' '[:upper:]') ; Case conversion via tr.
+# 20. $(echo "$var" | sed 's/pattern/replacement/g') ; Regex replace via sed.
+# 21. $(echo "$var" | cut -c N-M) ; Extract characters at positions N through M.
+# 22. [[ -z $var ]] ; Test if string is empty (length 0).
+# 23. [[ -n $var ]] ; Test if string is non-empty.
+# 24. printf '%s' "$var" ; Safe output without interpreting backslashes.
+# 25. read -r line ; Read a line into a variable without interpreting backslashes.   
+
+# Inventory : printf { Linux, Bash Scripting }
+# 1. printf 'format' args ; Core form. Formats args per format string.
+# 2. %s ; Insert argument as a string.
+# 3. %d ; Insert argument as a decimal integer.
+# 4. %f ; Insert argument as a fixed-point float.
+# 5. %x / %X ; Insert argument as hex (lower/upper).
+# 6. %o ; Insert argument as octal.
+# 7. %c ; Insert argument as a single character (or char code).
+# 8. %b ; Like %s but interprets backslash escapes in the argument.
+# 9. %e / %E ; Scientific notation (e.g. 1.23e+04).
+# 10. %g / %G ; Shortest of %f or %e.
+# 11. %a / %A ; Hexadecimal floating-point (e.g. 0x1.921p+3).
+# 12. %q ; Shell-escape the argument (safe for re-evaluation).
+# 13. %10s ; Minimum field width 10, right-aligned.
+# 14. %-10s ; Minimum field width 10, left-aligned.
+# 15. %05d ; Zero-pad to width 5 (e.g. 0042).
+# 16. %+.2f ; Always show sign, 2 decimal places.
+# 17. %.3f ; Precision: exactly 3 decimal places.
+# 18. *s / *d ; Width taken from the next argument (dynamic width).
+# 19. *.*f ; Width and precision both taken from next two args.
+# 20. \n \t \r \a \b \f \v \\ ; Escape sequences inside the format string.
+# 21. \ooo ; Octal escape for a byte (e.g. \010 = tab).
+# 22. \xhh ; Hex escape for a byte (e.g. \x41 = 'A').
+# 23. printf -v var 'fmt' args ; Store result in variable `var` instead of stdout.
+# 24. printf '%(date)T' ; GNU: format current time like date(1) (e.g. %Y-%m-%d).
+# 25. printf '%(key)j' ; Bash 5.3+: serialize associative array as JSON.   
 
 # Inventory : functions { Linux, Bash Scripting }
 # 1. func() { ... } ; Standard Bash function definition syntax.
@@ -120,6 +175,12 @@
 # 20. [[ cond1 && cond2 ]] ; Logical AND: true if both conditions pass.
 # 21. [[ cond1 || cond2 ]] ; Logical OR: true if either condition passes.
 # 22. [[ ! cond ]] ; Logical NOT: negates condition result.
+# 26. [[ "$a" -eq "$b" ]] ; True if numeric value of `a` equals numeric value of `b`.
+# 27. [[ "$a" -ne "$b" ]] ; True if numeric value of `a` does not equal numeric value of `b`.
+# 28. [[ "$a" -lt "$b" ]] ; True if numeric value of `a` is less than numeric value of `b`.
+# 29. [[ "$a" -le "$b" ]] ; True if numeric value of `a` is less than or equal to numeric value of `b`.
+# 30. [[ "$a" -gt "$b" ]] ; True if numeric value of `a` is greater than numeric value of `b`.
+# 31. [[ "$a" -ge "$b" ]] ; True if numeric value of `a` is greater than or equal to numeric value of `b`.
 
 # Inventory : regex conditionals { Linux, Bash Scripting }
 # 1. [[ "$str" =~ ^pat ]] ; Anchor match to start of string using `^`.
@@ -169,6 +230,7 @@
 # 10. break N ; Exit `N` levels of nested loops.
 # 11. continue ; Skip remaining body in current iteration and evaluate next loop cycle.
 # 12. continue N ; Skip to next cycle of `N`th enclosing loop level.
+# 13. for i in "$@"; do ... done ; Iterate over spaced separated arguments 
 
 # Inventory : while loops { Linux, Bash Scripting }
 # 1. while [[ cond ]]; do ... done ; Loop continuously as long as condition evaluates true.
@@ -209,5 +271,38 @@
 # 25. ! cmd ; Negate exit status code of command (turns 0 into 1, and non-zero into 0).
 
 # === SPECIFICS === 
+
+# Inventory : system notify { Bash Tool }
+# 1. notify-send -i dialog-information "Title" "Message" ; Custom icon
+# 2. notify-send -t 0 "Title" "Message" ; Stay on screen until dismissed (no auto-dismiss)
+# 3. notify-send -u critical "Title" "Message" ; Critical urgency (won't auto-dismiss on most DEs)
+# 4. notify-send "Done" "$(some_command)" ; Show command output in the notification
+
+# Inventory : ANSI escape codes (terminal styling) { Linux, Bash Scripting }
+# 1. \e[0m ; Reset all attributes to terminal default.
+# 2. \e[1m / \e[22m ; Bold on / off.
+# 3. \e[2m / \e[22m ; Faint (dim) on / off.
+# 4. \e[3m / \e[23m ; Italic on / off.
+# 5. \e[4m / \e[24m ; Underline on / off.
+# 6. \e[7m / \e[27m ; Reverse (inverted) on / off.
+# 7. \e[8m / \e[28m ; Strikethrough on / off.
+# 8. \e[30m–\e[37m ; Foreground color: black, red, green, yellow, blue, magenta, cyan, white.
+# 9. \e[40m–\e[47m ; Background color: black, red, green, yellow, blue, magenta, cyan, white.
+# 10. \e[90m–\e[97m ; Bright foreground: black, red, green, yellow, blue, magenta, cyan, white.
+# 11. \e[100m–\e[107m ; Bright background: black, red, green, yellow, blue, magenta, cyan, white.
+# 12. \e[38;5;N m ; 256-color foreground (N = 0–255).
+# 13. \e[48;5;N m ; 256-color background (N = 0–255).
+# 14. \e[38;2;R;G;B m ; 24-bit (true-color) foreground (R,G,B = 0–255).
+# 15. \e[48;2;R;G;B m ; 24-bit (true-color) background (R,G,B = 0–255).
+# 16. \e[0;1;31m ; Combined: reset + bold + red foreground.
+# 17. printf '\e[1;32m%s\e[0m' "text" ; Safe way to emit styled text (no -e needed).
+# 18. tput bold / tput sgr0 ; Terminal-portable bold on / reset.
+# 19. tput setaf N / tput setab N ; Terminal-portable fg/bg color (N = 0–7).
+# 20. tput cup ROW COL ; Move cursor to ROW, COL.
+# 21. tput clear ; Clear entire screen.
+# 22. tput el ; Erase from cursor to end of line.
+# 23. tput ed ; Erase from cursor to end of screen.
+# 24. tput civis / tput cnorm ; Hide / show cursor.
+# 25. tput smcup / tput rmcup ; Enter / leave alternate screen buffer (like vim).   
 
 # END 
