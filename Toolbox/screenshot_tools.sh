@@ -28,13 +28,16 @@ function takeScreenshot {
         _codex_unset
         return 0
     fi
-    if [ "$#" -eq 1 ]; then 
-        mkdir -p "$HOME/Pictures/Screenshots"
-        scrot -d 5 --monitor "$1" --format "png" --file "$HOME/Pictures/Screenshots/ss_$1_$(date +%s).png"
+    local monitor_number="$1"
+    local seconds="${2:-5}"
+    if ! [[ "$seconds" =~ ^[0-9]+$ ]]; then
+        echo "Error: delay must be a positive integer (got '$seconds')" >&2
         _codex_unset
-        return 0
+        return 1
     fi
-    echo "Usage: takeScreenshot <MONITOR_NUMBER>"
+    mkdir -p "$HOME/Pictures/Screenshots"
+    scrot -d "$seconds" --monitor "$monitor_number" --format "png" \
+        --file "$HOME/Pictures/Screenshots/ss_$1_$(date +%s).png"
     _codex_unset
 }
 function takeAppshot {

@@ -5,6 +5,10 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # -- dependencies
 # Requires: dmesg (util-linux), journalctl (systemd)
 
+__BWBH_SAVE_CONFIG_errors() {
+    return 0
+}
+
 # -- description
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
