@@ -739,7 +739,7 @@ function gotoShortcut {
                 (( start > 0 )) && echo "   ..."
                 for ((i = start; i <= end; i++)); do
                     if (( i == selected )); then
-                        printf '\033[7m > %s \033[0m\n' "${_menu_items[$i]}"
+                        printf '\033[1;32m > %s \033[0m\n' "${_menu_items[$i]}"
                     else
                         printf '   %s\n' "${_menu_items[$i]}"
                     fi
@@ -755,6 +755,8 @@ function gotoShortcut {
                 case "$key" in
                     '[A') ((selected--)) || true ;;
                     '[B') ((selected++)) || true ;;
+                    '[5') read -rsn1 -t 0.2; ((selected-=7)) || true ;;   # PageUp
+                    '[6') read -rsn1 -t 0.2; ((selected+=7)) || true ;;   # PageDown
                     *)    key=$'\x1b' ;;
                 esac
             fi
@@ -866,7 +868,7 @@ function shortcutsDelete {
                 (( start > 0 )) && echo "   ..."
                 for ((i = start; i <= end; i++)); do
                     if (( i == selected )); then
-                        printf '\033[7m > %s \033[0m\n' "${_menu_items[$i]}"
+                        printf '\033[1;32m > %s \033[0m\n' "${_menu_items[$i]}"
                     else
                         printf '   %s\n' "${_menu_items[$i]}"
                     fi
@@ -882,6 +884,8 @@ function shortcutsDelete {
                 case "$key" in
                     '[A') ((selected--)) || true ;;
                     '[B') ((selected++)) || true ;;
+                    '[5') read -rsn1 -t 0.2; ((selected-=7)) || true ;;   # PageUp
+                    '[6') read -rsn1 -t 0.2; ((selected+=7)) || true ;;   # PageDown
                     *)    key=$'\x1b' ;;
                 esac
             fi
