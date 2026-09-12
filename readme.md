@@ -23,4 +23,4 @@ source $TOOLBOX/tools.sh 2&> /dev/null
 
 Just add the script above to your preferred aliases file `.bash_aliases`, source the `.bash_aliases` again or re-open the terminal to import the `tools.sh` script. You can create aliases pointing directly to a specific file or use `bmenu` to select the toolbox interactively.
 
-![](bashing_with_bare_hands_pic1.png)
+![](bashing_with_bare_hands_pic2.png)
