@@ -55,6 +55,7 @@ function bmenu {
     local items=(
         "Reload tools.sh"
         "Files / Filesystem"
+        "File Compression / Backup"
         "Mounting Devices / Filesystem Integrity"
         "File Change Mode"
         "Filesharing (RSync)"
@@ -85,6 +86,7 @@ function bmenu {
     local actions=(
         "tools.sh"
         "filesystem_tools.sh"
+        "filecompressing_tools.sh"
         "mounting_tools.sh"
         "change_mode_tools.sh"
         "filesharing_tools.sh"
@@ -120,7 +122,7 @@ function bmenu {
         warn_echo "$bmenu_title"
         for (( i = 0; i < total; i++ )); do
             if [[ $i -eq $selected ]]; then
-                echo -e "\033[7m > ${items[$i]} \033[0m"
+                echo -e "\033[1;32m > ${items[$i]} \033[0m"
             else
                 echo "   ${items[$i]}"
             fi
@@ -132,6 +134,8 @@ function bmenu {
             case "$key" in
                 '[A') ((selected--)) || true ;;
                 '[B') ((selected++)) || true ;;
+                '[5') read -rsn1 -t 0.2; ((selected-=7)) || true ;;   # PageUp
+                '[6') read -rsn1 -t 0.2; ((selected+=7)) || true ;;   # PageDown
                 *)    key=$'\x1b' ;;
             esac
         fi
@@ -161,6 +165,7 @@ function bmenuFilesystem {
     # Define the menu items (indexed array)
     local items=(
         "Files / Filesystem"
+        "File Compression / Backup"
         "Mounting Devices / Filesystem Integrity"
         "File Change Mode"
         "Filesharing (RSync)"
@@ -175,8 +180,12 @@ function bmenuFilesystem {
         ["File Change Mode"]="_modes"
         ["Filesharing (RSync)"]="_share"
         ["USB and Removable Storage Devices"]="_usb"
+        ["File Compression / Backup"]="_file_comp_back"
     )
     # -- functions
+    _file_comp_back() {
+        source "$_SCRIPT_DIR/filecompressing_tools.sh"
+    }
     _files() {
         source "$_SCRIPT_DIR/filesystem_tools.sh"
     }

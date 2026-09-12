@@ -56,7 +56,7 @@ function inv {
 # Handles writing to stdout or file, ensures directory exists, avoids accidental overwrites if desired.
 # Args: $1 = content (via stdin), $2 = optional file path
 function _write_output {
-    source "$_SCRIPT_DIR/_codex.sh"
+    #source "$_SCRIPT_DIR/_codex.sh"
     local outfile="$1"
     if [[ -n "$outfile" ]]; then
         # Ensure parent directory exists
@@ -72,12 +72,11 @@ function _write_output {
         echo "" >> "$outfile"
         echo "=== Error Messages ===" >> "$outfile"
         cat >> "$outfile"
-        info_echo "Output written to: $outfile"
+        echo "Output written to: $outfile"
     else
         # Write to stdout
         cat
     fi
-    _codex_unset
     return 0
 }
 
