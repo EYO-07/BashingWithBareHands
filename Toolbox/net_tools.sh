@@ -10,22 +10,25 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Networking Tools"
-    info_echo "... terminal user interface wrapper for nmcli (NetworkManager)"
-    toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "showNetworkDevices" "Display status of all network devices" $width
-    #toolbox_item "showConnections" "List all saved connection profiles" $width
-    toolbox_item "turnNetworkOn / turnOffNetwork" "enable / disable all networking" $width
-    toolbox_item "wifiList" "Scan and list available WiFi networks" $width
-    toolbox_item "wifiConnect <SSID>" "Connect to a WiFi network by SSID" $width
-    toolbox_item "turnWifiOn / turnWifiOff" "Enable / Disable WiFi radio only" $width
-    toolbox_item "turnConnectionUp" "Activate a specific connection by connection or device name" $width
-    toolbox_item "turnDownConnection / turnDeviceDown" "Deactivate a specific connection / network interface device" $width
-    toolbox_item "renameConnection / deleteConnection" "rename / delete an existing connection profile" $width
-    toolbox_item "enable_ipv6 / disable_ipv6" "Enable IPv6 (auto) / Disable for a specific connection" $width
-    toolbox_item "setConnectionMetric" "set connection metric, the lower the metric, higher the connection preference." $width
-    toolbox_item "shareConnection" "creates an access point for other devices to access internet" $width
-    toolbox_item "connectionInfo" "short connection information" $width
+    toolbox_item "tools / inv" "print this ... / command syntax" $width
+    if is_command_valid nmcli; then 
+        toolbox_item "bmenuInternet" "interactive menu" $width
+        toolbox_item "showNetworkDevices" "Display status of all network devices" $width
+        #toolbox_item "showConnections" "List all saved connection profiles" $width
+        toolbox_item "turnNetworkOn / turnOffNetwork" "enable / disable all networking" $width
+        toolbox_item "wifiList" "Scan and list available WiFi networks" $width
+        toolbox_item "wifiConnect <SSID>" "Connect to a WiFi network by SSID" $width
+        toolbox_item "turnWifiOn / turnWifiOff" "Enable / Disable WiFi radio only" $width
+        toolbox_item "turnConnectionUp" "Activate a specific connection by connection or device name" $width
+        toolbox_item "turnDownConnection / turnDeviceDown" "Deactivate a specific connection / network interface device" $width
+        toolbox_item "renameConnection / deleteConnection" "rename / delete an existing connection profile" $width
+        toolbox_item "enable_ipv6 / disable_ipv6" "Enable IPv6 (auto) / Disable for a specific connection" $width
+        toolbox_item "setConnectionMetric" "set connection metric, the lower the metric, higher the connection preference." $width
+        toolbox_item "shareConnection" "creates an access point for other devices to access internet" $width
+        toolbox_item "connectionInfo" "short connection information" $width
+    else 
+        crit_echo "... missing: nmcli (NetworkManager)"
+    fi 
     toolbox_endl
     _codex_unset
 }
@@ -40,6 +43,9 @@ function inv {
 }
 
 # -- implementation
+__BWBH_SAVE_CONFIG_internet() {
+    return 0
+}
 
 # Aliases for quick status checks and global toggles
 alias showNetworkDevices='nmcli device status'
@@ -303,9 +309,6 @@ function connectionInfo {
     _codex_unset
     return 0
 }   
-
-# NEW FUNCTIONS >>>
-# REFACTORED FUNCTIONS >>> 
 function turnConnectionUp {
     # 1. this function is designed to be direct user interface
     source "$_SCRIPT_DIR/_codex.sh"
@@ -360,6 +363,47 @@ function renameConnection {
         return 1
     fi
 }   
+
+# NEW FUNCTIONS >>>
+__SELECTED_ITEM_NET=0
+function bmenuInternet {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local items=(
+        "showNetworkDevices"
+        "connectionInfo"
+        "showConnections"
+        "listConnectionPreferences"
+        "turnNetworkOn"
+        "turnNetworkOff"
+        "turnWifiOn"
+        "turnWifiOff"
+        "Exit"
+    )
+    declare -A actions=(
+        ["Exit"]="return"
+        ["showNetworkDevices"]="_show_net_dev"
+        ["showConnections"]="_show_conn"
+        ["turnNetworkOn"]="_turn_net_on"
+        ["turnNetworkOff"]="_turn_net_off"
+        ["turnWifiOn"]="_turn_wifi_on"
+        ["turnWifiOff"]="_turn_wifi_off"
+        ["listConnectionPreferences"]="_list_conn_pre"
+        ["connectionInfo"]="_conn_inf"
+    )
+    _show_net_dev(){ showNetworkDevices; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
+    _show_conn(){ showConnections; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
+    _turn_net_on(){ turnNetworkOn; }
+    _turn_net_off(){ turnNetworkOff; }
+    _turn_wifi_on(){ turnWifiOn; }
+    _turn_wifi_off(){ turnWifiOff; }
+    _list_conn_pre(){ listConnectionPreferences; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
+    _conn_inf(){ connectionInfo; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
+    INTERACTIVE_MENU items actions "Internet Tools Menu" $__SELECTED_ITEM_NET
+    __SELECTED_ITEM_NET=$?
+    unset -f _show_net_dev _show_conn _turn_net_on _turn_net_off _turn_wifi_on _turn_wifi_off _list_conn_pre _conn_inf
+    __BWBH_SAVE_CONFIG_internet
+    _codex_unset
+}
 
 # END   
 

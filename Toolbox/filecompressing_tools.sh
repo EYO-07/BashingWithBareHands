@@ -14,7 +14,7 @@ function tools {
     toolbox_item "tools / inv" "print this ... / command syntax" $width
     if is_command_valid 7z ; then
         toolbox_item "createBackup" "create a compressed backup file for file or folder naming with datetime stamp" $width
-        toolbox_item "restoreBackup <file.7z> [out_dir]" "..." $width
+        toolbox_item "restoreBackup <file.7z> [out_dir]" "extracts compressed file or restore backup" $width
         toolbox_item "restoreBackup <file.7z>" "... current directory" $width
         toolbox_item "viewBackupContents" "view the contents of a compressed archive" $width
     else 
