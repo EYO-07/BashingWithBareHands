@@ -6,7 +6,17 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Requires: dmesg (util-linux), journalctl (systemd)
 
 __BWBH_SAVE_CONFIG_errors() {
-    return 0
+    source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/error_tools.conf"
+    if [[ ! -f "$config_path" ]]; then 
+        crit_echo "... config file not found"
+        good_echo "... creating config file"
+        create_intermediate_dirs "$config_path"
+        echo "$config_path"
+    fi 
+    save_variables "$config_path" \
+        "_general_error_filter" "_device_filter" "_device_error_filter" \
+        "_driver_filter" "_driver_error_filter" "_gpu_drivers" "_gpu_errors"
 }
 
 # -- description
@@ -96,12 +106,15 @@ _gpu_errors="error|fail|corrupt|reset|timeout|hang|fallback|vram|flip_done|crtc|
 # functions
 function getSystemErrorMessages {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # USAGE: getSystemErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     local pattern="$_general_error_filter"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
+        __BWBH_SAVE_CONFIG_errors
         _codex_unset
         return 1
     fi
@@ -116,16 +129,20 @@ function getSystemErrorMessages {
         info_echo "--- Scanning for general critical system errors ---"
         { $cmd | grep -iE "$pattern" || true; } | _write_output "$outfile"
     fi
+    __BWBH_SAVE_CONFIG_errors
     _codex_unset
     return 0
 }
 function getDeviceErrorMessages {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # USAGE: getDeviceErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
+        __BWBH_SAVE_CONFIG_errors
         _codex_unset
         return 1
     fi
@@ -136,16 +153,20 @@ function getDeviceErrorMessages {
         # Default filter for device errors
         { $cmd | grep -iE "$_device_filter" | grep -iE "$_device_error_filter" | tail -n 20 || true; } | _write_output "$outfile"
     fi
+    __BWBH_SAVE_CONFIG_errors
     _codex_unset
     return 0
 }
 function getDriverErrorMessages {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # USAGE: getDriverErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
+        __BWBH_SAVE_CONFIG_errors
         _codex_unset
         return 1
     fi
@@ -156,16 +177,20 @@ function getDriverErrorMessages {
     else
         { $cmd | grep -iE "$_driver_filter" | grep -iE "$_driver_error_filter" | tail -n 20 || true; } | _write_output "$outfile"
     fi
+    __BWBH_SAVE_CONFIG_errors
     _codex_unset
     return 0
 }
 function getUserErrorMessages {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # USAGE: getApplicationErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     if ! command -v journalctl &> /dev/null; then
         crit_echo "Error: 'journalctl' (systemd) not found."
+        __BWBH_SAVE_CONFIG_errors
         _codex_unset
         return 1
     fi
@@ -184,6 +209,7 @@ function getUserErrorMessages {
         # Default: Recent application errors
         sudo journalctl -p err --no-pager -n 25 2>/dev/null | _write_output "$outfile"
     fi
+    __BWBH_SAVE_CONFIG_errors
     _codex_unset
     return 0
 }
@@ -248,6 +274,8 @@ function systemInformation {
 }   
 function getX11ErrorMessages {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # USAGE: getX11ErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -279,6 +307,7 @@ function getX11ErrorMessages {
     # 3. Filter and Output
     if [[ -z "$buffer" ]]; then
         warn_echo "No X11 errors or warnings found in standard log paths."
+        __BWBH_SAVE_CONFIG_errors
         _codex_unset
         return 0
     fi
@@ -287,16 +316,20 @@ function getX11ErrorMessages {
     else
         echo "$buffer" | _write_output "$outfile"
     fi   
+    __BWBH_SAVE_CONFIG_errors
     _codex_unset
     return 0
 }
 function getGraphicCardErrorMessages {
     source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
     # USAGE: getGraphicCardErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
     if ! command -v dmesg &> /dev/null; then
         crit_echo "Error: 'dmesg' command not found."
+        __BWBH_SAVE_CONFIG_errors
         _codex_unset
         return 1
     fi
@@ -310,6 +343,7 @@ function getGraphicCardErrorMessages {
     # Filter and Output
     if [[ -z "$buffer" ]]; then
         warn_echo "No specific Graphics Card/GPU errors detected in dmesg."
+        __BWBH_SAVE_CONFIG_errors
         _codex_unset
         return 0
     fi
@@ -318,6 +352,7 @@ function getGraphicCardErrorMessages {
     else
         echo "$buffer" | _write_output "$outfile"
     fi
+    __BWBH_SAVE_CONFIG_errors
     _codex_unset
     return 0
 }
