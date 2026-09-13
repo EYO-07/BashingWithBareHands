@@ -24,8 +24,7 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=11
     toolbox_title "Error/Issues Tools"
-    toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "commands syntax ..." $width
+    toolbox_item "tools / inv" "print this ... / show command syntax" $width
     toolbox_item "bmenuErrors" "interactive menu" $width
     toolbox_item "systemInformation" "... info attached to fileoutputs" $width
     if is_command_valid dmesg ; then 

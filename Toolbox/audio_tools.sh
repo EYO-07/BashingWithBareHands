@@ -11,23 +11,26 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=4
     toolbox_title "Audio Tools"
-    toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "showAudioDevices" "show audio devices" $width
-    toolbox_item "showVolume" "volume percentage of current default audio sink" $width
-    toolbox_item "setAudioSink" "set default sink" $width
-    toolbox_item "setVolumePercentage" "set absolute volume percentage (1-100)" $width
-    toolbox_item "increaseVolume" "increase volume by optional step (default 5%)" $width
-    toolbox_item "decreaseVolume" "decrease volume by optional step (default 5%)" $width
+    toolbox_item "tools / inv" "print this ... / show command syntax" $width
+    if all_commands_valid "wpctl" "awk"; then 
+        toolbox_item "showAudioDevices" "show audio devices" $width
+        toolbox_item "showVolume" "volume percentage of current default audio sink" $width
+        toolbox_item "setAudioSink" "set default sink" $width
+        toolbox_item "setVolumePercentage" "set absolute volume percentage (1-100)" $width
+        toolbox_item "increaseVolume" "increase volume by optional step (default 5%)" $width
+        toolbox_item "decreaseVolume" "decrease volume by optional step (default 5%)" $width
+    else 
+        crit_echo "... missing one of command tools: wpctl awk"
+    fi
     toolbox_endl
     _codex_unset
 }
 tools
 function inv {
     source "$_SCRIPT_DIR/_codex.sh"
-    inventory_title "todo"
-    local width=9
-    inventory_item 1 "..." "..." $width
+    inventory_title "Audio Tools"
+    local width=3
+    inventory_item 1 "alsamixer" "terminal interface for audio settings" $width
     inventory_endl 
     _codex_unset
 }

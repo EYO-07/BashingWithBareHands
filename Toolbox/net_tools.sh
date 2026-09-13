@@ -10,7 +10,7 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Networking Tools"
-    toolbox_item "tools / inv" "print this ... / command syntax" $width
+    toolbox_item "tools / inv" "print this ... / show command syntax" $width
     if is_command_valid nmcli; then 
         toolbox_item "bmenuInternet" "interactive menu" $width
         toolbox_item "showNetworkDevices" "Display status of all network devices" $width

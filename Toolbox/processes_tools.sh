@@ -10,8 +10,7 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Processes/Tasks Tools"
-    toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
+    toolbox_item "tools / inv" "print this ... / show command syntax" $width
     toolbox_item "processMatch <keyword>" "show processes matching the keyword" $width
     toolbox_item "processTop [cpu|mem]" "show top 10 processes by CPU or memory" $width
     toolbox_item "processInfo <pid>" "show detailed info for a specific PID" $width
