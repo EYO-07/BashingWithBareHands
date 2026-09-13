@@ -919,6 +919,7 @@ function shortcutsDelete {
 }
 function shortcutsReset {
     source "$_SCRIPT_DIR/_codex.sh"
+    __SELECTED_ITEM_GOTO=0
     __GOTO_SHORTCUTS=("$HOME" "/etc" "/run/media" "$HOME/.local/bin")
     good_echo "goto shortcuts reseted"
     __BWBH_SAVE_CONFIG_filesystem

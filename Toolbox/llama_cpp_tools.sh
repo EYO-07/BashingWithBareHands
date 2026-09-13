@@ -17,7 +17,8 @@ __BWBH_SAVE_CONFIG_llama() {
         echo "$config_path"
     fi 
     save_variables "$config_path" \
-        "_CONTEXT_SIZE_LLM" "_DEVICE_LLM" "_GPU_OFFLOAD_LLM"
+        "_CONTEXT_SIZE_LLM" "_DEVICE_LLM" "_GPU_OFFLOAD_LLM" \
+        "__SELECTED_ITEM_LLM" "__LLM_MODEL_LIST"
 }
 
 # -- description 
@@ -25,23 +26,26 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
     [[ -f "$config_path" ]] && source "$config_path"
-    local width=5
+    local width=7
     toolbox_title "Artificial Inteligence Local Inference Tools"
-    info_echo "... requires llama-cpp package and their backends ggml-vulkan ggml-cpu"
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "lightInteractiveInference" "interactive inference for low vram (4GB)" $width
-    toolbox_item "lightFileInference" "llm inference over a file (backup the file to avoid data loss)" $width
-    toolbox_item "setContextSize" "set context size in tokens (Default: 1024 Current: $_CONTEXT_SIZE_LLM)" $width
-    toolbox_item "setDeviceLLM" "set the device for processing (Default: none Current: $_DEVICE_LLM)" $width
-    toolbox_item "setGpuOffloadLayers" "numbers of layers processed by gpu (Default: 15 Current: $_GPU_OFFLOAD_LLM)" $width
+    if is_command_valid llama-cli; then 
+        toolbox_item "lightInteractiveInference" "interactive inference for low vram (4GB)" $width
+        toolbox_item "lightFileInference" "llm inference over a file (backup the file to avoid data loss)" $width
+        toolbox_item "setContextSize" "set context size in tokens (Default: 1024 Current: $_CONTEXT_SIZE_LLM)" $width
+        toolbox_item "setDeviceLLM" "set the device for processing (Default: none Current: $_DEVICE_LLM)" $width
+        toolbox_item "setGpuOffloadLayers" "numbers of layers processed by gpu (Default: 15 Current: $_GPU_OFFLOAD_LLM)" $width
+        toolbox_item "modelList / addModel" "show/add the/to model list for interactive selection" $width
+        toolbox_item "modelListDelete / modelListReset" "delete / reset model list" $width
+    else 
+        crit_echo "... requires llama-cpp package and their backends ggml-vulkan ggml-cpu"
+    fi 
     toolbox_endl
     _codex_unset
 }
 tools
 
 # -- implementation 
-
 function lightInteractiveInference {
     source "${_SCRIPT_DIR}/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
@@ -66,8 +70,11 @@ function lightInteractiveInference {
         echo "   Logs to: $file_path"
         echo ""
         warn_echo "Usage: lightInteractiveInference <model_path> [gpu_layers] [device]"
-        _codex_unset
-        return 1
+        echo ""
+        if ! yn_prompt "Select" "select model from a list?"; then
+            _codex_unset
+            return 1
+        fi
     fi
     model="$1"
     shift
@@ -75,6 +82,10 @@ function lightInteractiveInference {
         gpu_offload_int="$1"
     fi
     # --- Pre-flight Checks ---
+    if [ ! -f "$model" ]; then
+        __SET_LLM_MODEL 
+        model="$__CURRENT_MODEL_PATH"
+    fi 
     if [ ! -f "$model" ]; then
         crit_echo "Error: Model file not found: $model"
         _codex_unset
@@ -86,6 +97,7 @@ function lightInteractiveInference {
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     # --- Execution ---
     info_echo "Starting Interactive Session Inference"
+    echo "Model : $model"
     echo "Context : $_CONTEXT_SIZE_LLM tokens"
     echo "GPU Layers : $gpu_offload_int"
     echo "Device : $device"
@@ -186,8 +198,11 @@ function lightFileInference {
         info_echo "Light File Inference"
         echo ""
         warn_echo "Usage: lightFileInference <file_path> <model_path> [gpu_layers] [device]"
-        _codex_unset
-        return 1
+        echo ""
+        if ! yn_prompt "Select" "select model from a list?"; then
+            _codex_unset
+            return 1
+        fi
     fi
     # -- 
     shift
@@ -196,6 +211,10 @@ function lightFileInference {
         gpu_offload_int="$1"
     fi
     # --- Pre-flight Checks ---
+    if [ ! -f "$model" ]; then
+        __SET_LLM_MODEL 
+        model="$__CURRENT_MODEL_PATH"
+    fi 
     if [ ! -f "$model" ]; then
         crit_echo "Error: Model file not found: $model"
         _codex_unset
@@ -207,6 +226,7 @@ function lightFileInference {
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     # --- Execution ---
     info_echo "Starting Inference"
+    echo "Model : $model"
     echo "Context : $_CONTEXT_SIZE_LLM tokens"
     echo "GPU Layers : $gpu_offload_int"
     echo "Device : $device"
@@ -263,6 +283,159 @@ function setDeviceLLM {
     llama-cli --list-devices 2>/dev/null
     _codex_unset
     return 1
+}
+
+# -- 
+__SELECTED_ITEM_LLM=0
+__LLM_MODEL_LIST=("Exit")
+__CURRENT_MODEL_PATH=""
+function __SET_LLM_MODEL {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
+    INTERACTIVE_MENU_SINGLE __LLM_MODEL_LIST "Select LLM Local Model Path" $__SELECTED_ITEM_LLM
+    local rs=$?
+    if [[ "$rs" -ne 0 ]]; then 
+        __SELECTED_ITEM_LLM=$(($rs-1))
+        __CURRENT_MODEL_PATH="${__LLM_MODEL_LIST[$__SELECTED_ITEM_LLM]}"
+    fi
+    __BWBH_SAVE_CONFIG_llama    
+}
+function addModel {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
+    local _path="$*"
+    if [[ -z "$_path" ]]; then 
+        ls -a
+        warn_echo "Usage: addModel <path>"
+        _codex_unset
+        return 0
+    fi
+    if [[ -f "$_path" ]]; then
+        _path="$(get_abs_path "$_path")"
+        __LLM_MODEL_LIST+=("$_path")
+        __BWBH_SAVE_CONFIG_llama
+        _codex_unset
+        return 0
+    else 
+        crit_echo "Invalid Path"
+        _codex_unset
+        return 1
+    fi 
+    return 0
+}
+function modelListDelete {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
+    [[ -f "$config_path" ]] && source "$config_path"
+    INTERACTIVE_MENU_DEL() {
+        [[ -t 0 && -t 1 ]] || return 0
+        (( $# >= 2 )) || return 0
+        [[ "$1" == "_ref_items_in" ]] && return 0
+        # Expects nameref names: _INTERACTIVE_MENU items_var actions_var "Title"
+        local -n _ref_items_in="$1" 2>/dev/null
+        local title="${2:-Menu}"
+        # Use distinct internal variable names to prevent nameref collision loops
+        local -a _menu_items=()
+        # Populate items
+        if (( ${#_ref_items_in[@]} > 0 )); then
+            _menu_items=("${_ref_items_in[@]}")
+        else
+            _menu_items=("Option 1" "Option 2" "Option 3" "Exit")
+        fi
+        # Terminal cleanup helper
+        _menu_cleanup() {
+            tput cnorm 2>/dev/null
+            stty echo 2>/dev/null
+        }
+        trap '_menu_cleanup' RETURN INT TERM
+        stty -echo
+        tput civis 2>/dev/null
+        local selected="${3:-0}"
+        local start=0 end=0
+        local filerange=15
+        local total=${#_menu_items[@]}
+        local key
+        local _path
+        local b_clear="true"
+        (( total > 0 )) || return 0
+        while true; do
+            # Boundary constraints
+            (( selected >= total )) && selected=$((total - 1))
+            (( selected < 0 )) && selected=0
+            # Compute visible window
+            start=$((selected - filerange))
+            (( start < 0 )) && start=0
+            end=$((selected + filerange))
+            (( end >= total )) && end=$((total - 1))
+            # Render
+            if [[ "$b_clear" == "true" ]]; then 
+                clear
+                warn_echo "$title"
+                (( start > 0 )) && echo "   ..."
+                for ((i = start; i <= end; i++)); do
+                    if (( i == selected )); then
+                        printf '\033[1;32m > %s \033[0m\n' "${_menu_items[$i]}"
+                    else
+                        printf '   %s\n' "${_menu_items[$i]}"
+                    fi
+                done
+                (( end < total - 1 )) && echo "   ..."
+            else 
+                b_clear="true"
+            fi        
+            # Read key input
+            read -rsn1 key
+            if [[ "$key" == $'\x1b' ]]; then
+                read -rsn2 -t 0.2 key
+                case "$key" in
+                    '[A') ((selected--)) || true ;;
+                    '[B') ((selected++)) || true ;;
+                    '[5') read -rsn1 -t 0.2; ((selected-=7)) || true ;;   # PageUp
+                    '[6') read -rsn1 -t 0.2; ((selected+=7)) || true ;;   # PageDown
+                    *)    key=$'\x1b' ;;
+                esac
+            fi
+            case "$key" in
+                q|Q)
+                    break
+                    ;;
+                "") # Enter
+                    local var_name="${_menu_items[$selected]}"
+                    [[ "$var_name" == "Exit" ]] && continue
+                    _path="${var_name:-}"
+                    if [[ -n "$_path" ]]; then
+                        unset "_ref_items_in[$selected]"
+                        _ref_items_in=("${_ref_items_in[@]}")
+                        _menu_items=("${_ref_items_in[@]}")
+                        total=${#_menu_items[@]}
+                        (( total == 0 )) && break
+                        (( selected >= total )) && selected=$((total - 1))
+                        b_clear="true"
+                    fi
+                    ;;   
+            esac
+        done
+        return $selected
+    }
+    # Call the menu — pass variable *names*, not values
+    INTERACTIVE_MENU_DEL __LLM_MODEL_LIST "Delete Model Path [ Q | Enter ]" $__SELECTED_ITEM_LLM
+    __SELECTED_ITEM_LLM=$?
+    unset -f INTERACTIVE_MENU_DEL
+    __BWBH_SAVE_CONFIG_llama
+    _codex_unset
+}
+function modelListReset {
+    source "$_SCRIPT_DIR/_codex.sh"
+    __SELECTED_ITEM_LLM=0
+    __LLM_MODEL_LIST=("Exit")
+    good_echo "model list reseted"
+    __BWBH_SAVE_CONFIG_llama
+    _codex_unset
+}
+function modelList {
+    __SET_LLM_MODEL
 }
 
 # END 

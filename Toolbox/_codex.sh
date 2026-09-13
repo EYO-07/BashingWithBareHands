@@ -34,7 +34,7 @@ function _codex_unset {
     unset -f get_abs_path create_intermediate_dirs
     unset -f save_variables # load_variables
     unset -f is_command_valid
-    unset -f INTERACTIVE_MENU
+    unset -f INTERACTIVE_MENU INTERACTIVE_MENU_SINGLE
 }
 
 # -- color echos
@@ -403,7 +403,7 @@ function all_commands_valid {
     #INTERACTIVE_MENU my_items my_actions "User Management"
     #_codex_unset
 #}
-function INTERACTIVE_MENU {
+function INTERACTIVE_MENU { # INTERACTIVE_MENU <items> <actions> <title> [index]
     [[ -t 0 && -t 1 ]] || return 0
     (( $# >= 2 )) || return 0
     [[ "$1" == "_ref_items_in" || "$1" == "_ref_actions_in" ]] && return 0
@@ -514,6 +514,86 @@ function INTERACTIVE_MENU {
     done
     return $selected
 }
-
+function INTERACTIVE_MENU_SINGLE { # INTERACTIVE_MENU_SINGLE <items> <title> [index]
+    # return 0 if cancel return selected+1 if not
+    [[ -t 0 && -t 1 ]] || return 0
+    (( $# >= 1 )) || return 0
+    [[ "$1" == "_ref_items_in" ]] && return 0
+    # Expects nameref names: _INTERACTIVE_MENU items_var "Title"
+    local -n _ref_items_in="$1" 2>/dev/null
+    local title="${2:-Menu}"
+    # Use distinct internal variable names to prevent nameref collision loops
+    local -a _menu_items=()
+    # Populate items
+    if (( ${#_ref_items_in[@]} > 0 )); then
+        _menu_items=("${_ref_items_in[@]}")
+    else
+        _menu_items=("Option 1" "Option 2" "Option 3" "Exit")
+    fi
+    # Terminal cleanup helper
+    _menu_cleanup() {
+        tput cnorm 2>/dev/null
+        stty echo 2>/dev/null
+    }
+    trap '_menu_cleanup' RETURN INT TERM
+    stty -echo
+    tput civis 2>/dev/null
+    local selected="${3:-0}"
+    local start=0 end=0
+    local filerange=15
+    local total=${#_menu_items[@]}
+    local key
+    local b_clear="true"
+    (( total > 0 )) || return 0
+    while true; do
+        # Boundary constraints
+        (( selected >= total )) && selected=$((total - 1))
+        (( selected < 0 )) && selected=0
+        # Compute visible window
+        start=$((selected - filerange))
+        (( start < 0 )) && start=0
+        end=$((selected + filerange))
+        (( end >= total )) && end=$((total - 1))
+        # Render
+        if [[ "$b_clear" == "true" ]]; then 
+            clear
+            warn_echo "$title"
+            (( start > 0 )) && echo "   ..."
+            for ((i = start; i <= end; i++)); do
+                if (( i == selected )); then
+                    printf '\033[1;32m > %s \033[0m\n' "${_menu_items[$i]}"
+                else
+                    printf '   %s\n' "${_menu_items[$i]}"
+                fi
+            done
+            (( end < total - 1 )) && echo "   ..."
+        else 
+            b_clear="true"
+        fi        
+        # Read key input
+        read -rsn1 key
+        if [[ "$key" == $'\x1b' ]]; then
+            read -rsn2 -t 0.2 key
+            case "$key" in
+                '[A') ((selected--)) || true ;;
+                '[B') ((selected++)) || true ;;
+                '[5') read -rsn1 -t 0.2; ((selected-=7)) || true ;;   # PageUp
+                '[6') read -rsn1 -t 0.2; ((selected+=7)) || true ;;   # PageDown
+                *)    key=$'\x1b' ;;
+            esac
+        fi
+        case "$key" in
+            q|Q)
+                return 0
+                ;;
+            "") # Enter
+                local selected_item="${_menu_items[$selected]}"
+                [[ "$selected_item" == "Exit" ]] && { return 0; }
+                break
+                ;;
+        esac
+    done
+    return $(($selected+1))
+}
 
 # END 
