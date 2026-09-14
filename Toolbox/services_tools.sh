@@ -10,24 +10,26 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=9
     toolbox_title "Services Management Tools"
-    info_echo "... requires: systemctl, grep"
     toolbox_item "tools" "print this ..." $width
-    #toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "serviceStatus <unit>" "show detailed status and recent logs" $width
-    toolbox_item "serviceRestart <unit>" "stop and start service immediately" $width
-    toolbox_item "serviceReload <unit>" "reload config without dropping connections" $width
-    toolbox_item "serviceEnable <unit>" "enable service to start at next boot" $width
-    toolbox_item "serviceDisable <unit>" "..." $width
-    toolbox_item "serviceActivate <unit>" "enable and start service immediately" $width
-    toolbox_item "serviceDeactivate <unit>" "..." $width
-    toolbox_item "daemonReload" "reload systemd manager config (after editing unit files)" $width
-    toolbox_item "resetFailed [unit]" "clear 'failed' state from one or all units" $width
-    toolbox_item "listServices [ <keyword1> <keyword2> ... ]" "list ALL registered service unit files on disk" $width
-    toolbox_item "listRunningServices" "list services currently in 'running' state" $width
-    toolbox_item "listActiveServices" "list services 'active' (includes running, exited, waiting)" $width
-    toolbox_item "listFailedServices" "list services currently in 'failed' state" $width
-    toolbox_item "showFailed" "detailed view of failed units only" $width
-    toolbox_item "systemHealth" "check overall system state (running/degraded/maintenance)" $width
+    if all_commands_valid "systemctl" "grep"; then 
+        toolbox_item "serviceStatus <unit>" "show detailed status and recent logs" $width
+        toolbox_item "serviceRestart <unit>" "stop and start service immediately" $width
+        toolbox_item "serviceReload <unit>" "reload config without dropping connections" $width
+        toolbox_item "serviceEnable <unit>" "enable service to start at next boot" $width
+        toolbox_item "serviceDisable <unit>" "..." $width
+        toolbox_item "serviceActivate <unit>" "enable and start service immediately" $width
+        toolbox_item "serviceDeactivate <unit>" "..." $width
+        toolbox_item "daemonReload" "reload systemd manager config (after editing unit files)" $width
+        toolbox_item "resetFailed [unit]" "clear 'failed' state from one or all units" $width
+        toolbox_item "listServices [ <keyword1> <keyword2> ... ]" "list ALL registered service unit files on disk" $width
+        toolbox_item "listRunningServices" "list services currently in 'running' state" $width
+        toolbox_item "listActiveServices" "list services 'active' (includes running, exited, waiting)" $width
+        toolbox_item "listFailedServices" "list services currently in 'failed' state" $width
+        toolbox_item "showFailed" "detailed view of failed units only" $width
+        toolbox_item "systemHealth" "check overall system state (running/degraded/maintenance)" $width
+    else 
+        info_echo "... requires: systemctl (systemd), grep"
+    fi 
     toolbox_endl
     _codex_unset
 }

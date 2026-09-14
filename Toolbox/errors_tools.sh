@@ -26,7 +26,7 @@ function tools {
     toolbox_title "Error/Issues Tools"
     toolbox_item "tools / inv" "print this ... / show command syntax" $width
     toolbox_item "bmenuErrors" "interactive menu" $width
-    toolbox_item "systemInformation" "... info attached to fileoutputs" $width
+    toolbox_item "systemInformation" "system information" $width
     if is_command_valid dmesg ; then 
         toolbox_item "getSystemErrorMessages [ <keyword> [<fileoutput>] ]" "Scan kernel log for critical system failures" $width
         toolbox_item "getDeviceErrorMessages [ <keyword> [<fileoutput>] ]" "Retrieve hardware/device errors" $width

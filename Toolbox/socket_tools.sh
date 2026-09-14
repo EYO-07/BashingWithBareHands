@@ -9,15 +9,19 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=6
     toolbox_title "Service-Sockets Tools"
-    info_echo "... sockets trigger services demanded by processes, requires: systemctl"
+    info_echo "... sockets trigger services on demand"
     toolbox_item "tools" "print this ..." $width
     #toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "serviceSocketEnable <unit>" "enable .socket unit (triggers service on traffic)" $width
-    toolbox_item "serviceSocketDisable <unit>" "disable .socket unit immediately" $width
-    toolbox_item "listServiceSockets" "list ALL registered socket units (active + inactive)" $width
-    toolbox_item "listListeningSockets" "list sockets currently listening for connections" $width
-    toolbox_item "listSocketsByService" "list sockets sorted by activated service" $width
-    toolbox_item "listActiveSockets" "list sockets currently in memory (active)" $width
+    if all_commands_valid "systemctl"; then 
+        toolbox_item "serviceSocketEnable <unit>" "enable .socket unit (triggers service on traffic)" $width
+        toolbox_item "serviceSocketDisable <unit>" "disable .socket unit immediately" $width
+        toolbox_item "listServiceSockets" "list ALL registered socket units (active + inactive)" $width
+        toolbox_item "listListeningSockets" "list sockets currently listening for connections" $width
+        toolbox_item "listSocketsByService" "list sockets sorted by activated service" $width
+        toolbox_item "listActiveSockets" "list sockets currently in memory (active)" $width
+    else 
+        crit_echo "... requires: systemctl (systemd)"
+    fi
     toolbox_endl
     _codex_unset
 }

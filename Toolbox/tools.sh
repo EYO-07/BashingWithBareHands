@@ -55,6 +55,7 @@ function bmenu {
     local items=(
         "Reload tools.sh"
         "Files / Filesystem"
+        "Move/Copy/Delete Multiple Files"
         "File Compression / Backup"
         "Mounting Devices / Filesystem Integrity"
         "File Change Mode"
@@ -86,6 +87,7 @@ function bmenu {
     local actions=(
         "tools.sh"
         "filesystem_tools.sh"
+        "move_copy_delete_tools.sh"
         "filecompressing_tools.sh"
         "mounting_tools.sh"
         "change_mode_tools.sh"
@@ -165,6 +167,7 @@ function bmenuFilesystem {
     # Define the menu items (indexed array)
     local items=(
         "Files / Filesystem"
+        "Move/Copy/Delete Multiple Files"
         "File Compression / Backup"
         "Mounting Devices / Filesystem Integrity"
         "File Change Mode"
@@ -181,8 +184,12 @@ function bmenuFilesystem {
         ["Filesharing (RSync)"]="_share"
         ["USB and Removable Storage Devices"]="_usb"
         ["File Compression / Backup"]="_file_comp_back"
+        ["Move/Copy/Delete Multiple Files"]="_file_mult"
     )
     # -- functions
+    _file_mult() {
+        source "$_SCRIPT_DIR/move_copy_delete_tools.sh"
+    }
     _file_comp_back() {
         source "$_SCRIPT_DIR/filecompressing_tools.sh"
     }
@@ -204,7 +211,7 @@ function bmenuFilesystem {
     # Call the menu — pass variable *names*, not values
     INTERACTIVE_MENU items actions "Filesystem Tools Menu" $__SELECTED_ITEM_FILESYSTEM
     __SELECTED_ITEM_FILESYSTEM=$?
-    unset -f _files _mount _modes _share _usb
+    unset -f _files _mount _modes _share _usb _file_mult
     __BWBH_SAVE_CONFIG_tools
     _codex_unset
 } 

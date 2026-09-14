@@ -11,21 +11,23 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=9
     toolbox_title "Pacman Package Manager Tools"
-    info_echo "... exclusive for pacman package manager (arch-linux)"
-    toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "listInstalledPackages [ <kw1> <kw2> ... ]" "search packages by matching keywords" $width
-    toolbox_item 'listInstalledPackages "<kw1>|<kw2>|..."' "search for multiple packages" $width
-    toolbox_item "checkInstalledPackages" "check for upgradable packages" $width
-    toolbox_item "systemUpdate" "repository sync and update" $width
-    toolbox_item "searchPackages <keyword1> [keyword2 ...]" "search packages on official repos" $width
-    toolbox_item "installPackage <package1> [package2 ...]" "install packages from official repos" $width
-    toolbox_item "packageInfo" "show detailed information about a package" $width
-    toolbox_item "listOrphanPackages" "list orphan dependency packages" $width
-    toolbox_item "removePackage" "remove/uninstall package keeping configs" $width
-    toolbox_item "purgePackage" "remove and remove configs" $width
-    toolbox_item "cleanPackageCache" "clean the pacman cache" $width
-    toolbox_item "packageRelations" "show direct parent child dependency relations" $width
+    toolbox_item "tools / inv" "print this ... / show command syntax" $width
+    if is_command_valid "pacman"; then 
+        toolbox_item "listInstalledPackages [ <kw1> <kw2> ... ]" "search packages by matching keywords" $width
+        toolbox_item 'listInstalledPackages "<kw1>|<kw2>|..."' "search for multiple packages" $width
+        toolbox_item "checkInstalledPackages" "check for upgradable packages" $width
+        toolbox_item "systemUpdate" "repository sync and update" $width
+        toolbox_item "searchPackages <keyword1> [keyword2 ...]" "search packages on official repos" $width
+        toolbox_item "installPackage <package1> [package2 ...]" "install packages from official repos" $width
+        toolbox_item "packageInfo" "show detailed information about a package" $width
+        toolbox_item "listOrphanPackages" "list orphan dependency packages" $width
+        toolbox_item "removePackage" "remove/uninstall package keeping configs" $width
+        toolbox_item "purgePackage" "remove and remove configs" $width
+        toolbox_item "cleanPackageCache" "clean the pacman cache" $width
+        toolbox_item "packageRelations" "show direct parent child dependency relations" $width
+    else 
+        crit_echo "... exclusive for pacman package manager (arch-linux)"
+    fi
     toolbox_endl
     _codex_unset
 }

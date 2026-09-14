@@ -8,14 +8,14 @@ function tools {
     toolbox_title "Server Tools"
     toolbox_item "tools" "print this ..." $width
     toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "setTempLocalServer" "set temporary python local server on current directory" $width
+    toolbox_item "setLocalServer" "set python local server on current directory" $width
     toolbox_endl
     _codex_unset
 }
 tools
 
 # -- implementation 
-function setTempLocalServer {
+function setLocalServer {
     source "${_SCRIPT_DIR}/_codex.sh"
     local port="${1:-8000}"
     local wait_status=0
@@ -23,7 +23,7 @@ function setTempLocalServer {
     # Validate port argument (now the first argument).
     if ! [[ "$port" =~ ^[0-9]+$ ]] || (( port < 1 || port > 65535 )); then
         crit_echo "Error: Port must be a positive integer between 1 and 65535." >&2
-        warn_echo "Usage: setTempLocalServer [ <port> ]" >&2
+        warn_echo "Usage: setLocalServer [ <port> ]" >&2
         _codex_unset
         return 1
     fi
@@ -32,7 +32,7 @@ function setTempLocalServer {
         py_cmd=(python3 -m http.server --bind 127.0.0.1 "$port")
     elif command -v python &>/dev/null; then
         warn_echo "Warning: Python 2 binds to 0.0.0.0 and exposes the server to the local network." >&2
-        py_cmd=(python -m SimpleHTTPServer "$port")
+        py_cmd=(python -m http.server --bind 127.0.0.1 "$port")
     else
         crit_echo "Error: Python is not installed." >&2
         _codex_unset

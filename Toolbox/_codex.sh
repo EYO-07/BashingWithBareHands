@@ -34,7 +34,8 @@ function _codex_unset {
     unset -f get_abs_path create_intermediate_dirs
     unset -f save_variables # load_variables
     unset -f is_command_valid
-    unset -f INTERACTIVE_MENU INTERACTIVE_MENU_SINGLE
+    unset -f INTERACTIVE_MENU INTERACTIVE_MENU_SINGLE INTERACTIVE_MENU_DELETION_EDIT
+    unset -f INTERACTIVE_FILESELECT_SINGLE INTERACTIVE_FILESELECT_MULT
 }
 
 # -- color echos
@@ -194,6 +195,35 @@ function auto_escalate {
     return $status
 }
 # -- paths 
+#function get_abs_path {
+    #if [ $# -ne 1 ]; then 
+        #return 1
+    #fi
+    #local target="$1"
+    #if [ -z "$target" ]; then
+        #return 1
+    #fi
+    #if [[ "$target" = /* ]]; then # If already absolute, normalize it
+        #if command -v realpath &>/dev/null; then # Use realpath if available (resolves .., ., symlinks)
+            #realpath -m "$target" 2>/dev/null || echo "$target"
+        #else
+            #echo "$target"
+        #fi
+    #else # Convert relative to absolute and normalize
+        #local absolute="$(pwd)/$target"
+        #if command -v realpath &>/dev/null; then
+            #realpath -m "$absolute" 2>/dev/null || echo "$absolute"
+        #else # Fallback: manual normalization using cd
+            #local dir="$(dirname "$absolute")"
+            #local base="$(basename "$absolute")"
+            #if [ -d "$dir" ]; then
+                #echo "$(cd "$dir" && pwd)/$base"
+            #else
+                #echo "$absolute"
+            #fi
+        #fi
+    #fi
+#}
 function get_abs_path {
     if [ $# -ne 1 ]; then 
         return 1
@@ -202,28 +232,21 @@ function get_abs_path {
     if [ -z "$target" ]; then
         return 1
     fi
-    # If already absolute, normalize it
-    if [[ "$target" = /* ]]; then
-        # Use realpath if available (resolves .., ., symlinks)
-        if command -v realpath &>/dev/null; then
-            realpath -m "$target" 2>/dev/null || echo "$target"
-        else
-            echo "$target"
-        fi
+    local absolute="$target"
+    if [[ "$target" != /* ]]; then
+        absolute="$(pwd)/$target"
+    fi
+    if command -v realpath &>/dev/null; then
+        # Use -s (--no-symlinks) to treat symlinks as files/directories without expanding them
+        realpath -s "$absolute" 2>/dev/null || echo "$absolute"
     else
-        # Convert relative to absolute and normalize
-        local absolute="$(pwd)/$target"
-        if command -v realpath &>/dev/null; then
-            realpath -m "$absolute" 2>/dev/null || echo "$absolute"
+        # Fallback: manual normalization using cd
+        local dir="$(dirname "$absolute")"
+        local base="$(basename "$absolute")"
+        if [ -d "$dir" ]; then
+            echo "$(cd "$dir" && pwd)/$base"
         else
-            # Fallback: manual normalization using cd
-            local dir="$(dirname "$absolute")"
-            local base="$(basename "$absolute")"
-            if [ -d "$dir" ]; then
-                echo "$(cd "$dir" && pwd)/$base"
-            else
-                echo "$absolute"
-            fi
+            echo "$absolute"
         fi
     fi
 }
@@ -381,7 +404,7 @@ function all_commands_valid {
     return 0
 }
 
-# -- menu
+# -- interactive menus
 #function _MENU_EXAMPLE {
     #source "$_SCRIPT_DIR/_codex.sh"
     # Define the menu items (indexed array)
@@ -528,7 +551,9 @@ function INTERACTIVE_MENU_SINGLE { # INTERACTIVE_MENU_SINGLE <items> <title> [in
     if (( ${#_ref_items_in[@]} > 0 )); then
         _menu_items=("${_ref_items_in[@]}")
     else
-        _menu_items=("Option 1" "Option 2" "Option 3" "Exit")
+        echo "empty list"
+        return 0
+        #_menu_items=("Option 1" "Option 2" "Option 3" "Exit")
     fi
     # Terminal cleanup helper
     _menu_cleanup() {
@@ -594,6 +619,334 @@ function INTERACTIVE_MENU_SINGLE { # INTERACTIVE_MENU_SINGLE <items> <title> [in
         esac
     done
     return $(($selected+1))
+}
+function INTERACTIVE_MENU_DELETION_EDIT { # INTERACTIVE_MENU_DELETION_EDIT <items> <title> [index]
+    [[ -t 0 && -t 1 ]] || return 0
+    (( $# >= 2 )) || return 0
+    [[ "$1" == "_ref_items_in" ]] && return 0
+    # Expects nameref names: _INTERACTIVE_MENU items_var "Title"
+    local -n _ref_items_in="$1" 2>/dev/null
+    local title="${2:-Menu}"
+    # Use distinct internal variable names to prevent nameref collision loops
+    local -a _menu_items=()
+    # Populate items
+    if (( ${#_ref_items_in[@]} > 0 )); then
+        _menu_items=("${_ref_items_in[@]}")
+    else
+        echo "empty list"
+        return 0
+        #_menu_items=("Option 1" "Option 2" "Option 3" "Exit")
+    fi
+    # Terminal cleanup helper
+    _menu_cleanup() {
+        tput cnorm 2>/dev/null
+        stty echo 2>/dev/null
+    }
+    trap '_menu_cleanup' RETURN INT TERM
+    stty -echo
+    tput civis 2>/dev/null
+    local selected="${3:-0}"
+    local start=0 end=0
+    local filerange=15
+    local total=${#_menu_items[@]}
+    local key
+    local _path
+    (( total > 0 )) || return 0
+    while true; do
+        # Boundary constraints
+        (( selected >= total )) && selected=$((total - 1))
+        (( selected < 0 )) && selected=0
+        # Compute visible window
+        start=$((selected - filerange))
+        (( start < 0 )) && start=0
+        end=$((selected + filerange))
+        (( end >= total )) && end=$((total - 1))
+        # Render        
+        clear
+        warn_echo "$title"
+        (( start > 0 )) && echo "   ..."
+        for ((i = start; i <= end; i++)); do
+            if (( i == selected )); then
+                printf '\033[1;32m > %s \033[0m\n' "${_menu_items[$i]}"
+            else
+                printf '   %s\n' "${_menu_items[$i]}"
+            fi
+        done
+        (( end < total - 1 )) && echo "   ..."
+        # Read key input
+        read -rsn1 key
+        if [[ "$key" == $'\x1b' ]]; then
+            read -rsn2 -t 0.2 key
+            case "$key" in
+                '[A') ((selected--)) || true ;;
+                '[B') ((selected++)) || true ;;
+                '[5') read -rsn1 -t 0.2; ((selected-=7)) || true ;;   # PageUp
+                '[6') read -rsn1 -t 0.2; ((selected+=7)) || true ;;   # PageDown
+                *)    key=$'\x1b' ;;
+            esac
+        fi
+        case "$key" in
+            q|Q)
+                break
+                ;;
+            "") # Enter
+                local var_name="${_menu_items[$selected]}"
+                _path="${var_name:-}"
+                if [[ -n "$_path" ]]; then
+                    unset "_ref_items_in[$selected]"
+                    _ref_items_in=("${_ref_items_in[@]}")
+                    _menu_items=("${_ref_items_in[@]}")
+                    total=${#_menu_items[@]}
+                    (( total == 0 )) && break
+                    (( selected >= total )) && selected=$((total - 1))
+                    b_clear="true"
+                fi
+                ;;   
+        esac
+    done
+    return $selected
+}
+function INTERACTIVE_FILESELECT_SINGLE { # FN <out_path> <title>
+    if [[ ! -v __ASS_ARR_ICD ]]; then 
+        declare -gA __ASS_ARR_ICD
+    fi
+    trap 'tput cnorm; stty echo' RETURN INT TERM
+    stty -echo
+    tput civis
+    local selected=${__ASS_ARR_ICD["$(pwd)"]:-0}
+    local files=()
+    local total=0
+    local start=0 end=0
+    local filerange=15
+    local dirty=1   # 1 = list needs rebuilding
+    local -n output_path="$1"
+    local starting_dir="$PWD"
+    local title="${2:-}"
+    # Build the file list (called only when dirty)
+    _build_list() {
+        local dirs=() plain=()
+        shopt -s dotglob
+        for entry in *; do
+            if [[ -d "$entry" ]]; then
+                dirs+=("${entry%/}/")
+            else
+                plain+=("$entry")
+            fi
+        done
+        shopt -u dotglob
+        files=()
+        for d in "${dirs[@]}"; do files+=("$d"); done
+        for f in "${plain[@]}"; do files+=("$f"); done
+        total=${#files[@]}
+    }
+    _build_list
+    while true; do
+        # Rebuild only if directory changed
+        (( dirty )) && _build_list && dirty=0
+        (( selected >= total )) && selected=$(( total - 1 ))
+        (( selected < 0 )) && selected=0
+        # --- Compute visible window ---
+        start=$(( selected - $filerange ))
+        (( start < 0 )) && start=0
+        end=$(( selected + $filerange ))
+        (( end >= total )) && end=$(( total - 1 ))
+        # --- Render ---
+        clear
+        warn_echo "$title"
+        warn_echo "$(pwd) [ Q | ARROWS ]"
+        (( start > 0 )) && echo "   ..."
+        for (( i = start; i <= end; i++ )); do
+            if [[ $i -eq $selected ]]; then
+                echo -e "\033[1;32m > ${files[$i]} \033[0m"
+            else
+                echo "   ${files[$i]}"
+            fi
+        done
+        (( end < total - 1 )) && echo "   ..."
+        # --- Input ---
+        read -rsn1 key
+        if [[ $key == $'\x1b' ]]; then
+            read -rsn2 -t 0.2 key
+            case "$key" in
+                '[A') ((selected--)) || true ;;
+                '[B') ((selected++)) || true ;;
+                '[C') { 
+                    __ASS_ARR_ICD["$(pwd)"]=$selected ; 
+                    local inner_dir="${files[$selected]}"
+                    if [[ -d "$inner_dir" ]]; then
+                        cd "$inner_dir" && { selected=${__ASS_ARR_ICD["$(pwd)"]:-0}; dirty=1; }
+                    fi
+                } ;;
+                '[D') { 
+                    __ASS_ARR_ICD["$(pwd)"]=$selected
+                    cd .. 
+                } && { selected=${__ASS_ARR_ICD["$(pwd)"]:-0}; dirty=1; }; continue ;;
+                '[5') read -rsn1 -t 0.2; ((selected-=7)) || true ;;   # PageUp
+                '[6') read -rsn1 -t 0.2; ((selected+=7)) || true ;;   # PageDown
+                *)    key=$'\x1b' ;;
+            esac
+        fi
+        case "$key" in
+            q|Q)
+                cd "$starting_dir"
+                break 
+                ;;
+            "")
+                local target="${files[$selected]}"
+                if [[ -e "$target" ]]; then
+                    __ASS_ARR_ICD["$(pwd)"]=$selected
+                    selected=${__ASS_ARR_ICD["$(pwd)"]:-0}
+                    output_path="$(get_abs_path "$target")"
+                    cd "$starting_dir"
+                    break
+                fi
+                ;;
+        esac
+    done
+    __ASS_ARR_ICD["$(pwd)"]=$selected
+    unset -f _build_list
+}
+function INTERACTIVE_FILESELECT_MULT { # FN <out_array> <title>
+    if [[ ! -v __ASS_ARR_ICD ]]; then 
+        declare -gA __ASS_ARR_ICD
+    fi
+    trap 'tput cnorm; stty echo' RETURN INT TERM
+    stty -echo
+    tput civis
+    local selected=${__ASS_ARR_ICD["$(pwd)"]:-0}
+    local files=()
+    local total=0
+    local start=0 end=0
+    local filerange=12
+    local dirty=1   # 1 = list needs rebuilding
+    local -n output_array="$1"
+    local starting_dir="$PWD"
+    local title="${2:-}"   
+    # Track selections using a compound key of "directory|filename" to avoid absolute path overhead
+    declare -A selected_keys=()
+    # Build the file list (called only when dirty)
+    _build_list() {
+        local dirs=() plain=()
+        shopt -s dotglob
+        for entry in *; do
+            if [[ -d "$entry" ]]; then
+                dirs+=("${entry%/}/")
+            else
+                plain+=("$entry")
+            fi
+        done
+        shopt -u dotglob
+        files=("../")
+        for d in "${dirs[@]}"; do files+=("$d"); done
+        for f in "${plain[@]}"; do files+=("$f"); done
+        total=${#files[@]}
+    }
+    _build_list
+    while true; do
+        # Rebuild only if directory changed
+        (( dirty )) && _build_list && dirty=0
+        (( selected >= total )) && selected=$(( total - 1 ))
+        (( selected < 0 )) && selected=0
+        # --- Compute visible window ---
+        start=$(( selected - $filerange ))
+        (( start < 0 )) && start=0
+        end=$(( selected + $filerange ))
+        (( end >= total )) && end=$(( total - 1 ))
+        # --- Render ---
+        clear
+        warn_echo "$title"
+        warn_echo "$(pwd) [ ENTER: Toggle | Q: Done | ARROWS ]"
+        # Display currently selected items horizontally at the top
+        local active_list=""
+        for k in "${!selected_keys[@]}"; do
+            # Extract just the filename/dirname from "path|filename" key for compact horizontal view
+            local display_name="${k#*|}"
+            active_list+="${display_name}  "
+        done
+        if [[ -n "$active_list" ]]; then
+            echo -e "\033[1;33mSelected: [ ${active_list} ]\033[0m"
+        else
+            echo -e "\033[2mSelected: [ None ]\033[0m"
+        fi
+        echo "----------------------------------------"
+        (( start > 0 )) && echo "   ..."
+        for (( i = start; i <= end; i++ )); do
+            local item="${files[$i]}"
+            local display_prefix="   "
+            if [[ "$item" != "../" ]]; then
+                local current_key="$(pwd)|$item"
+                if [[ -n "${selected_keys[$current_key]:-}" ]]; then
+                    display_prefix=" [x] "
+                else
+                    display_prefix=" [ ] "
+                fi
+            else
+                display_prefix="     "
+            fi
+
+            if [[ $i -eq $selected ]]; then
+                echo -e "\033[1;32m >${display_prefix}${item} \033[0m"
+            else
+                echo "  ${display_prefix}${item}"
+            fi
+        done
+        (( end < total - 1 )) && echo "   ..."
+        # --- Input ---
+        read -rsn1 key
+        if [[ $key == $'\x1b' ]]; then
+            read -rsn2 -t 0.2 key
+            case "$key" in
+                '[A') ((selected--)) || true ;;
+                '[B') ((selected++)) || true ;;
+                '[C') { 
+                    __ASS_ARR_ICD["$(pwd)"]=$selected 
+                    local inner_dir="${files[$selected]}"
+                    if [[ "$inner_dir" == "../" ]]; then
+                        cd .. && { selected=${__ASS_ARR_ICD["$(pwd)"]:-0}; dirty=1; }
+                    elif [[ -d "$inner_dir" ]]; then
+                        cd "$inner_dir" && { selected=${__ASS_ARR_ICD["$(pwd)"]:-0}; dirty=1; }
+                    fi
+                } ;;
+                '[D') { 
+                    __ASS_ARR_ICD["$(pwd)"]=$selected
+                    cd .. 
+                } && { selected=${__ASS_ARR_ICD["$(pwd)"]:-0}; dirty=1; }; continue ;;
+                '[5') read -rsn1 -t 0.2; ((selected-=7)) || true ;;   # PageUp
+                '[6') read -rsn1 -t 0.2; ((selected+=7)) || true ;;   # PageDown
+                *)    key=$'\x1b' ;;
+            esac
+        fi       
+        case "$key" in
+            q|Q)
+                output_array=()
+                for k in "${!selected_keys[@]}"; do
+                    # Resolve absolute path only upon final exit, keeping runtime fast
+                    local dir_part="${k%%|*}"
+                    local file_part="${k#*|}"
+                    output_array+=("$dir_part/$file_part")
+                done
+                cd "$starting_dir"
+                break 
+                ;;
+            "")
+                local target="${files[$selected]}"
+                if [[ "$target" == "../" ]]; then
+                    cd .. && { selected=${__ASS_ARR_ICD["$(pwd)"]:-0}; dirty=1; }
+                    continue
+                fi
+                if [[ -e "$target" ]]; then
+                    local current_key="$(pwd)|$target"
+                    if [[ -n "${selected_keys[$current_key]:-}" ]]; then
+                        unset "selected_keys[$current_key]"
+                    else
+                        selected_keys["$current_key"]=1
+                    fi
+                fi
+                ;;
+        esac
+    done
+    __ASS_ARR_ICD["$(pwd)"]=$selected
+    unset -f _build_list
 }
 
 # END 
