@@ -17,20 +17,20 @@ function tools {
             toolbox_item "pdfAudiobookReader" "read pdf books using gtts-cli and vlc" $width
             toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 25 pages and suspend the system at end" $width
         else
-            crit_echo "... requires pdftotext (poppler)"
+            crit_echo "... some commands requires pdftotext (poppler)"
         fi
         if atleastone_command_valid "lynx" "w3m"; then 
             toolbox_item "webpageReader" "read a web page using gtts-cli, vlc. Requires lynx or w3m." $width
         else 
-            crit_echo "... requires lynx or w3m"
+            crit_echo "... some commands requires lynx or w3m"
         fi
         if is_command_valid "tgpt"; then 
             toolbox_item "tgptReader" "reads a llm response using tgpt (default: koboldai)" $width
         else 
-            crit_echo "... requires tgpt"
+            crit_echo "... some commands requires tgpt"
         fi 
     else 
-        crit_echo "... requires gtts-cli or flite to transform text to speech"
+        crit_echo "... some commands requires gtts-cli or flite to transform text to speech"
     fi 
     #toolbox_item "saveSafe_LLM_READER" "optional, save variables to optional arguments for tgpt" $width
     #toolbox_item "loadSafe_LLM_READER" "load variables used for tgpt" $width

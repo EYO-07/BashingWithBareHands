@@ -20,7 +20,7 @@ function tools {
         toolbox_item "increaseVolume" "increase volume by optional step (default 5%)" $width
         toolbox_item "decreaseVolume" "decrease volume by optional step (default 5%)" $width
     else 
-        crit_echo "... missing one of command tools: wpctl awk"
+        crit_echo "... missing: wpctl"
     fi
     toolbox_endl
     _codex_unset
