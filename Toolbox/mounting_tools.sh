@@ -23,7 +23,7 @@ function tools {
     toolbox_item "tools" "print this ..." $width
     #toolbox_item "tools files" "import filesystem tools" $width
     #toolbox_item "tools share" "import filesharing tools" $width
-    toolbox_item "inv" "print built-in commands ..." $width
+    #toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "showLabelsMounted" "show ONLY mounted storage device labels" $width
     toolbox_item "storageDeviceLabels" "show the storage device labels" $width
     toolbox_item "gotoMountedStorage" "go to default path mounted storage by label" $width
@@ -46,19 +46,30 @@ function tools {
     _codex_unset
 }
 tools
-function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
-    inventory_title "todo"
-    local width=9
-    inventory_item 1 "..." "..." $width
-    inventory_endl 
-    _codex_unset
-}
+#function inv {
+    #source "$_SCRIPT_DIR/_codex.sh"
+    #inventory_title "todo"
+    #local width=9
+    #inventory_item 1 "..." "..." $width
+    #inventory_endl 
+    #_codex_unset
+#}
 
 # -- implementation
 alias showMountPoints='sudo lsblk -l'
 alias showStorageDevicesInfo='(sudo blkid && sudo fdisk -l) | tee ~/storage_devices.txt'
-alias mountIsoFile='udisksctl loop-setup -f'
+function mountIsoFile {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local file_path="$1"
+    if [[ ! -e "$file_path" ]]; then 
+        [[ -z "$file_path" ]] || crit_echo "invalid path: $file_path"
+        warn_echo "Usage: mountIsoFile <path>"
+        _codex_unset
+        return 1
+    fi 
+    udisksctl loop-setup -f "$file_path"
+    _codex_unset
+}
 function safelyRemoveUsb { # safely unmount and power-off usb storage by label
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then

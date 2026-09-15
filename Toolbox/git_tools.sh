@@ -10,31 +10,39 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
-    local width=4
+    local width=7
     toolbox_title "Git Tools"
     toolbox_item "tools" "show this ..." $width
-    toolbox_item "inv" "show helpful built-in commands" $width
-    toolbox_item "downloadProject" "... run without args to see usage" $width
-    toolbox_item "projectInfo" "run it inside git directory to show information about the directory and update status" $width
-    toolbox_item "gitCommit <title> [description]" "local clone commit registry" $width
-    toolbox_item "projectUpdate" "discard local changes and sync with remote repository" $width
-    toolbox_item "gitPullRequest" "pull request, require gh cli tool" $width
-    toolbox_item "listBranches" "list available branches from the git directory" $width
-    toolbox_item "setBranch <keyword>" "set branch for current git directory" $width
-    toolbox_item "gitDirectPush" "direct push using gh credentials" $width
-    toolbox_item "gitStash" "manage git stashes" $width
+    if all_commands_valid "jq" "curl"; then 
+        toolbox_item "listPublicGitRepositories" "list public repository by owner name" $width
+    else 
+        crit_echo "... missing one of: jq curl"
+    fi 
+    if is_command_valid "git"; then 
+        toolbox_item "downloadProject" "download github project" $width
+        toolbox_item "projectInfo" "run it inside git directory to show information about the directory and update status" $width
+        toolbox_item "gitCommit <title> [description]" "local clone commit registry" $width
+        toolbox_item "projectUpdate" "discard local changes and sync with remote repository" $width
+        toolbox_item "gitPullRequest" "pull request, require gh cli tool" $width
+        toolbox_item "listBranches" "list available branches from the git directory" $width
+        toolbox_item "setBranch <keyword>" "set branch for current git directory" $width
+        toolbox_item "gitDirectPush" "direct push using gh credentials" $width
+        toolbox_item "gitStash" "manage git stashes" $width
+    else 
+        crit_echo "... missing: git"
+    fi 
     toolbox_endl
     _codex_unset
 }
 tools
-function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
-    local width=3
-    inventory_title "todo"
-    inventory_item 1 "..." "..." $width
-    inventory_endl
-    _codex_unset
-}
+#function inv {
+    #source "$_SCRIPT_DIR/_codex.sh"
+    #local width=3
+    #inventory_title "todo"
+    #inventory_item 1 "..." "..." $width
+    #inventory_endl
+    #_codex_unset
+#}
 
 # -- implementation 
 function downloadProject {
@@ -441,7 +449,6 @@ function gitStash {
     esac
     _codex_unset
 }
-
 function gitIgnore { # creates or update gitignore
     source "$_SCRIPT_DIR/_codex.sh"
     # dont use templates 
@@ -449,6 +456,35 @@ function gitIgnore { # creates or update gitignore
     _codex_unset
     return 1
 }
-
+function listPublicGitRepositories {
+    local owner="$1"
+    shift
+    local keywords=("$@")
+    if [[ -z "$owner" ]]; then
+        echo "Usage: listPublicGitRepositories <owner> [ <keyword1> <keyword2> ... ]" >&2
+        return 1
+    fi
+    # Basic sanity check on owner (GitHub usernames/orgs: alphanumeric + hyphens)
+    if [[ ! "$owner" =~ ^[a-zA-Z0-9-]+$ ]]; then
+        echo "Invalid owner name" >&2
+        return 1
+    fi
+    # Build --arg options and the jq filter
+    local jq_args=()
+    local filter='.[] | .name'
+    if [[ ${#keywords[@]} -gt 0 ]]; then
+        local conditions=()
+        for i in "${!keywords[@]}"; do
+            local varname="kw${i}"
+            jq_args+=(--arg "$varname" "${keywords[$i],,}")
+            conditions+=("((.name // \"\") | ascii_downcase | contains(\$${varname})) or ((.description // \"\") | ascii_downcase | contains(\$${varname}))")
+        done
+        local joined
+        joined=$(IFS=' and '; echo "${conditions[*]}")
+        filter=".[] | select(${joined}) | .name"
+    fi
+    curl -s "https://api.github.com/users/${owner}/repos?per_page=100" \
+        | jq -r "${jq_args[@]}" "$filter" | sort
+} 
 
 # END

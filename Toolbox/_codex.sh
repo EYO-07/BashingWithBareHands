@@ -33,7 +33,7 @@ function _codex_unset {
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
     unset -f get_abs_path create_intermediate_dirs
     unset -f save_variables # load_variables
-    unset -f is_command_valid
+    unset -f is_command_valid all_commands_valid atleastone_command_valid
     unset -f INTERACTIVE_MENU INTERACTIVE_MENU_SINGLE INTERACTIVE_MENU_DELETION_EDIT
     unset -f INTERACTIVE_FILESELECT_SINGLE INTERACTIVE_FILESELECT_MULT
 }
@@ -402,6 +402,14 @@ function all_commands_valid {
         fi
     done
     return 0
+}
+function atleastone_command_valid {
+    for k in "$@"; do
+        if command -v "$k" &>/dev/null; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 # -- interactive menus

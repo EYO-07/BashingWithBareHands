@@ -10,23 +10,30 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Audiobook Tools"
-    info_echo "... requires gtts-cli or flite to transform text to speech"
     toolbox_item "tools" "print this ..." $width
-    
-    toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
-    echo "... requires vlc"
-    
-    toolbox_item "pdfAudiobookReader" "read pdf books using gtts-cli and vlc" $width
-    toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 25 pages and suspend the system at end" $width
-    echo "... requires vlc and pdftotext (poppler)"
-    
-    toolbox_item "webpageReader" "read a web page using gtts-cli, vlc. Requires lynx or w3m." $width
-    echo "... requires vlc and lynx or w3m"
-    
-    toolbox_item "tgptReader" "reads a llm response using tgpt (default: koboldai)" $width
+    if all_commands_valid "cvlc" "gtts-cli"; then 
+        toolbox_item "textReader" "read text or text file using gtts-cli and vlc" $width
+        if all_commands_valid "pdfinfo" "awk" "pdftotext"; then 
+            toolbox_item "pdfAudiobookReader" "read pdf books using gtts-cli and vlc" $width
+            toolbox_item "pdfAudiobookReaderSleep" "read a chunk of 25 pages and suspend the system at end" $width
+        else
+            crit_echo "... requires pdftotext (poppler)"
+        fi
+        if atleastone_command_valid "lynx" "w3m"; then 
+            toolbox_item "webpageReader" "read a web page using gtts-cli, vlc. Requires lynx or w3m." $width
+        else 
+            crit_echo "... requires lynx or w3m"
+        fi
+        if is_command_valid "tgpt"; then 
+            toolbox_item "tgptReader" "reads a llm response using tgpt (default: koboldai)" $width
+        else 
+            crit_echo "... requires tgpt"
+        fi 
+    else 
+        crit_echo "... requires gtts-cli or flite to transform text to speech"
+    fi 
     #toolbox_item "saveSafe_LLM_READER" "optional, save variables to optional arguments for tgpt" $width
     #toolbox_item "loadSafe_LLM_READER" "load variables used for tgpt" $width
-    echo "... requires vlc and tgpt"
     toolbox_endl
     _codex_unset
 }
@@ -143,7 +150,7 @@ function pdfAudiobookReader {
         # 1. Extract single page to stdout using pdftotext
         # 2. Pipe directly to gtts-cli
         # 3. Pipe MP3 stream to player
-        if is_command_valid "gtts-cli --version"; then 
+        if is_command_valid "gtts-cli"; then 
             if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
                 gtts-cli -l "$language" -f - | \
                 _play_stream; then
