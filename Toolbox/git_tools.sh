@@ -285,8 +285,9 @@ function listBranches {
         # Filter by argument (case-insensitive grep)
         local pattern="$1"
         echo "Filter: '$pattern'"
-        git branch -r | grep -v '\HEAD' | grep -i "$pattern" | sed 's/origin\///'  
-        if [ ${PIPESTATUS[1]} -ne 0 ]; then
+        git branch -r | grep -v '\HEAD' | grep -i "$pattern" | sed 's/origin\///'
+        local statuses=("${PIPESTATUS[@]}")
+        if [ "${statuses[1]}" -ne 0 ]; then
             echo "No branches found matching '$pattern'."
             _codex_unset
             return 1
@@ -327,8 +328,11 @@ function setBranch {
         git checkout -B "$target" "origin/$target"
     else
         # Branch does not exist: create new from main/master
-        echo "Remote branch not found. Creating new branch '$target' from 'main'..."
-        git checkout -b "$target" main 2>/dev/null || git checkout -b "$target" master
+        echo "Remote branch not found. Using default branch ..."
+        local default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+        default_branch=${default_branch:-main}
+        git checkout -b "$target" "$default_branch"
+        #git checkout -b "$target" main 2>/dev/null || git checkout -b "$target" master
     fi
     _codex_unset
 }   

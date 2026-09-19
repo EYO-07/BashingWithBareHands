@@ -10,27 +10,30 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=6
     toolbox_title "i3 Window Manager Tools"
-    info_echo "... requires i3 window manager and jq for json manipulation"
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
-    toolbox_item "toggleAllWindowsFloatMode" "toggle float mode for all windows in current workspace" $width
-    toolbox_item "listApplications" "list applications on active workspaces" $width
-    toolbox_item "transferApplications" "transfers applications from workspaces" $width
-    toolbox_item "closeApplications" "sends a safe closing message (SIGTERM) to all applications in the specified workspace" $width
+    if all_commands_valid "i3-msg" "jq"; then 
+        #toolbox_item "inv" "print built-in commands ..." $width
+        toolbox_item "toggleAllWindowsFloatMode" "toggle float mode for all windows in current workspace" $width
+        toolbox_item "listApplications" "list applications on active workspaces" $width
+        toolbox_item "transferApplications" "transfers applications from workspaces" $width
+        toolbox_item "closeApplications" "sends a safe closing message (SIGTERM) to all applications in the specified workspace" $width
+    else 
+        crit_echo "... requires i3 window manager and jq for json manipulation"
+    fi
     #toolbox_item "..." "..." $width
     toolbox_endl
     _codex_unset
 }
 tools 
-function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
-    inventory_title "i3 Window Manager Tools"
-    local width=3
-    inventory_item 1 "..." "..." $width
-    inventory_endl 
-    _codex_unset
-    return 0
-}
+#function inv {
+    #source "$_SCRIPT_DIR/_codex.sh"
+    #inventory_title "i3 Window Manager Tools"
+    #local width=3
+    #inventory_item 1 "..." "..." $width
+    #inventory_endl 
+    #_codex_unset
+    #return 0
+#}
 
 # -- implementation 
 function toggleAllWindowsFloatMode {
@@ -39,7 +42,7 @@ function toggleAllWindowsFloatMode {
     local current_ws
     current_ws=$(i3-msg -t get_workspaces | jq -r '.[] | select(.focused == true) | .name')
     if [[ -z "$current_ws" ]]; then
-        error_echo "Could not determine the current workspace."
+        crit_echo "Could not determine the current workspace."
         _codex_unset
         return 1
     fi
@@ -179,14 +182,12 @@ function listApplications {
     else
         info_echo "Active Workspaces & Windows:"
     fi
-    # Optimized jq query:
-    # 1. If $target_ws is provided, filter workspaces by name immediately.
-    # 2. Traverse to find containers with window properties.
-    # 3. Format output.
+
+    # Optimized jq query using recursive descent (.. | objects) 
+    # to catch both tiling and floating nodes.
     local query='
       [
-        recurse(.nodes[]?) | 
-        objects | 
+        .. | objects | 
         select(.type == "workspace") | 
         '
     # Add workspace filter if argument exists
@@ -208,6 +209,7 @@ function listApplications {
       .[] | 
       "Workspace: \(.ws_name)\n" + (.windows | map("  -> " + .) | join("\n"))
     '
+
     # Execute query
     local result
     result=$(echo "$tree" | jq -r "$query")
@@ -221,6 +223,6 @@ function listApplications {
         echo "$result"
     fi
     _codex_unset
-}   
+}
 
 # END

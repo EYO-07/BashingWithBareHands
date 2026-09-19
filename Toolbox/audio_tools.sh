@@ -91,7 +91,7 @@ function setVolumePercentage {
     if [ "$#" -ne 1 ]; then
         showVolume
         echo "USAGE : setVolumePercentage <number>"
-        echo "... 1-100"
+        echo "... 0-100"
         _codex_unset
         return 1
     fi

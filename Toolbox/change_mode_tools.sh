@@ -156,7 +156,7 @@ function setStrictUserPermission {
     fi
     # Check if target exists
     if [[ ! -e "$target" ]]; then
-        crit_echo "Error: '$target' does not exist." >&2
+        crit_echo "Error: '$target' does not exist."
         _codex_unset
         return 1
     fi
@@ -178,7 +178,7 @@ function setStrictUserPermission {
         _codex_unset
         return 0
     else
-        crit_echo "Error: Failed to set permissions for '$target'." >&2
+        crit_echo "Error: Failed to set permissions for '$target'."
         _codex_unset
         return 1
     fi
@@ -194,9 +194,9 @@ function takeOwnership {
         return 1
     fi
     local target_path="$1"
-    # Resolve to absolute path and check if it's a directory
-    if [ ! -d "$target_path" ]; then
-        crit_echo "Error: '$target_path' is not a valid directory."
+    # Resolve to absolute path and check if it's a valid path 
+    if [ ! -e "$target_path" ]; then
+        crit_echo "Error: '$target_path' does not exist."
         _codex_unset
         return 1
     fi
@@ -211,7 +211,7 @@ function takeOwnership {
     # Confirm with the user
     if ! token_prompt "Confirmation" "This will recursively change ownership of '$target_path' to $USER:$USER. Some files may be intended to be owned by root. Proceed?" ; then 
         _codex_unset
-        return 0
+        return 1
     fi 
     info_echo "Taking ownership of $target_path..."
     # Execute chown with error handling

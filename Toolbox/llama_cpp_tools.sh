@@ -14,7 +14,6 @@ __BWBH_SAVE_CONFIG_llama() {
         crit_echo "... config file not found"
         good_echo "... creating config file"
         create_intermediate_dirs "$config_path"
-        echo "$config_path"
     fi 
     save_variables "$config_path" \
         "_CONTEXT_SIZE_LLM" "_DEVICE_LLM" "_GPU_OFFLOAD_LLM" \
@@ -30,8 +29,8 @@ function tools {
     toolbox_title "Artificial Inteligence Local Inference Tools"
     toolbox_item "tools" "print this ..." $width
     if is_command_valid llama-cli; then 
-        toolbox_item "lightInteractiveInference" "interactive inference for low vram (4GB)" $width
-        toolbox_item "lightFileInference" "llm inference over a file (backup the file to avoid data loss)" $width
+        toolbox_item "lightInteractiveInference" "interactive local LLM inference for low vram (4GB)" $width
+        toolbox_item "lightFileInference" "single turn LLM inference. The prompt/response is registered over a file." $width
         toolbox_item "setContextSize" "set context size in tokens (Default: 1024 Current: $_CONTEXT_SIZE_LLM)" $width
         toolbox_item "setDeviceLLM" "set the device for processing (Default: none Current: $_DEVICE_LLM)" $width
         toolbox_item "setGpuOffloadLayers" "numbers of layers processed by gpu (Default: 15 Current: $_GPU_OFFLOAD_LLM)" $width
@@ -186,9 +185,7 @@ function lightFileInference {
     local temp_output=""
     local timestamp=""
     local device="$_DEVICE_LLM"
-    if [ "$arg_count" -gt 3 ]; then
-        device="$4"
-    fi 
+    [[ "$arg_count" -gt 3 ]] && device="$4"
     # --- Validation ---
     if [ "$arg_count" -lt 2 ]; then
         ls -a
@@ -199,14 +196,17 @@ function lightFileInference {
         echo ""
         warn_echo "Usage: lightFileInference <file_path> <model_path> [gpu_layers] [device]"
         echo ""
+        [[ -z "$file_path" ]] && { _codex_unset; return 1; }
         if ! yn_prompt "Select" "select model from a list?"; then
             _codex_unset
             return 1
         fi
+        shift
+    else 
+        shift 
+        shift
     fi
     # -- 
-    shift
-    shift
     if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
         gpu_offload_int="$1"
     fi
@@ -225,11 +225,13 @@ function lightFileInference {
     # Generate ISO 8601 style timestamp
     timestamp=$(date +"%Y-%m-%d %H:%M:%S")
     # --- Execution ---
-    info_echo "Starting Inference"
+    info_echo "Starting Single Turn Inference"
     echo "Model : $model"
     echo "Context : $_CONTEXT_SIZE_LLM tokens"
     echo "GPU Layers : $gpu_offload_int"
     echo "Device : $device"
+    crit_echo "... BEWARE! The file will be overwrited by inference output."
+    crit_echo "... the file is the inference prompt/response iteration, it was not designed to build other kind of files."
     if ! yn_prompt "Confirmation" "perform the inference?"; then
         _codex_unset
         return 0

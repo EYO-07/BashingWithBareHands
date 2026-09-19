@@ -1,5 +1,5 @@
 # BEGIN Toolbox/audiobook_tools.sh
-# {TextMarker|cyan:_play_stream|magenta:_play_text_stream}
+# {TextMarker|cyan:|magenta:}
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # -- dependencies
@@ -99,9 +99,10 @@ function textReader {
 }
 function pdfAudiobookReader {
     source "$_SCRIPT_DIR/_codex.sh"
+    local storage_path="$HOME/.local/state/BashingWithBareHands/"
     # Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]
     if [ $# -lt 1 ]; then
-        ls -a | grep ".pdf"
+        ls -a | grep '\.pdf$'
         warn_echo "Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]"
         info_echo "... use 0 as start_page to resume the reading"
         _codex_unset
@@ -110,23 +111,38 @@ function pdfAudiobookReader {
     local pdf_file="$1"
     # If start_page is not provided, we will check the journal later
     local provided_start_page="$2"
+    if [[ -n "$provided_start_page" ]]; then 
+        validate_non_negative_integer "$provided_start_page" "starting page" || { _codex_unset ; return 1; }
+    fi
     local pause_chunk="${3:-5}"
+    validate_integer_range "$pause_chunk" 1 50 "pause chunk" || { _codex_unset ; return 1; }
     local language="${4:-en}"
     if [ ! -f "$pdf_file" ]; then
-        ls -a | grep ".pdf"
+        ls -a | grep '\.pdf$'
         crit_echo "Error: File '$pdf_file' not found."
         _codex_unset
         return 1
     fi
     # --- Journal Logic Start ---
     # Create a journal filename based on the PDF name (e.g., book.pdf -> book.pdf.journal)
-    local journal_file="_${pdf_file}.journal"
+    # Sanitize: strip leading /, replace slashes with _
+    local _safe_name="${pdf_file#/}"
+    _safe_name="${_safe_name//\//_}"
+    local journal_file="${storage_path}_${_safe_name}.journal"
+    #local journal_file="${storage_path}/_${pdf_file}.journal"
+    if ! create_intermediate_dirs "$journal_file"; then 
+        crit_echo "failed to create storage directory"
+        warn_echo "... please manually create the directory $storage_path to save the current page"
+    fi
     local start_page=1
     # If no start page was provided by the user, check for a resume point
-    if [ -z "$provided_start_page" ] || [ $provided_start_page -eq 0 ]; then
+    if [ -z "$provided_start_page" ] || [ "$provided_start_page" -eq 0 ]; then
         if [ -f "$journal_file" ]; then
             # Read the last saved page from the journal
             start_page=$(cat "$journal_file")
+            if [[ -n "$start_page" ]]; then 
+                validate_non_negative_integer "$start_page" "starting page from journal" || { _codex_unset ; return 1; }
+            fi
             info_echo "Resuming from page $start_page (found in journal)"
         fi
     else
@@ -186,12 +202,13 @@ function pdfAudiobookReader {
 }   
 function pdfAudiobookReaderSleep {
     source "$_SCRIPT_DIR/_codex.sh"
+    local storage_path="$HOME/.local/state/BashingWithBareHands/"
     # Define the player function locally (or source it if defined in _codex.sh)
     # Usage: pdfAudiobookReaderSleep <pdf> [start_page_or_chunk] [language]
     # If start_page is 0 or omitted, it attempts to resume from journal.
     # If a specific page is given, it starts there.
     if [ $# -lt 1 ]; then
-        ls -a | grep ".pdf"
+        ls -a | grep '\.pdf$'
         warn_echo "Usage: pdfAudiobookReaderSleep <pdf> [start_page] [language]"
         info_echo "... use 0 as start_page to resume the reading"
         _codex_unset
@@ -199,21 +216,34 @@ function pdfAudiobookReaderSleep {
     fi
     local pdf_file="$1"
     local provided_start_page="$2"
+    if [[ -n "$provided_start_page" ]]; then 
+        validate_non_negative_integer "$provided_start_page" "starting page" || { _codex_unset ; return 1; }
+    fi
     local language="${3:-en}"
     local chunk=25
     if [ ! -f "$pdf_file" ]; then
-        ls -a | grep ".pdf"
+        ls -a | grep '\.pdf$'
         crit_echo "Error: File '$pdf_file' not found."
         _codex_unset
         return 1
     fi
     # --- Journal Logic Start ---
-    local journal_file="_${pdf_file}.journal"
+    local _safe_name="${pdf_file#/}"
+    _safe_name="${_safe_name//\//_}"
+    local journal_file="${storage_path}_${_safe_name}.journal"
+    #local journal_file="_${pdf_file}.journal"
+    if ! create_intermediate_dirs "$journal_file"; then 
+        crit_echo "failed to create storage directory"
+        warn_echo "... please manually create the directory $storage_path to save the current page"
+    fi
     local start_page=1
     # If no start page provided or explicitly 0, check journal
     if [ -z "$provided_start_page" ] || [ "$provided_start_page" -eq 0 ]; then
         if [ -f "$journal_file" ]; then
             start_page=$(cat "$journal_file")
+            if [[ -n "$start_page" ]]; then 
+                validate_non_negative_integer "$start_page" "starting page from journal" || { _codex_unset ; return 1; }
+            fi
             info_echo "Resuming from page $start_page (found in journal)"
         else
             info_echo "No journal found. Starting from page 1."
@@ -235,7 +265,7 @@ function pdfAudiobookReaderSleep {
     while [ $current_page -le $total_pages ]; do
         echo "Reading Page $current_page..."
         # Process the page
-        if is_command_valid "gtts-cli --version"; then 
+        if is_command_valid "gtts-cli"; then 
             if ! pdftotext -f "$current_page" -l "$current_page" "$pdf_file" - | \
                 gtts-cli -l "$language" -f - | \
                 _play_stream; then
@@ -285,13 +315,14 @@ function webpageReader {
         while IFS= read -r url || [ -n "$url" ]; do
             # Skip empty lines or comments
             [[ -z "$url" || "$url" =~ ^# ]] && continue
-            
+            validate_url "$url" "url" || continue 
             echo "Processing: $url"
             _extract_text "$url" | _play_text_stream
         done < "$input"
     else
         # URL MODE: Direct URL argument
         local url="$1"
+        validate_url "$url" "url" || { _codex_unset; return 1; }
         echo "Processing URL: $url"
         _extract_text "$url" | _play_text_stream
     fi
@@ -299,7 +330,7 @@ function webpageReader {
     return 0
 }   
 
-# -- implementation | llm 
+# -- implementation || llm 
 _LLM_READER_PROVIDER="koboldai" # default
 _LLM_READER_MODEL=""
 _LLM_READER_KEY=""

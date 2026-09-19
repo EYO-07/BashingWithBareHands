@@ -172,9 +172,22 @@ function remoteShell {
     local clean_host
     local target_host
     local resolved_ip
+    # 1. Validate required arguments
     if [ -z "$ssh_user" ] || [ -z "$remote_host" ]; then
         crit_echo "Error: Missing arguments."
         echo "Usage: remoteshell <remoteusername> <remotehostname>"
+        _codex_unset
+        return 1
+    fi
+    # 2. Sanitize and validate username format (alphanumeric, underscore, dash, dot; max 32 chars typically)
+    if [[ ! "$ssh_user" =~ ^[a-zA-Z_][a-zA-Z0-9_.-]{0,31}$ ]]; then
+        crit_echo "Error: Invalid username format ('$ssh_user')."
+        _codex_unset
+        return 1
+    fi
+    # 3. Sanitize and validate hostname format (prevent injection of malicious SSH flags or paths)
+    if [[ ! "$remote_host" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+        crit_echo "Error: Invalid hostname format ('$remote_host')."
         _codex_unset
         return 1
     fi
@@ -190,8 +203,9 @@ function remoteShell {
     # Start interactive SSH session
     # -t forces pseudo-terminal allocation (needed for interactive shells)
     ssh -t "${ssh_user}@${resolved_ip}"
+    local exit_code=$?
     _codex_unset
-    return $?
+    return $exit_code
 }   
 function leftload { 
     source "$_SCRIPT_DIR/_codex.sh"
@@ -241,8 +255,15 @@ function leftload {
         # -A: list all except . and ..
         # -F: append indicator (e.g., / for dirs) to entries
         # -C: force column output (auto-detected usually, but ensures formatting)
+        
+        # Safely escape remote_path to prevent command injection via quotes/spaces
+        local safe_remote_path
+        printf -v safe_remote_path '%q' "$remote_path"
         ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new \
-            "${ssh_user}@${resolved_ip}" "ls -ACF '${remote_path}'"
+            "${ssh_user}@${resolved_ip}" "ls -ACF ${safe_remote_path}"
+        
+        #ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new \
+            #"${ssh_user}@${resolved_ip}" "ls -ACF '${remote_path}'"
         
         local exit_code=$?
         echo ""
@@ -284,16 +305,9 @@ function activateFileSharingServices {
     source "$_SCRIPT_DIR/_codex.sh"
     warn_echo "--- filesharing services ---"
     color_echo 36 "... note those units are not exclusive for filesharing"
-    systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"
-    # -- Generate Random Token (6 characters, alphanumeric)
-    local confirm_token user_input
-    confirm_token=$(tr -dc 'A-Z0-9' < /dev/urandom | head -c 6)
-    # -- Prompt User
-    color_echo 35 "To confirm activation of filesharing units : avahi-daemon, sshd"
-    color_echo 32 ">>> $confirm_token <<<"
-    read -p "Enter token: " user_input
-    if [ "$user_input" == "$confirm_token" ]; then
-        color_echo 35 "Token matched ..."
+    systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"   
+    # Use standardized token_prompt from _codex.sh
+    if token_prompt "Activation Confirmation" "This will enable and start: avahi-daemon.service, sshd.service"; then
         sudo systemctl enable --now avahi-daemon.service 
         sudo systemctl enable --now sshd.service 
         if [ $? -eq 0 ]; then
@@ -307,7 +321,7 @@ function activateFileSharingServices {
             return 1
         fi
     else
-        crit_echo "=== Cancelled: Token mismatch ==="
+        crit_echo "=== Cancelled: Token mismatch or non-interactive mode ==="
         _codex_unset
         return 1
     fi
@@ -317,15 +331,8 @@ function deactivateFileSharingServices {
     warn_echo "--- filesharing services ---"
     color_echo 36 "... note those units are not exclusive for filesharing"
     systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"
-    # -- Generate Random Token (6 characters, alphanumeric)
-    local confirm_token user_input
-    confirm_token=$(tr -dc 'A-Z0-9' < /dev/urandom | head -c 6)
-    # -- Prompt User
-    color_echo 35 "To confirm deactivation of filesharing units : avahi-daemon, sshd"
-    color_echo 32 ">>> $confirm_token <<<"
-    read -p "Enter token: " user_input
-    if [ "$user_input" == "$confirm_token" ]; then
-        color_echo 35 "Token matched ..."
+    # Use standardized token_prompt from _codex.sh
+    if token_prompt "Deactivation Confirmation" "This will disable and stop: avahi-daemon.service, sshd.service"; then
         sudo systemctl disable --now avahi-daemon.service 
         sudo systemctl disable --now sshd.service 
         if [ $? -eq 0 ]; then
@@ -339,7 +346,7 @@ function deactivateFileSharingServices {
             return 1
         fi
     else
-        crit_echo "=== Cancelled: Token mismatch ==="
+        crit_echo "=== Cancelled: Token mismatch or non-interactive mode ==="
         _codex_unset
         return 1
     fi    

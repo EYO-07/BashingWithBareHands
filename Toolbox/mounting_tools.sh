@@ -67,10 +67,12 @@ function mountIsoFile {
         _codex_unset
         return 1
     fi 
-    udisksctl loop-setup -f "$file_path"
+    if ! udisksctl loop-setup -f "$file_path"; then 
+        crit_echo "... failed to mount the iso file $file_path"
+    fi
     _codex_unset
 }
-function safelyRemoveUsb { # safely unmount and power-off usb storage by label
+function safelyRemoveUsb { # BACKUP
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then
         echo "USAGE: safelyRemoveUsb <LABEL>"
@@ -111,6 +113,57 @@ function safelyRemoveUsb { # safely unmount and power-off usb storage by label
     fi
     _codex_unset
 }   
+function safelyRemoveUsb { # safely unmount and power-off usb storage by label
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [[ "$#" -ne 1 ]]; then
+        echo "USAGE: safelyRemoveUsb <LABEL>"
+        storageDeviceLabels
+        _codex_unset
+        return 1
+    fi
+    local LABEL="$1"
+    # Resolve label to partition path (e.g., /dev/sdb1)
+    local PARTITION="/dev/disk/by-label/${LABEL}"
+    if [[ ! -e "$PARTITION" ]]; then
+        echo "Error: Device with label '$LABEL' not found."
+        _codex_unset
+        return 1
+    fi
+    # Resolve the real partition path (in case symlink changes)
+    local REAL_PARTITION
+    REAL_PARTITION=$(readlink -f "$PARTITION")
+    # Obtain the parent device name safely using lsblk (handles NVMe, SATA, etc.)
+    local PARENT_NAME
+    PARENT_NAME=$(lsblk -no PKNAME "$REAL_PARTITION" 2>/dev/null)
+    local PARENT_DRIVE
+    if [[ -n "$PARENT_NAME" ]]; then
+        PARENT_DRIVE="/dev/$PARENT_NAME"
+    else
+        PARENT_DRIVE="$REAL_PARTITION"
+    fi
+    echo "This function is intended for USB and Removable Devices. Don't use on regular partitions."
+    if ! token_prompt "Confirmation" "are you sure to unmount and power-off $PARENT_DRIVE ($LABEL)? "; then 
+        _codex_unset
+        return 1
+    fi
+    echo "Safely removing '$LABEL' ($REAL_PARTITION)..."
+    # Step 1: Unmount the partition
+    # udisksctl unmount handles cache flushing automatically
+    if ! udisksctl unmount -b "$REAL_PARTITION"; then
+        echo "Error: Failed to unmount '$LABEL'. It may be in use."
+        _codex_unset
+        return 1
+    fi
+    # Step 2: Power off the parent drive
+    # This cuts power to the USB port, making it safe to pull
+    if udisksctl power-off -b "$PARENT_DRIVE"; then
+        echo "Success: '$LABEL' is now safe to remove."
+    else
+        echo "Warning: Unmounted successfully, but failed to power off drive."
+        echo "You may manually unplug if no LED activity is visible."
+    fi
+    _codex_unset
+}
 function unmountStorageDevice { # unmount storage device by label
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then

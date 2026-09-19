@@ -22,10 +22,50 @@ function tools {
 }
 tools 
 
+# -- helpers
+__estimate_size() { # __estimate_size <array_reference>
+    local -n _est_files="$1"
+    local total_bytes=0   
+    for path in "${_est_files[@]}"; do
+        if [[ -e "$path" ]]; then
+            # Usa du -sb para obter o tamanho exato em bytes (recursivo para diretórios)
+            local path_size
+            path_size=$(du -sb "$path" 2>/dev/null | awk '{print $1}')
+            if [[ "$path_size" =~ ^[0-9]+$ ]]; then
+                total_bytes=$((total_bytes + path_size))
+            fi
+        fi
+    done
+    echo "$total_bytes"
+}
+__has_enough_space() { # __has_enough_space <dest_path> <size>
+    local dest_path="$1"
+    local required_size="$2"
+    # Encontra um diretório ancestral existente para consultar o espaço em disco
+    local target_dir="$dest_path"
+    while [[ ! -d "$target_dir" && "$target_dir" != "/" ]]; do
+        target_dir="$(dirname "$target_dir")"
+    done
+    [[ -d "$target_dir" ]] || target_dir="/"
+    # Obtém os bytes disponíveis no sistema de ficheiros (df -P -B1 para blocos de 1 byte)
+    local avail_bytes
+    avail_bytes=$(df -P -B1 "$target_dir" 2>/dev/null | awk 'NR==2 {print $4}')
+    # Validação de segurança dos valores numéricos
+    if [[ ! "$avail_bytes" =~ ^[0-9]+$ ]] || [[ ! "$required_size" =~ ^[0-9]+$ ]]; then
+        return 1 # Falha na leitura do espaço
+    fi
+    # Compara o espaço disponível com o tamanho necessário (com margem de segurança opcional de 1%)
+    if (( avail_bytes >= required_size )); then
+        return 0
+    fi
+    return 1
+}
+
 # -- implementation 
 function fileMove {
     source "$_SCRIPT_DIR/_codex.sh"
     [[ -z "$HOME" ]] && return 1
+    # -- file selection 
     local chosen_files=()
     INTERACTIVE_FILESELECT_MULT chosen_files "Files to move:"
     if (( ${#chosen_files[@]} == 0 )); then
@@ -37,6 +77,7 @@ function fileMove {
         _codex_unset
         return 0
     fi
+    # -- drop directory selection 
     local chosen_dir=""
     INTERACTIVE_FILESELECT_SINGLE chosen_dir "Please select drop directory:"
     if [[ ! -d "$chosen_dir" ]]; then
@@ -46,7 +87,7 @@ function fileMove {
     fi
     local abs_dest
     abs_dest=$(get_abs_path "$chosen_dir")
-    # Resolve, check existence, and self-containment using absolute paths (consistent with fileDelete)
+    # -- validation || path check 
     local validated_files=()
     for file in "${chosen_files[@]}"; do
         local abs_src
@@ -63,6 +104,14 @@ function fileMove {
         fi
         validated_files+=("$abs_src")
     done
+    # -- validation || space check 
+    local est_size=$(__estimate_size validated_files)
+    if ! __has_enough_space "$abs_dest" "$est_size"; then 
+        crit_echo "... destination don't have enough available space."
+        _codex_unset
+        return 1
+    fi 
+    # -- confirmation
     warn_echo "Drop Directory: $abs_dest"
     warn_echo "... files to be moved"
     for file in "${validated_files[@]}"; do
@@ -83,6 +132,7 @@ function fileMove {
 function fileCopy {
     source "$_SCRIPT_DIR/_codex.sh"
     [[ -z "$HOME" ]] && return 1
+    # -- file selection 
     local chosen_files=()
     INTERACTIVE_FILESELECT_MULT chosen_files "Files to copy:"
     if (( ${#chosen_files[@]} == 0 )); then
@@ -94,6 +144,7 @@ function fileCopy {
         _codex_unset[cite: 1]
         return 0
     fi
+    # -- drop directory selection 
     local chosen_dir=""
     INTERACTIVE_FILESELECT_SINGLE chosen_dir "Please select drop directory:"
     if [[ ! -d "$chosen_dir" ]]; then
@@ -103,7 +154,7 @@ function fileCopy {
     fi
     local abs_dest
     abs_dest=$(get_abs_path "$chosen_dir")
-    # Resolve, check existence, and self-containment using absolute paths (consistent with fileDelete)
+    # -- validation || path check 
     local validated_files=()
     for file in "${chosen_files[@]}"; do
         local abs_src
@@ -120,7 +171,14 @@ function fileCopy {
         fi
         validated_files+=("$abs_src")
     done
-
+    # -- validation || space check 
+    local est_size=$(__estimate_size validated_files)
+    if ! __has_enough_space "$abs_dest" "$est_size"; then 
+        crit_echo "... destination don't have enough available space."
+        _codex_unset
+        return 1
+    fi 
+    # -- confirmation
     warn_echo "Drop Directory: $abs_dest"
     warn_echo "... files to be copied"
     for file in "${validated_files[@]}"; do

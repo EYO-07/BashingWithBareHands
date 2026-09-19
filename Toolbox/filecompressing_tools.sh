@@ -44,21 +44,21 @@ function createBackup { # create a compressed backup file for file or folder nam
         _codex_unset
         return 0
     fi
-    local source="$1"
-    if [ ! -e "$source" ]; then
-        echo "Error: Source '$source' does not exist."
+    local file_source="$1"
+    if [ ! -e "$file_source" ]; then
+        echo "Error: Source '$file_source' does not exist."
         _codex_unset
         return 1
     fi
     # Generate timestamp: YYYYMMDD_HHMMSS
     local timestamp=$(date +%Y%m%d_%H%M%S)
-    local basename=$(basename "$source")
+    local basename=$(basename "$file_source")
     local archive_name="${basename}_${timestamp}.7z"
-    echo "Creating backup of '$source'..."
+    echo "Creating backup of '$file_source'..."
     # -mx=9: Ultra compression
     # -mmt=on: Multi-threading
     # -ssw: Compress shared files (useful for live backups)
-    if 7z a -mx=9 -mmt=on -ssw "$archive_name" "$source"; then
+    if 7z a -mx=9 -mmt=on -ssw "$archive_name" "$file_source"; then
         color_echo 32 "Backup created successfully: $archive_name"
         _codex_unset
         return 0

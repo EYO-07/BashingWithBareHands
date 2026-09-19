@@ -269,7 +269,7 @@ function showFileTree {
             fi
             # Recurse if directory
             if [ -d "$item" ]; then
-                _print_tree "$item" "${indent}${next_indent}"
+                _print_tree "$item" "${indent}${next_indent}" || return 1
             fi
         done
     }
@@ -485,6 +485,7 @@ function createFromTemplate {
     local template_name="$1"
     local dest_path="$2"
     local template_source=~/Templates/"$template_name"
+    validate_restricted_path "$template_source" || { _codex_unset ; return 1; }
     local new_absolute_path
     new_absolute_path="$(get_abs_path "$dest_path")"
     # Check if source exists (file OR directory)
@@ -686,7 +687,7 @@ function icd {
 }
 # -- 
 __SELECTED_ITEM_GOTO=0
-__GOTO_SHORTCUTS=("$HOME" "/etc" "/run/media" "$HOME/.local/bin")
+__GOTO_SHORTCUTS=("$HOME" "/etc" "$HOME/.config" "$HOME/.local/bin")
 function gotoShortcut {
     source "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
@@ -828,7 +829,7 @@ function shortcutsDelete {
 function shortcutsReset {
     source "$_SCRIPT_DIR/_codex.sh"
     __SELECTED_ITEM_GOTO=0
-    __GOTO_SHORTCUTS=("$HOME" "/etc" "/run/media" "$HOME/.local/bin")
+    __GOTO_SHORTCUTS=("$HOME" "/etc" "$HOME/.config" "$HOME/.local/bin")
     good_echo "goto shortcuts reseted"
     __BWBH_SAVE_CONFIG_filesystem
     _codex_unset

@@ -68,16 +68,14 @@ function inv {
 # -- Helper: Safe Output Handler
 # Handles writing to stdout or file, ensures directory exists, avoids accidental overwrites if desired.
 # Args: $1 = content (via stdin), $2 = optional file path
-function _write_output {
-    #source "$_SCRIPT_DIR/_codex.sh"
+function _write_output { # BACKUP
     local outfile="$1"
     if [[ -n "$outfile" ]]; then
         # Ensure parent directory exists
         local dir
         dir=$(dirname "$outfile")
         if [[ ! -d "$dir" ]]; then
-            crit_echo "Error: Output directory '$dir' does not exist."
-            _codex_unset
+            echo "Error: Output directory '$dir' does not exist."
             return 1
         fi
         # Write to file
@@ -89,6 +87,33 @@ function _write_output {
     else
         # Write to stdout
         cat
+    fi
+    return 0
+}
+function _write_output {
+    local outfile="$1"   
+    # Capture the piped content into a variable safely
+    local piped_content
+    piped_content="$(cat)"
+    if [[ -n "$outfile" ]]; then
+        # Ensure parent directory exists
+        local dir
+        dir=$(dirname "$outfile")
+        if [[ ! -d "$dir" ]]; then
+            echo "Error: Output directory '$dir' does not exist." >&2
+            return 1
+        fi
+        # Write system info, header, and captured content to the file cleanly
+        {
+            systemInformation
+            echo ""
+            echo "=== Error Messages ==="
+            printf '%s\n' "$piped_content"
+        } > "$outfile"
+        echo "Output written to: $outfile"
+    else
+        # Write the captured content directly to stdout
+        printf '%s\n' "$piped_content"
     fi
     return 0
 }

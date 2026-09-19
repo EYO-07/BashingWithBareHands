@@ -276,12 +276,13 @@ function disableScreenSaver {
     xset s noblank
     if [[ $? -eq 0 ]]; then
         warn_echo "Screen saver and DPMS disabled successfully."
+        _codex_unset
         return 0
     else
         crit_echo "Failed to disable screen saver settings."
+        _codex_unset
         return 1
     fi
-    _codex_unset
 }
 function enableScreenSaver {
     source "$_SCRIPT_DIR/_codex.sh"
@@ -298,12 +299,13 @@ function enableScreenSaver {
     xset s blank
     if [[ $? -eq 0 ]]; then
         info_echo "Screen saver and DPMS reset to defaults."
+        _codex_unset
         return 0
     else
         crit_echo "Failed to enable screen saver settings."
+        _codex_unset
         return 1
     fi
-    _codex_unset
 }
 
 # END

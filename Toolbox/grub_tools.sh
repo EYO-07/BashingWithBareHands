@@ -52,7 +52,7 @@ function getGrubMenuentries {
         return 1
     fi
     echo ""
-    sudo awk '
+    auto_escalate awk '
         /^menuentry[[:space:]]|^submenu[[:space:]]/ {
             inside = 1
             depth = 0
@@ -87,8 +87,10 @@ function regenerateGrub {
     # --- 2. Detect distro family via /etc/os-release ---
     local distro_family
     local id id_like
-    id=$(grep -m1 '^ID=' /etc/os-release 2>/dev/null | cut -d'"' -f2)
-    id_like=$(grep -m1 '^ID_LIKE=' /etc/os-release 2>/dev/null | cut -d'"' -f2)
+    #id=$(grep -m1 '^ID=' /etc/os-release 2>/dev/null | cut -d'"' -f2)
+    #id_like=$(grep -m1 '^ID_LIKE=' /etc/os-release 2>/dev/null | cut -d'"' -f2)    
+    id=$(grep -m1 '^ID=' /etc/os-release 2>/dev/null | cut -d'=' -f2 | tr -d '"')
+    id_like=$(grep -m1 '^ID_LIKE=' /etc/os-release 2>/dev/null | cut -d'=' -f2 | tr -d '"')
     case "$id $id_like" in
         *fedora*|*rhel*|*centos*)  distro_family="fedora" ;;
         *debian*|*ubuntu*)         distro_family="debian" ;;
@@ -159,7 +161,7 @@ function regenerateGrub {
         _codex_unset 
         return 0
     fi 
-    sudo $cmd -o "$output_path"
+    sudo "$cmd" -o "$output_path"
     local rc=$?
     if [ $rc -eq 0 ]; then
         good_echo "GRUB configuration regenerated successfully."

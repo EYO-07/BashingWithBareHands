@@ -99,42 +99,40 @@ function forceKillProcess {
         _codex_unset
         return 1
     fi
-    # Check if process exists
-    if ! kill -0 "$pid" 2>/dev/null; then
-        echo "ERROR: Process with PID $pid does not exist."
+    # Safety check: Prevent killing PID 1 or self ($$)
+    if [[ "$pid" -eq 1 || "$pid" -eq $$ ]]; then
+        echo "ERROR: Cannot terminate critical system PID $pid."
         _codex_unset
         return 1
     fi
     # Get process name for display
     local process_name
     process_name=$(ps -p "$pid" -o comm= 2>/dev/null)
+    # Get full command line for display
+    local process_cmd
+    process_cmd=$(ps -p "$pid" -o args= 2>/dev/null)
     # Confirmation dialog
-    echo "WARNING: You are about to forcefully terminate the following process:"
+    warn_echo "WARNING: You are about to forcefully terminate the following process:"
     echo "  PID:  $pid"
     echo "  Name: ${process_name:-<unknown>}"
+    echo "  Cmd:  ${process_cmd:-<unknown>}"
     echo ""
-    read -p "Are you sure you want to send SIGKILL to this process? [y/N]: " confirm
-    case "$confirm" in
-        [Yy]|[Yy][Ee][Ss])
-            echo "Sending SIGKILL to PID $pid..."
-            if kill -KILL "$pid" 2>/dev/null; then
-                echo "SUCCESS: Process $pid terminated."
-                _codex_unset
-                return 0
-            else
-                echo "ERROR: Failed to kill process $pid. Permission denied or process already gone."
-                _codex_unset
-                return 1
-            fi
-            ;;
-        *)
-            echo "Operation cancelled."
-            _codex_unset
-            return 1
-            ;;
-    esac
-    _codex_unset
-}   
+    if ! yn_prompt "Force Kill" "Are you sure you want to send SIGKILL to this process?"; then
+        echo "Operation cancelled."
+        _codex_unset
+        return 1
+    fi
+    echo "Sending SIGKILL to PID $pid..."
+    if kill -KILL "$pid" 2>/dev/null; then
+        echo "SUCCESS: Process $pid terminated."
+        _codex_unset
+        return 0
+    else
+        echo "ERROR: Failed to kill process $pid. Permission denied or process already gone."
+        _codex_unset
+        return 1
+    fi
+}
 
 # END 
 

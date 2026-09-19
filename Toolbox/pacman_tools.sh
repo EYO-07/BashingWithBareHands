@@ -50,8 +50,52 @@ function inv {
 # -- implementations 
 function checkInstalledPackages {
     source "$_SCRIPT_DIR/_codex.sh"
-    sudo pacman -Sy "$@"
-    pacman -Qu "$@" | warn_echo
+    local sync_time="Desconhecida"
+    local latest_time=0
+    local db_file
+    # Procura por qualquer base de dados sincronizada (.db) na pasta do pacman
+    for db_file in /var/lib/pacman/sync/*.db; do
+        if [ -f "$db_file" ]; then
+            local file_time
+            file_time=$(stat -c %Y "$db_file" 2>/dev/null || echo 0)
+            if (( file_time > latest_time )); then
+                latest_time="$file_time"
+            fi
+        fi
+    done
+    if (( latest_time > 0 )); then
+        sync_time=$(date -d "@$latest_time" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || date -r /var/lib/pacman/sync/core.db "+%Y-%m-%d %H:%M:%S")
+        # Calcular idade em segundos
+        local current_time
+        current_time=$(date +%s)
+        local age_seconds=$(( current_time - latest_time ))
+        # Condições de cor baseadas no tempo (1 dia = 86400s, 3 dias = 259200s, 15 dias = 1296000s)
+        if (( age_seconds < 86400 )); then
+            echo "Last Database Sync: $sync_time (< 1 day ago)"
+        elif (( age_seconds > 1296000 )); then
+            color_echo "31" "Last Database Sync: $sync_time (> 15 days ago - CRITICAL)"
+        elif (( age_seconds > 259200 )); then
+            color_echo "33" "Last Database Sync: $sync_time (> 3 days ago)"
+        else
+            echo "Last Database Sync: $sync_time"
+        fi
+    else
+        color_echo "31" "Last Database Sync: Desconhecida"
+    fi
+    if yn_prompt "Confirmation" "update the repositories database?"; then 
+        (sudo pacman -Sy) && (good_echo "... databases updated sucessfully")
+    else 
+        crit_echo "... databases update skipped"
+    fi    
+    if [ $# -eq 0 ]; then
+        pacman -Qu | warn_echo
+    else
+        local upgrades
+        upgrades=$(pacman -Qu)
+        for match in "$@"; do
+            echo "$upgrades" | grep -iE "$match"
+        done | warn_echo
+    fi
     _codex_unset
 }
 function systemUpdate {
@@ -123,6 +167,8 @@ function installPackage {
     fi
     # Prompt for system upgrade
     warn_echo "NOTE: A full system upgrade (pacman -Syu) is recommended before installing new packages."
+    echo "... installing new packages without a full system upgrade can cause partial upgrades ..."
+    echo "... which could broke already installed packages by dependency incompatibilities."
     read -p "Do you want to upgrade your system now? [y/N]: " -n 1 -r
     echo # Move to a new line
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -135,14 +181,14 @@ function installPackage {
     else
         color_echo 36 "... skipping system upgrade (proceeding with installation only)"
         # Just refresh database to ensure package lists are current for installation
-        sudo pacman -Sy
+        # sudo pacman -Sy
     fi
     # Attempt installation
     if sudo pacman -S --needed "$@"; then 
         _codex_unset
         return 0
     else
-        warn_echo "WARNING: packages not found, check for spelling errors"
+        warn_echo "WARNING: packages not found or cancelled by user"
         searchPackages "$@"
         _codex_unset
         return 1

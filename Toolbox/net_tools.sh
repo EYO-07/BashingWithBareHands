@@ -75,18 +75,19 @@ function wifiConnect {
 # Delete a connection profile permanently
 function deleteConnection {
     source "$_SCRIPT_DIR/_codex.sh"
-    if [[ -z "$1" ]]; then
+    local conn="$*"
+    if [[ -z "$conn" ]]; then
         crit_echo "Error: Connection name required."
         showConnections
         echo "Usage: deleteConnection <CONNECTION_NAME>"
         _codex_unset
         return 1
     fi
-    if ! token_prompt "Confirmation" "delete this connection $* ?" ; then 
-        return 0
+    if ! token_prompt "Confirmation" "delete this connection $conn ?" ; then 
+        _codex_unset
+        return 1
     fi
-    # "$*" combines all arguments into a single string separated by spaces
-    if ! nmcli connection delete "$*"; then 
+    if ! nmcli connection delete "$conn"; then 
         crit_echo "Failed to Delete"
         _codex_unset
         return 1
@@ -106,18 +107,6 @@ function turnDownConnection {
     nmcli connection down "$1"
     _codex_unset
 }
-function turnConnectionUp {
-    source "$_SCRIPT_DIR/_codex.sh"
-    if [[ -z "$1" ]]; then
-        crit_echo "Error: Connection name required."
-        warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
-        showConnections
-        _codex_unset
-        return 1
-    fi
-    nmcli connection up "$1"
-    _codex_unset
-}
 function turnDeviceDown {
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
@@ -130,48 +119,38 @@ function turnDeviceDown {
     nmcli device disconnect "$1"
     _codex_unset
 }
-#function turnDeviceUp {
-    #source "$_SCRIPT_DIR/_codex.sh"
-    #if [[ -z "$1" ]]; then
-        #crit_echo "Error: internet interface device name required."
-        #warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
-        #showConnections
-        #_codex_unset
-        #return 1
-    #fi
-    #nmcli device connect "$1"
-    #_codex_unset
-#}
 function disable_ipv6 {
     source "$_SCRIPT_DIR/_codex.sh"
-    if [[ -z "$1" ]]; then
+    local conn="$*"
+    if [[ -z "$conn" ]]; then
         echo "Error: Connection name required."
         nmcli connection show
         echo "Usage: disable_ipv6 <CONNECTION_NAME>"
         _codex_unset
         return 1
     fi     
-    nmcli connection down "$*"
-    nmcli connection modify "$*" ipv6.method "disabled"
-    nmcli connection up "$*"
-    echo "Verification for '$*':"
-    nmcli connection show "$*" | grep ipv6.method
+    nmcli connection down "$conn"
+    nmcli connection modify "$conn" ipv6.method "disabled"
+    nmcli connection up "$conn"
+    echo "Verification for '$conn':"
+    nmcli connection show "$conn" | grep ipv6.method
     _codex_unset
 }
 function enable_ipv6 {
     source "$_SCRIPT_DIR/_codex.sh"
-    if [[ -z "$1" ]]; then
+    local conn="$*"
+    if [[ -z "$conn" ]]; then
         echo "Error: Connection name required."
         nmcli connection show
         echo "Usage: enable_ipv6 <CONNECTION_NAME>"
         _codex_unset
         return 1
     fi 
-    nmcli connection down "$*"
-    nmcli connection modify "$*" ipv6.method "auto"
-    nmcli connection up "$*"
-    echo "Verification for '$*':"
-    nmcli connection show "$*" | grep ipv6.method
+    nmcli connection down "$conn"
+    nmcli connection modify "$conn" ipv6.method "auto"
+    nmcli connection up "$conn"
+    echo "Verification for '$conn':"
+    nmcli connection show "$conn" | grep ipv6.method
     _codex_unset
 }
 
@@ -280,13 +259,13 @@ function connectionInfo {
     # Source the helper script for utility functions like showConnections and _codex_unset
     source "$_SCRIPT_DIR/_codex.sh"
     # Check if a connection name was provided
-    if [[ -z "$1" ]]; then
+    local conn_name="$*"
+    if [[ -z "$conn_name" ]]; then
         warn_echo "Usage: connectionInfo <CONNECTION_NAME>"
         showConnections
         _codex_unset
         return 1
     fi
-    local conn_name="$*"
     # Verify if the connection exists before attempting to show details
     if ! nmcli connection show "$conn_name" &>/dev/null; then
         crit_echo "Error: Connection '$conn_name' not found."
@@ -310,24 +289,24 @@ function connectionInfo {
     return 0
 }   
 function turnConnectionUp {
-    # 1. this function is designed to be direct user interface
     source "$_SCRIPT_DIR/_codex.sh"
-    if [[ -z "$1" ]]; then
-        crit_echo "Error: Connection name required."
+    local target="$*"
+    if [[ -z "$target" ]]; then
+        crit_echo "Error: Connection or device name required."
         warn_echo "Usage: turnConnectionUp <CONNECTION_NAME>"
         warn_echo "Usage: turnConnectionUp <DEVICE_NAME>"
         showConnections
         _codex_unset
-        return 0
+        return 1
     fi
     info_echo "Assuming the name is a connection ..."
-    if nmcli connection up "$1"; then 
+    if nmcli connection up "$target"; then 
         good_echo "Connection Established"
         _codex_unset
         return 0
     fi 
     warn_echo "Failed to connect, assuming the name is a device ..."
-    if nmcli device connect "$1"; then 
+    if nmcli device connect "$target"; then 
         good_echo "Connection Established"
         _codex_unset
         return 0
