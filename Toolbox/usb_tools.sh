@@ -232,8 +232,29 @@ function formatUsbDevice {
             _codex_unset
             return 1
         fi
+        # --
+        #local parted_fs_type="fat32"
+        #[[ "$format_type" == "ext4" ]] && parted_fs_type="ext4"
         local parted_fs_type="fat32"
-        [[ "$format_type" == "ext4" ]] && parted_fs_type="ext4"
+        case "$format_type" in
+            vfat|fat32)
+                parted_fs_type="fat32"
+                ;;
+            ntfs)
+                parted_fs_type="ntfs"
+                ;;
+            ext4)
+                parted_fs_type="ext4"
+                ;;
+            exfat)
+                # parted typically uses fat32 or ntfs type codes for exfat partitions
+                parted_fs_type="fat32"
+                ;;
+            *)
+                parted_fs_type="fat32"
+                ;;
+        esac
+        # --
         if ! sudo parted -s "/dev/$base_dev" mkpart primary "$parted_fs_type" 1MiB 100%; then
             crit_echo "Error: Failed to create primary partition."
             _codex_unset

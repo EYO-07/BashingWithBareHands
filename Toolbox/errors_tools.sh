@@ -12,7 +12,6 @@ __BWBH_SAVE_CONFIG_errors() {
         crit_echo "... config file not found"
         good_echo "... creating config file"
         create_intermediate_dirs "$config_path"
-        echo "$config_path"
     fi 
     save_variables "$config_path" \
         "_general_error_filter" "_device_filter" "_device_error_filter" \

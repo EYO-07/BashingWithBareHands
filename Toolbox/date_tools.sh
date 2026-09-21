@@ -87,4 +87,6 @@ function calculateTime {
     return 0
 }   
 
+# alias update_clock_time='timedatectl set-ntp true'
+
 # END

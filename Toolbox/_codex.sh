@@ -37,6 +37,7 @@ function _codex_unset {
     unset -f INTERACTIVE_MENU INTERACTIVE_MENU_SINGLE INTERACTIVE_MENU_DELETION_EDIT
     unset -f INTERACTIVE_FILESELECT_SINGLE INTERACTIVE_FILESELECT_MULT
     unset -f validate_positive_integer validate_non_negative_integer validate_integer_range validate_url validate_restricted_path
+    unset -f parse_file_to_string_array
 }
 
 # -- color echos
@@ -436,7 +437,7 @@ function save_variables {
     #source "$file"
 #}   
 
-# -- misc 
+# -- check commands
 function is_command_valid {
     command -v "$1" &>/dev/null
 }
@@ -1084,5 +1085,29 @@ function validate_restricted_path {
     fi
     return 0
 }   
+
+# -- parse files 
+function parse_file_to_string_array { # parse_file_to_string_array <array_reference> <path>
+    local -n arr_ref=$1
+    local file_path="$2"
+    # Initialize/clear the target array
+    arr_ref=()
+    # Check if file exists
+    if [[ ! -f "$file_path" ]]; then
+        echo "Error: File '$file_path' not found." >&2
+        return 1
+    fi
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # 3. Ignore inline comments (strip everything from '#' onwards)
+        line="${line%%#*}"
+        # 2. Trim leading and trailing whitespace
+        line="${line#"${line%%[![:space:]]*}"}" # strip leading
+        line="${line%"${line##*[![:space:]]}"}" # strip trailing
+        # 2. Ignore empty lines or lines that became empty after stripping
+        if [[ -n "$line" ]]; then
+            arr_ref+=("$line")
+        fi
+    done < "$file_path"
+}
 
 # END 
