@@ -87,6 +87,8 @@ function checkInstalledPackages {
     else 
         crit_echo "... databases update skipped"
     fi    
+    echo ""
+    echo "--- upgradable packages ---"
     if [ $# -eq 0 ]; then
         pacman -Qu | warn_echo
     else
@@ -96,6 +98,7 @@ function checkInstalledPackages {
             echo "$upgrades" | grep -iE "$match"
         done | warn_echo
     fi
+    echo ""
     _codex_unset
 }
 function systemUpdate {

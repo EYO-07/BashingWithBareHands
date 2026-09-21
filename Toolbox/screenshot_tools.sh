@@ -10,10 +10,13 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Screeshot Tools"
-    info_echo "... there is a delay of 5 seconds before taking the shot."
     toolbox_item "tools" "print this ..." $width
-    toolbox_item "takeScreenshot <MONITOR_NUMBER>" "run without arguments to see the monitor number" $width
-    toolbox_item "takeAppshot" "take screenshot of focused application" $width
+    if all_commands_valid "xrandr" "scrot"; then 
+        toolbox_item "takeScreenshot <MONITOR_NUMBER>" "run without arguments to see the monitor number" $width
+        toolbox_item "takeAppshot" "take screenshot of focused application" $width
+    else 
+        crit_echo "... those tools require scrot and xorg environment"
+    fi
     toolbox_endl
     _codex_unset
 }
@@ -24,7 +27,7 @@ function takeScreenshot {
     source "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then 
         xrandr --listmonitors
-        echo "Usage: takeScreenshot <MONITOR_NUMBER>"
+        echo "Usage: takeScreenshot <MONITOR_NUMBER> [ <delay_seconds> ]"
         _codex_unset
         return 0
     fi

@@ -11,20 +11,22 @@ function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=10
     toolbox_title "Display/Monitors Tools"
-    toolbox_item "tools" "print this ..." $width
-    toolbox_item "inv" "print built-in commands ..." $width
-    info_echo "... requires: xrandr (XOrg)"
-    toolbox_item "listDisplays" "short list of display monitor names and connection state" $width
-    toolbox_item "listConnectedDisplays" "show only connected displays" $width
-    toolbox_item "mirrorDisplay <main> <target>" "set secondary display to mirror the main display" $width
-    toolbox_item "setProviders <source_provider> <sink_provider>" "set multi-card setup, the source_provider does the hard computing and sink_provider shows the result." $width
-    toolbox_item "extendDisplayRight <main> <right>" "dual extended displays mode" $width
-    toolbox_item "extendDisplayLeft <main> <left>" "..." $width
-    toolbox_item "extendDisplayAbove <main> <above>" "..." $width
-    toolbox_item "extendDisplayBelow <main> <below>" "..." $width
-    toolbox_item "setBrightness <output> <value>" "adjust brightness through gamma (not actual backlight). Values between 0.1 to 1.0" $width
-    toolbox_item "disableScreenSaver" "disable the screen saver" $width
-    toolbox_item "enableScreenSaver" "enable(resets) the screen saver" $width
+    toolbox_item "tools / inv" "print this ... / command syntax" $width
+    if is_command_valid xrandr; then 
+        toolbox_item "listDisplays" "short list of display monitor names and connection state" $width
+        toolbox_item "listConnectedDisplays" "show only connected displays" $width
+        toolbox_item "mirrorDisplay <main> <target>" "set secondary display to mirror the main display" $width
+        toolbox_item "setProviders <source_provider> <sink_provider>" "set multi-card setup, the source_provider does the hard computing and sink_provider shows the result." $width
+        toolbox_item "extendDisplayRight <main> <right>" "dual extended displays mode" $width
+        toolbox_item "extendDisplayLeft <main> <left>" "..." $width
+        toolbox_item "extendDisplayAbove <main> <above>" "..." $width
+        toolbox_item "extendDisplayBelow <main> <below>" "..." $width
+        toolbox_item "setBrightness <output> <value>" "adjust brightness through gamma (not actual backlight). Values between 0.1 to 1.0" $width
+        toolbox_item "disableScreenSaver" "disable the screen saver" $width
+        toolbox_item "enableScreenSaver" "enable(resets) the screen saver" $width
+    else 
+        crit_echo "... missing XOrg tools, those tools are intended to be used on XOrg environments."
+    fi
     toolbox_endl
     _codex_unset
 }

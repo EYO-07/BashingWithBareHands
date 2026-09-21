@@ -35,79 +35,24 @@ function tools {
 }
 tools 
 
+# -- helpers
+function _list_services_by_state {
+    local state="$1"
+    shift
+    local -a cmd=(systemctl list-units --type=service --state="$state" --no-legend --no-pager)
+    if [ $# -eq 0 ]; then
+        "${cmd[@]}"
+    else
+        local output
+        output="$("${cmd[@]}")"
+        for keyword in "$@"; do
+            output=$(printf '%s\n' "$output" | grep -- "$keyword")
+        done
+        [[ -n "$output" ]] && printf '%s\n' "$output"
+    fi
+}
+
 # -- implementation 
-function listRunningServices {
-    source "$_SCRIPT_DIR/_codex.sh"
-    local cmd="systemctl list-units --type=service --state=running --no-legend --no-pager"
-    if [ $# -eq 0 ]; then
-        # No arguments: list all
-        eval "$cmd"
-    else
-        local grep_cmd=""
-        for keyword in "$@"; do
-            grep_cmd="$grep_cmd | grep -- '$keyword'"
-        done
-        eval "$cmd $grep_cmd"
-    fi
-    _codex_unset
-}
-function listActiveServices {
-    # Lists services that are 'active' (includes running, waiting, and exited).
-    # Useful for seeing services that are loaded and functioning, even if idle.
-    source "$_SCRIPT_DIR/_codex.sh"
-    local cmd="systemctl list-units --type=service --state=active --no-legend --no-pager"
-    if [ $# -eq 0 ]; then
-        # No arguments: list all
-        eval "$cmd"
-    else
-        local grep_cmd=""
-        for keyword in "$@"; do
-            grep_cmd="$grep_cmd | grep -- '$keyword'"
-        done
-        eval "$cmd $grep_cmd"
-    fi
-    _codex_unset
-}
-function listFailedServices {
-    # Lists services that have failed to start or crashed.
-    # Critical for troubleshooting and system health checks.
-    source "$_SCRIPT_DIR/_codex.sh"
-    local cmd="systemctl list-units --type=service --state=failed --no-legend --no-pager"
-    if [ $# -eq 0 ]; then
-        # No arguments: list all
-        eval "$cmd"
-    else
-        local grep_cmd=""
-        for keyword in "$@"; do
-            grep_cmd="$grep_cmd | grep -- '$keyword'"
-        done
-        eval "$cmd $grep_cmd"
-    fi
-    _codex_unset
-}   
-function listServices {
-    source "$_SCRIPT_DIR/_codex.sh"
-    # listServices [ <keyword1> ... ]
-    # Filters service list by matching ALL provided keywords    
-    local cmd="systemctl list-unit-files --type=service --no-pager --no-legend"
-    if [ $# -eq 0 ]; then
-        # No arguments: list all
-        if yn_prompt "This will show all units" "are you sure to display all unit files?"; then 
-            systemctl list-unit-files --type=service --no-pager --no-legend
-        else 
-            warn_echo "please, insert keywords to filter the list"
-        fi
-    else
-        # Arguments provided: pipe through grep for each keyword
-        # Uses process substitution to build the pipeline dynamically
-        local grep_cmd=""
-        for keyword in "$@"; do
-            grep_cmd="$grep_cmd | grep -- '$keyword'"
-        done
-        eval "$cmd $grep_cmd"
-    fi
-    _codex_unset
-}   
 function serviceStatus {
     if [ $# -ne 1 ]; then 
         listServices
@@ -216,5 +161,41 @@ function showFailed {
     # Shortcut for troubleshooting 'degraded' system state.
     systemctl --failed --no-pager --no-legend
 }   
+function listRunningServices {
+    source "$_SCRIPT_DIR/_codex.sh"
+    _list_services_by_state "running" "$@"
+    _codex_unset
+}
+function listActiveServices {
+    # Lists services that are 'active' (includes running, waiting, and exited).
+    source "$_SCRIPT_DIR/_codex.sh"
+    _list_services_by_state "active" "$@"
+    _codex_unset
+}
+function listFailedServices {
+    # Lists services that have failed to start or crashed.
+    source "$_SCRIPT_DIR/_codex.sh"
+    _list_services_by_state "failed" "$@"
+    _codex_unset
+}
+function listServices {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local -a cmd=(systemctl list-unit-files --type=service --no-pager --no-legend)
+    if [ $# -eq 0 ]; then
+        if yn_prompt "This will show all units" "are you sure to display all unit files?"; then 
+            "${cmd[@]}"
+        else 
+            warn_echo "please, insert keywords to filter the list"
+        fi
+    else
+        local output
+        output="$("${cmd[@]}")"
+        for keyword in "$@"; do
+            output=$(printf '%s\n' "$output" | grep -- "$keyword")
+        done
+        [[ -n "$output" ]] && printf '%s\n' "$output"
+    fi
+    _codex_unset
+}
 
 # END   

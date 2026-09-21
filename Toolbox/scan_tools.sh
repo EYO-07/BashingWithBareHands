@@ -14,7 +14,7 @@ function tools {
     if is_command_valid freshclam ; then 
         toolbox_item "virusDefinitionUpdate" "update virus/malware signatures" $width
     else 
-        crit_echo "... missing: freshclam"
+        crit_echo "... missing: freshclam, some functions may not work"
     fi
     if is_command_valid clamscan ; then 
         toolbox_item "virusLogView" "latest founds" $width
@@ -22,8 +22,14 @@ function tools {
         toolbox_item "virusScanDirectoryList <list>" "perform scan on provided list" $width
         toolbox_item "virusQuarantine <path>" "quarantine file" $width
     else 
-        crit_echo "... missing: clamav"
+        crit_echo "... missing: clamav, some functions may not work"
     fi
+    if is_command_valid unhide; then 
+        toolbox_item "virusScanHiddenProcesses" "scan for hidden processes" $width
+        toolbox_item "virusScanPorts" "scan for tcp/udp connections" $width
+    else 
+        crit_echo "... missing: unhide, some functions may not work"
+    fi 
     toolbox_endl
     _codex_unset
 }
@@ -212,5 +218,11 @@ function virusScanDirectoryList {
     good_echo "Scan complete. No infections found."
     _codex_unset
 }   
+function virusScanHiddenProcesses {
+    sudo unhide -H -v quick
+}
+function virusScanPorts {
+    sudo unhide-tcp -v
+}
 
 # END
