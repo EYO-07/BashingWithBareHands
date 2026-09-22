@@ -42,10 +42,11 @@ function inv {
     inventory_item 5 "xrandr -q" "list connected monitors and resolutions" $width
     inventory_item 6 "xwininfo" "click a window to see geometry/ID" $width
     inventory_item 7 "xprop" "click a window to see properties (PID, Class)" $width
-    inventory_item 8 "xlsclients -l" "list all running X11 clients" $width
-    inventory_item 9 "xinput list" "list all input devices ids" $width
-    inventory_item 10 "xinput --set-prop <id> 'libinput Accel Speed' <value>" "set pointer speed from -1. to 1. float values" $width
-    inventory_item 11 "xev" "interactive window to get keynames and keycodes" $width
+    inventory_item 8 "xprop WM_CLASS" "click a window to see the window class name" $width
+    inventory_item 9 "xlsclients -l" "list all running X11 clients" $width
+    inventory_item 10 "xinput list" "list all input devices ids" $width
+    inventory_item 11 "xinput --set-prop <id> 'libinput Accel Speed' <value>" "set pointer speed from -1. to 1. float values" $width
+    inventory_item 12 "xev" "interactive window to get keynames and keycodes" $width
     inventory_endl 
     _codex_unset
     return 0

@@ -63,6 +63,7 @@ function bmenu {
         "USB and Removable Storage Devices"
         "Errors"
         "Internet"
+        "Firewall"
         "Processes"
         "Services"
         "Sockets"
@@ -76,6 +77,7 @@ function bmenu {
         "Pacman Package Manager"
         "XOrg/X11 Display"
         "i3 Window Manager"
+        "Grub"
         "Misc Audiobook"
         "Misc LLAMA Cpp"
         "Misc Screenshot"
@@ -95,6 +97,7 @@ function bmenu {
         "usb_tools.sh"
         "errors_tools.sh"
         "net_tools.sh"
+        "firewall_tools.sh"
         "processes_tools.sh"
         "services_tools.sh"
         "socket_tools.sh"
@@ -108,6 +111,7 @@ function bmenu {
         "pacman_tools.sh"
         "display_tools.sh"
         "i3_tools.sh"
+        "grub_tools.sh"
         "audiobook_tools.sh"
         "llama_cpp_tools.sh"
         "screenshot_tools.sh"
@@ -223,6 +227,7 @@ function bmenuSystem {
     local items=(
         "Errors"
         "Internet"
+        "Firewall"
         "Processes"
         "Services"
         "Sockets"
@@ -232,6 +237,7 @@ function bmenuSystem {
         "Pacman Package Manager"
         "XOrg/X11 Display"
         "i3 Window Manager"
+        "Grub"
         "Exit"
     )
     # Define the actions (associative array: item label -> command to run)
@@ -248,8 +254,16 @@ function bmenuSystem {
         ["XOrg/X11 Display"]="_display_xorg"
         ["i3 Window Manager"]="_i3winmanager"
         ["Virus/Malware Scan"]="_virus_mal"
+        ["Firewall"]="_firewall"
+        ["Grub"]="_grub_tools"
     )
     # -- functions
+    _grub_tools() {
+        source "$_SCRIPT_DIR/grub_tools.sh"
+    }
+    _firewall() {
+        source "$_SCRIPT_DIR/firewall_tools.sh"
+    }
     _virus_mal() {
         source "$_SCRIPT_DIR/scan_tools.sh"
     }
@@ -286,7 +300,7 @@ function bmenuSystem {
     # Call the menu — pass variable *names*, not values
     INTERACTIVE_MENU items actions "System Tools Menu" $__SELECTED_ITEM_SYSTEM
     __SELECTED_ITEM_SYSTEM=$?
-    unset -f _errors _internet _processes _services _sockets _audio _sensors _pacman _display_xorg _i3winmanager
+    unset -f _errors _internet _processes _services _sockets _audio _sensors _pacman _display_xorg _i3winmanager _firewall
     __BWBH_SAVE_CONFIG_tools
     _codex_unset
 } 
