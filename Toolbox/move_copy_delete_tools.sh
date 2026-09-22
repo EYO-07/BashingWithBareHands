@@ -122,7 +122,7 @@ function fileMove {
         return 0
     fi 
     good_echo "... moving files"
-    if mv -- "${validated_files[@]}" "$abs_dest"; then
+    if auto_escalate mv -- "${validated_files[@]}" "$abs_dest"; then
         good_echo "... files moved successfully"
     else
         crit_echo "... error moving some files"
@@ -189,7 +189,7 @@ function fileCopy {
         return 0
     fi 
     good_echo "... copying files"
-    if cp -rP -- "${validated_files[@]}" "$abs_dest"; then
+    if auto_escalate cp -rP -- "${validated_files[@]}" "$abs_dest"; then
         good_echo "... files copied successfully"
     else
         crit_echo "... error copying some files"
@@ -253,7 +253,7 @@ function fileDelete {
         return 0
     fi    
     good_echo "... deleting files"
-    if rm -rf -- "${validated_files[@]}"; then
+    if auto_escalate rm -rf -- "${validated_files[@]}"; then
         good_echo "... files deleted successfully"
     else
         crit_echo "... error deleting some files"

@@ -232,7 +232,7 @@ function setProviders {
     fi
     # Attempt to set the provider source using names
     # If this fails, xrandr will output an error automatically
-    if xrandr --setprovideroutputsource "$1" "$2"; then
+    if xrandr --setprovideroutputsource "$2" "$1"; then
         color_echo 32 "Success: Providers linked ($1 -> $2)."
         color_echo 33 "Applying automatic configuration..."
         xrandr --auto
