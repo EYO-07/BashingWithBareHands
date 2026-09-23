@@ -17,10 +17,21 @@ function tools {
         toolbox_item "listApplications" "list applications on active workspaces" $width
         toolbox_item "transferApplications" "transfers applications from workspaces" $width
         toolbox_item "closeApplications" "sends a safe closing message (SIGTERM) to all applications in the specified workspace" $width
+        toolbox_item "__i3_prev_workspace" "switch workspaces (intended to be used on i3 config)" $width
+        toolbox_item "__i3_next_workspace" "switch workspaces (intended to be used on i3 config)" $width
+        if all_commands_valid "magick" "scrot"; then 
+            toolbox_item "__i3_lock_screen" "blur background lockscreen" $width
+        else 
+            crit_echo "... __i3_lock_screen requires: scrot, magick"
+        fi
+        if all_commands_valid "feh" "find" "shuf"; then 
+            toolbox_item "__i3_set_a_random_background" "select a random background from Pictures/Backgrounds" $width
+        else 
+            crit_echo "... __i3_set_a_random_background requires: feh, find, shuf"
+        fi 
     else 
         crit_echo "... requires i3 window manager and jq for json manipulation"
     fi
-    #toolbox_item "..." "..." $width
     toolbox_endl
     _codex_unset
 }
@@ -271,6 +282,24 @@ function __i3_prev_workspace {
     if (( prev >0 )); then
         i3-msg "workspace number $prev" &> /dev/null
     fi    
+}
+function __i3_lock_screen {
+    scrot /tmp/lockscreen.png
+    # Apply Gaussian blur using 'magick' (faster and more efficient on Debian 12+)
+    magick /tmp/lockscreen.png -blur 0x5 /tmp/lockscreen_blur.png
+    # Lock with the blurred image
+    i3lock -i /tmp/lockscreen_blur.png
+    # Clean up
+    rm /tmp/lockscreen.png /tmp/lockscreen_blur.png
+}
+function __i3_set_a_random_background {
+    local BACKGROUND_DIRECTORY="$HOME/Pictures/Backgrounds"
+    mkdir -p "$BACKGROUND_DIRECTORY"
+    if [ -d "$BACKGROUND_DIRECTORY" ] && \
+       [ -n "$(find "$BACKGROUND_DIRECTORY" -type f 2>/dev/null)" ]; then
+        RANDOM_BACKGROUND="$(find "$BACKGROUND_DIRECTORY" -type f | shuf -n 1)"
+        feh --bg-scale "$RANDOM_BACKGROUND"
+    fi
 }
 
 # END
