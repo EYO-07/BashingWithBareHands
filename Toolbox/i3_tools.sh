@@ -225,4 +225,52 @@ function listApplications {
     _codex_unset
 }
 
+# -- functions for i3 config keybinds 
+function __i3_next_workspace {
+    local current_json=$(i3-msg -t get_workspaces)
+    local current_num=$(jq -r '.[] | select(.focused) | .num' <<< "$current_json")
+    local current_output=$(jq -r '.[] | select(.focused) | .output' <<< "$current_json")
+    local next=$((current_num + 1))
+    while true; do
+        # Find workspace with this number (if it exists)
+        local ws=$(jq -c --argjson n "$next" '.[] | select(.num == $n)' <<< "$current_json")
+        # Doesn't exist anywhere -> use it (creates it)
+        if [[ -z "$ws" ]]; then
+            break
+        fi
+        local ws_output=$(jq -r '.output' <<< "$ws")
+        # Exists on current monitor -> use it
+        if [[ "$ws_output" == "$current_output" ]]; then
+            break
+        fi
+        # Exists on another monitor -> skip
+        ((next++))
+    done
+    i3-msg "workspace number $next" &> /dev/null
+}
+function __i3_prev_workspace {
+    local current_json=$(i3-msg -t get_workspaces)
+    local current_num=$(jq -r '.[] | select(.focused) | .num' <<< "$current_json")
+    local current_output=$(jq -r '.[] | select(.focused) | .output' <<< "$current_json")
+    local prev=$((current_num - 1))
+    while true; do
+        # Find workspace with this number (if it exists)
+        local ws=$(jq -c --argjson n "$prev" '.[] | select(.num == $n)' <<< "$current_json")
+        # Doesn't exist anywhere -> use it (creates it)
+        if [[ -z "$ws" ]]; then
+            break
+        fi
+        local ws_output=$(jq -r '.output' <<< "$ws")
+        # Exists on current monitor -> use it
+        if [[ "$ws_output" == "$current_output" ]]; then
+            break
+        fi
+        # Exists on another monitor -> skip
+        ((prev--))
+    done
+    if (( prev >0 )); then
+        i3-msg "workspace number $prev" &> /dev/null
+    fi    
+}
+
 # END
