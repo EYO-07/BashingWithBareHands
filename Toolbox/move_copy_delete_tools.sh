@@ -7,12 +7,14 @@ _STARTING_DIR=""
 # -- description
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
-    local width=3
+    local width=6
     toolbox_title "File Move/Copy/Delete Tools"
     toolbox_item "tools" "print this ..." $width
     if all_commands_valid "cp" "touch" "rm" "mkdir"; then 
         toolbox_item "fileMove" "select files to be moved" $width
         toolbox_item "fileCopy" "select files to be copied" $width
+        toolbox_item "fileMove <drop_directory>" "select files to be moved" $width
+        toolbox_item "fileCopy <drop_directory>" "select files to be copied" $width
         toolbox_item "fileDelete" "select files to be deleted" $width
     else
         crit_echo "... missing basic filesystem commands: cp, rm, ..."
@@ -78,8 +80,8 @@ function fileMove {
         return 0
     fi
     # -- drop directory selection 
-    local chosen_dir=""
-    INTERACTIVE_FILESELECT_SINGLE chosen_dir "Please select drop directory:"
+    local chosen_dir="${1:-}"
+    [[ -z "$chosen_dir" ]] && INTERACTIVE_FILESELECT_SINGLE chosen_dir "Please select drop directory:"
     if [[ ! -d "$chosen_dir" ]]; then
         crit_echo "... $chosen_dir not a valid directory"
         _codex_unset
@@ -145,8 +147,8 @@ function fileCopy {
         return 0
     fi
     # -- drop directory selection 
-    local chosen_dir=""
-    INTERACTIVE_FILESELECT_SINGLE chosen_dir "Please select drop directory:"
+    local chosen_dir="${1:-}"
+    [[ -z "$chosen_dir" ]] && INTERACTIVE_FILESELECT_SINGLE chosen_dir "Please select drop directory:"
     if [[ ! -d "$chosen_dir" ]]; then
         crit_echo "... $chosen_dir not a valid directory"
         _codex_unset
