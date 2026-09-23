@@ -126,8 +126,10 @@ function fileMove {
     good_echo "... moving files"
     if auto_escalate mv -- "${validated_files[@]}" "$abs_dest"; then
         good_echo "... files moved successfully"
+        is_command_valid "notify-send" && notify-send -i dialog-information "Filesystem Operation" "Files moved to $abs_dest"
     else
         crit_echo "... error moving some files"
+        is_command_valid "notify-send" && notify-send -i dialog-information "Filesystem Operation" "Error moving files to $abs_dest"
     fi
     _codex_unset
 }
@@ -193,8 +195,10 @@ function fileCopy {
     good_echo "... copying files"
     if auto_escalate cp -rP -- "${validated_files[@]}" "$abs_dest"; then
         good_echo "... files copied successfully"
+        is_command_valid "notify-send" && notify-send -i dialog-information "Filesystem Operation" "Files copied to $abs_dest"
     else
         crit_echo "... error copying some files"
+        is_command_valid "notify-send" && notify-send -i dialog-information "Filesystem Operation" "Error copying files to $abs_dest"
     fi
     _codex_unset
 }
@@ -257,8 +261,10 @@ function fileDelete {
     good_echo "... deleting files"
     if auto_escalate rm -rf -- "${validated_files[@]}"; then
         good_echo "... files deleted successfully"
+        is_command_valid "notify-send" && notify-send -i dialog-information "Filesystem Operation" "Files Deleted"
     else
         crit_echo "... error deleting some files"
+        is_command_valid "notify-send" && notify-send -i dialog-information "Filesystem Operation" "Error deleting files"
     fi
     _codex_unset
 }

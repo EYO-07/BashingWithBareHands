@@ -78,6 +78,7 @@ function bmenu {
         "XOrg/X11 Display"
         "i3 Window Manager"
         "Grub"
+        "Grep"
         "Misc Audiobook"
         "Misc LLAMA Cpp"
         "Misc Screenshot"
@@ -112,6 +113,7 @@ function bmenu {
         "display_tools.sh"
         "i3_tools.sh"
         "grub_tools.sh"
+        "grep_tools.sh"
         "audiobook_tools.sh"
         "llama_cpp_tools.sh"
         "screenshot_tools.sh"
@@ -319,6 +321,7 @@ function bmenuMiscellaneous {
         "Video/Music Downloads"
         "Local Python Server"
         "Screenshot"
+        "Grep"
         "Exit"
     )
     # Define the actions (associative array: item label -> command to run)
@@ -333,8 +336,12 @@ function bmenuMiscellaneous {
         ["Video/Music Downloads"]="_viddown"
         ["Local Python Server"]="_local_server"
         ["Screenshot"]="_screenshot"
+        ["Grep"]="_grep_tools"
     )
     # -- functions
+    _grep_tools() {
+        source "$_SCRIPT_DIR/grep_tools.sh"
+    }
     _git_tools() {
         source "$_SCRIPT_DIR/git_tools.sh"
     }
