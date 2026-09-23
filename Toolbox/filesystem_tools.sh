@@ -48,6 +48,7 @@ function tools {
     fi
     if all_commands_valid "du" "find" "cut" "wc" "stat" "file"; then 
         toolbox_item "getSize" "estimate or get metadata of filesize of folder or file" $width
+        toolbox_item "getVisualStorageUsage" "show visual estimation of disk usage" $width
         toolbox_item "showMetadata" "show metadata info for file or folder" $width
     else 
         crit_echo "... missing one of: du find cut wc stat file"
@@ -91,6 +92,8 @@ function getSize { # estimate or get metadata of filesize of folder or file
         _codex_unset
         return 1
     fi
+    echo ""
+    df -h "$path" | awk 'NR==1 || NR==2 {print}'
     info_echo "--- Size Information for: $path ---"
     if [[ -d "$path" ]]; then
         # Directory: Use du for apparent size and disk usage
@@ -834,5 +837,57 @@ function shortcutsReset {
     __BWBH_SAVE_CONFIG_filesystem
     _codex_unset
 }
+
+# -- 
+function getVisualStorageUsage {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # Optional argument: target directory (defaults to $PWD)
+    local target_dir="${1:-$PWD}"
+    if [[ ! -d "$target_dir" ]]; then
+        crit_echo "Error: '$target_dir' is not a valid directory."
+        _codex_unset
+        return 1
+    fi
+    local bar_width=30
+    local total_kb=$(df -Pk "$target_dir" | awk 'NR==2 {print $2}')
+    local avail_kb=$(df -Pk "$target_dir" | awk 'NR==2 {print $4}')
+    echo ""
+    printf "  Device: %s | Free: %s | Dir: %s\n\n" \
+        "$(df -h "$target_dir" | awk 'NR==2 {print $2}')" \
+        "$(df -h "$target_dir" | awk 'NR==2 {print $4}')" \
+        "$target_dir"
+    local dirs=() files=()
+    for item in "$target_dir"/*; do
+        [[ -d "$item" ]] && dirs+=("$item") || files+=("$item")
+    done
+    for item in "${dirs[@]}"; do
+        local name
+        name=$(basename "$item")
+        local size_kb=$(sudo du -sk "$item" 2>/dev/null | cut -f1)
+        local pct bar_len bar="" empty
+        pct=$(awk "BEGIN {printf \"%.2f\", ($size_kb / $total_kb) * 100}")
+        bar_len=$(awk "BEGIN {l=int(($size_kb / $total_kb) * $bar_width); if (l<1 && $size_kb>0) l=1; print l}")
+        for ((i=0; i<bar_len; i++)); do bar+="#"; done
+        empty=$((bar_width - bar_len))
+        for ((i=0; i<empty; i++)); do bar+="."; done
+        printf "  \033[32m%s\033[0m %6s%%  %8s  %s/\n" \
+            "$bar" "$pct" "$(sudo du -sh "$item" 2>/dev/null | cut -f1)" "$name"
+    done
+    for item in "${files[@]}"; do
+        local name
+        name=$(basename "$item")
+        local size_kb=$(sudo du -sk "$item" 2>/dev/null | cut -f1)
+        local pct bar_len bar="" empty
+        pct=$(awk "BEGIN {printf \"%.2f\", ($size_kb / $total_kb) * 100}")
+        bar_len=$(awk "BEGIN {l=int(($size_kb / $total_kb) * $bar_width); if (l<1 && $size_kb>0) l=1; print l}")
+        for ((i=0; i<bar_len; i++)); do bar+="#"; done
+        empty=$((bar_width - bar_len))
+        for ((i=0; i<empty; i++)); do bar+="."; done
+        printf "  \033[35m%s\033[0m %6s%%  %8s  %s\n" \
+            "$bar" "$pct" "$(sudo du -sh "$item" 2>/dev/null | cut -f1)" "$name"
+    done
+    echo ""
+    _codex_unset
+}   
 
 # END
