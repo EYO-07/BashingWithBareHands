@@ -488,7 +488,7 @@ function createFromTemplate {
     local template_name="$1"
     local dest_path="$2"
     local template_source=~/Templates/"$template_name"
-    validate_restricted_path "$template_source" || { _codex_unset ; return 1; }
+    #validate_restricted_path "$template_source" || { _codex_unset ; return 1; }
     local new_absolute_path
     new_absolute_path="$(get_abs_path "$dest_path")"
     # Check if source exists (file OR directory)
@@ -839,18 +839,26 @@ function shortcutsReset {
 }
 
 # -- 
+__progress_bar() {
+    local total="$1" value="$2" width="${3:-30}"
+    local bar_len
+    bar_len=$(awk "BEGIN {l=int(($value / $total) * $width); if (l<1 && $value>0) l=1; if (l>$width) l=$width; print l}")
+    local bar=""
+    for ((i=0; i<bar_len; i++)); do bar+="%"; done
+    for ((i=0; i<width-bar_len; i++)); do bar+="."; done
+    printf '%s' "$bar"
+}
 function getVisualStorageUsage {
     source "$_SCRIPT_DIR/_codex.sh"
-    # Optional argument: target directory (defaults to $PWD)
     local target_dir="${1:-$PWD}"
     if [[ ! -d "$target_dir" ]]; then
         crit_echo "Error: '$target_dir' is not a valid directory."
         _codex_unset
         return 1
     fi
-    local bar_width=30
+    local bar_width=50
     local total_kb=$(df -Pk "$target_dir" | awk 'NR==2 {print $2}')
-    local avail_kb=$(df -Pk "$target_dir" | awk 'NR==2 {print $4}')
+    local one_third_kb=$((total_kb / 3))
     echo ""
     printf "  Device: %s | Free: %s | Dir: %s\n\n" \
         "$(df -h "$target_dir" | awk 'NR==2 {print $2}')" \
@@ -860,32 +868,18 @@ function getVisualStorageUsage {
     for item in "$target_dir"/*; do
         [[ -d "$item" ]] && dirs+=("$item") || files+=("$item")
     done
-    for item in "${dirs[@]}"; do
-        local name
-        name=$(basename "$item")
-        local size_kb=$(sudo du -sk "$item" 2>/dev/null | cut -f1)
-        local pct bar_len bar="" empty
-        pct=$(awk "BEGIN {printf \"%.2f\", ($size_kb / $total_kb) * 100}")
-        bar_len=$(awk "BEGIN {l=int(($size_kb / $total_kb) * $bar_width); if (l<1 && $size_kb>0) l=1; print l}")
-        for ((i=0; i<bar_len; i++)); do bar+="#"; done
-        empty=$((bar_width - bar_len))
-        for ((i=0; i<empty; i++)); do bar+="."; done
-        printf "  \033[32m%s\033[0m %6s%%  %8s  %s/\n" \
-            "$bar" "$pct" "$(sudo du -sh "$item" 2>/dev/null | cut -f1)" "$name"
-    done
-    for item in "${files[@]}"; do
-        local name
-        name=$(basename "$item")
-        local size_kb=$(sudo du -sk "$item" 2>/dev/null | cut -f1)
-        local pct bar_len bar="" empty
-        pct=$(awk "BEGIN {printf \"%.2f\", ($size_kb / $total_kb) * 100}")
-        bar_len=$(awk "BEGIN {l=int(($size_kb / $total_kb) * $bar_width); if (l<1 && $size_kb>0) l=1; print l}")
-        for ((i=0; i<bar_len; i++)); do bar+="#"; done
-        empty=$((bar_width - bar_len))
-        for ((i=0; i<empty; i++)); do bar+="."; done
-        printf "  \033[35m%s\033[0m %6s%%  %8s  %s\n" \
-            "$bar" "$pct" "$(sudo du -sh "$item" 2>/dev/null | cut -f1)" "$name"
-    done
+    _print_item() {
+        local path="$1" color="$2" suffix="$3"
+        local name size_kb bar
+        name=$(basename "$path")
+        size_kb=$(sudo du -sk "$path" 2>/dev/null | cut -f1)
+        bar=$(__progress_bar "$one_third_kb" "$size_kb" "$bar_width")
+        printf "  \033[%sm%s\033[0m  %8s  %s%s\n" \
+            "$color" "$bar" \
+            "$(sudo du -sh "$path" 2>/dev/null | cut -f1)" "$name" "$suffix"
+    }
+    for item in "${dirs[@]}";  do _print_item "$item" 32 "/"; done
+    for item in "${files[@]}"; do _print_item "$item" 35 "";  done
     echo ""
     _codex_unset
 }   

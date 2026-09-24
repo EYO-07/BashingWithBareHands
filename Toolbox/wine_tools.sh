@@ -14,6 +14,7 @@ function tools {
     toolbox_item "readmeWineTools" "... please execute this command on terminal" $width
     if all_commands_valid "wine" "winetricks"; then 
         toolbox_item "createWineDirectory" "Creates a isolated Wine Prefix Directory (Git-like layout)" $width
+        toolbox_item "createWineDirectory32bits" "... for 32bit system" $width
         toolbox_item "wineDirectoryInfo" "Information on the current local Wine environment based on .wineprefix_id" $width
         toolbox_item "wineSessionInfo" "Current global terminal environment variables." $width
         toolbox_item "wineInstallWinetricksPackage" "Install winetricks packages locally on wine directory" $width
@@ -243,6 +244,53 @@ function createWineDirectory {
     # Write the tracking file (stores the absolute path of the prefix)
     echo "$prefix_path" > "$id_file"
     info_echo ">>> Success! Wine environment linked to: $target_dir"
+    info_echo "    Run 'cd $target_dir && wineDirectoryInfo' to view status."
+    _codex_unset
+}
+function createWineDirectory32bits {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # createWineDirectory32bits <path>
+    # 1. Creates a folder based on <path> with a 32-bit wine prefix folder inside it
+    # 2. Creates a tracking file .wineprefix_id to store the absolute wine prefix path
+    local target_dir="$1"
+    if [ -z "$target_dir" ]; then
+        crit_echo "Error: Target directory path is required."
+        info_echo "Usage: createWineDirectory32bits <path/to/project>"
+        _codex_unset
+        return 1
+    fi
+    # Resolve absolute path
+    if [[ "$target_dir" != /* ]]; then
+        target_dir="$(pwd)/$target_dir"
+    fi
+    local prefix_path="$target_dir/wine_prefix"
+    local id_file="$target_dir/.wineprefix_id"
+    local error_file="$target_dir/errors.txt"
+    if [ -d "$target_dir" ]; then
+        warn_echo "Directory '$target_dir' already exists."
+        if [ -f "$id_file" ]; then
+            crit_echo "Error: This directory is already initialized as a Wine environment."
+            _codex_unset
+            return 1
+        fi
+    else
+        info_echo ">>> Creating project directory: $target_dir"
+        mkdir -p "$target_dir"
+    fi
+    info_echo ">>> Initializing 32-bit Wine Prefix inside: $prefix_path"
+    # Create the actual 32-bit prefix using WINEARCH=win32
+    WINEARCH=win32 \
+    WINEDLLOVERRIDES="winemenubuilder.exe=d" \
+        WINEPREFIX="$prefix_path" \
+        winecfg &> "$error_file"
+    if [ $? -ne 0 ]; then
+        crit_echo "Error: Failed to initialize 32-bit Wine prefix."
+        _codex_unset
+        return 1
+    fi
+    # Write the tracking file (stores the absolute path of the prefix)
+    echo "$prefix_path" > "$id_file"
+    info_echo ">>> Success! 32-bit Wine environment linked to: $target_dir"
     info_echo "    Run 'cd $target_dir && wineDirectoryInfo' to view status."
     _codex_unset
 }
