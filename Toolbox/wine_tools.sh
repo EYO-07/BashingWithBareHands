@@ -412,7 +412,7 @@ function wineDirectoryRun {
     local project_root="${context%%|*}"
     local prefix_path="${context##*|}"
     # Log errors to the project root directory instead of the active subdirectory
-    local log_file="$project_root/errors.txt"
+    local log_file="$project_root/log.txt"
     echo "" >> "$log_file"
     echo "======================================================================" >> "$log_file"
     echo "Session '$1 $2' $(date '+%Y-%m-%d %H:%M:%S') " >> "$log_file"
@@ -425,9 +425,9 @@ function wineDirectoryRun {
     echo "    Wine Version: $wine_ver"
     _showWineEnvVariables
     if [[ "$1" == wine* || "$1" == winetricks ]]; then
-        WINEPREFIX="$prefix_path" "$@" &>> "$log_file" &
+        WINEPREFIX="$prefix_path" "$@" & #>> "$log_file" &
     else
-        WINEPREFIX="$prefix_path" wine "$@" &>> "$log_file" &
+        WINEPREFIX="$prefix_path" wine "$@" & #>> "$log_file" &
     fi
     disown
     _codex_unset
@@ -472,13 +472,13 @@ function wineDesktop {
     local project_root="${context%%|*}"
     local prefix_path="${context##*|}"
     # --
-    local log_file="$project_root/errors.txt"
+    local log_file="$project_root/log.txt"
     echo "" >> "$log_file"
     echo "======================================================================" >> "$log_file"
     echo "Session [ $name $resolution ] $(date '+%Y-%m-%d %H:%M:%S') " >> "$log_file"
     echo "" >> "$log_file"   
     _showWineEnvVariables
-    WINEPREFIX="$prefix_path" wine explorer "/desktop=${name},${resolution}" explorer &>> "$log_file" &
+    WINEPREFIX="$prefix_path" wine explorer "/desktop=${name},${resolution}" explorer & #>> "$log_file" &
     disown
     _codex_unset
 }
