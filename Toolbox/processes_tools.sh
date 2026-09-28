@@ -20,27 +20,6 @@ function tools {
 }
 tools 
 function inv {
-    # Inventory : nice { Linux }
-    # Scale: -20 (highest) → 0 (default) → +19 (lowest)
-    # Positive = "nicer" to others (less CPU), Negative = more aggressive (needs sudo)
-    # --- nice (at launch) ---
-    # 1. nice -n 10 APPNAME          ; run with priority 10 (lower than default)
-    # 2. nice -n 19 APPNAME          ; run at lowest possible priority
-    # 3. sudo nice -n -5 APPNAME     ; run at higher priority (root only)
-    # 4. nice APPNAME                ; default: adds +10 to niceness
-    # --- renice (running process) ---
-    # 5. renice -n 10 -p PID         ; change priority of one process by PID
-    # 6. sudo renice -n -5 -p PID    ; raise priority of one process (root only)
-    # 7. sudo renice -n 10 -u USER   ; change priority of ALL processes for a user
-    # 8. sudo renice -n 10 -g PGID   ; change priority of ALL processes in a group
-    # 9. renice -n 10 -p PID1 PID2   ; change priority of multiple PIDs at once
-    # --- find PIDs ---
-    # 10. pgrep -f APPNAME           ; get PID(s) by name
-    # 11. ps -eo pid,ni,cmd          ; list all processes with their nice value
-    # 12. top → press 'R'            ; interactive: raise niceness of a process
-    # --- in a script (self-renice) ---
-    # 13. renice -n 15 -p $$         ; lower this script's own priority
-    
     source "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Processes/Tasks Tools"
     local width=5

@@ -10,18 +10,20 @@ _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 function tools {
     source "$_SCRIPT_DIR/_codex.sh"
     local width=10
-    toolbox_title "Display/Monitors Tools"
+    toolbox_title "X11/XOrg Display Monitors Tools"
     toolbox_item "tools / inv" "print this ... / command syntax" $width
     if is_command_valid xrandr; then 
         toolbox_item "listDisplays" "short list of display monitor names and connection state" $width
         toolbox_item "listConnectedDisplays" "show only connected displays" $width
         toolbox_item "mirrorDisplay <main> <target>" "set secondary display to mirror the main display" $width
         toolbox_item "setProviders <source_provider> <sink_provider>" "set multi-card setup, the source_provider does the hard computing and sink_provider shows the result." $width
+        toolbox_item "setDisplay / setPrimaryDisplay" "set display by name" $width
+        toolbox_item "turnOffDisplay" "turn off display by name" $width
         toolbox_item "extendDisplayRight <main> <right>" "dual extended displays mode" $width
         toolbox_item "extendDisplayLeft <main> <left>" "..." $width
         toolbox_item "extendDisplayAbove <main> <above>" "..." $width
         toolbox_item "extendDisplayBelow <main> <below>" "..." $width
-        toolbox_item "setBrightness <output> <value>" "adjust brightness through gamma (not actual backlight). Values between 0.1 to 1.0" $width
+        toolbox_item "setBrightness <output> <value>" "adjust brightness through gamma (not actual backlight)." $width
         toolbox_item "disableScreenSaver" "disable the screen saver" $width
         toolbox_item "enableScreenSaver" "enable(resets) the screen saver" $width
     else 
@@ -310,5 +312,65 @@ function enableScreenSaver {
         return 1
     fi
 }
+function setPrimaryDisplay {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # -- display 
+    local display_name="$1"
+    local xrandr_output=$(xrandr --query)
+    if ! echo "$xrandr_output" | grep -q "^$display_name connected"; then
+        crit_echo "Error: '$display_name' is not connected."
+        warn_echo "Usage: setDisplay <display_name> [ <resolution> ]"
+        xrandr --query | grep " connected" | awk '{print $1 ": " $2}'
+        _codex_unset
+        return 1
+    fi
+    # -- mode 
+    local display_mode
+    if [[ -z "$2" ]]; then
+        display_mode="--auto"
+    else 
+        display_mode="--mode $2"
+    fi
+    # -- command
+    _codex_unset
+    xrandr --output "$display_name" --primary "$display_mode" || return 1
+}
+function setDisplay {
+    source "$_SCRIPT_DIR/_codex.sh"
+    # -- display 
+    local display_name="$1"
+    local xrandr_output=$(xrandr --query)
+    if ! echo "$xrandr_output" | grep -q "^$display_name connected"; then
+        crit_echo "Error: '$display_name' is not connected."
+        warn_echo "Usage: setDisplay <display_name> [ <resolution> ]"
+        xrandr --query | grep " connected" | awk '{print $1 ": " $2}'
+        _codex_unset
+        return 1
+    fi
+    # -- mode 
+    local display_mode
+    if [[ -z "$2" ]]; then
+        display_mode="--auto"
+    else 
+        display_mode="--mode $2"
+    fi
+    # -- command
+    _codex_unset
+    xrandr --output "$display_name" "$display_mode" || return 1
+}
+function turnOffDisplay {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local display_name="$1"
+    local xrandr_output=$(xrandr --query)
+    if ! echo "$xrandr_output" | grep -q "^$display_name connected"; then
+        crit_echo "Error: '$display_name' is not connected."
+        warn_echo "Usage: turnOffDisplay <display_name>"
+        xrandr --query | grep " connected" | awk '{print $1 ": " $2}'
+        _codex_unset
+        return 1
+    fi
+    _codex_unset
+    xrandr --output "$display_name" --off || return 1
+}   
 
 # END
