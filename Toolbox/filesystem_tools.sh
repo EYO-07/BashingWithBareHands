@@ -193,101 +193,6 @@ function showMetadata { # show metadata info for file or folder
     echo ""
     _codex_unset
 }
-function showFileTree {
-    source "$_SCRIPT_DIR/_codex.sh"
-    # Usage: showFileTree <folder_path> [ <keyword1> <keyword2> ... ]
-    if [ $# -eq 0 ]; then 
-        ls -a
-        warn_echo "Usage: showFileTree <folder_path>"
-        _codex_unset
-        return 0
-    fi
-    if [ -t 0 ] || [ -c /dev/tty ]; then
-        echo "" 2> /dev/null
-    else
-        crit_echo "Error: non-interactive mode"
-        return 1
-    fi
-    local dir="${1:-.}"
-    shift
-    local keywords=("$@")
-    # Global line counter for pagination
-    local PRINT_COUNT=0
-    local PAGE_LIMIT=150
-    # Internal recursive function
-    _print_tree() {
-        local current_dir="$1"
-        local indent="$2"
-        local items=()
-        local i=0
-        # Read directory contents into an array
-        while IFS= read -r -d '' item; do
-            items+=("$item")
-        done < <(find "$current_dir" -maxdepth 1 -mindepth 1 -print0 | sort -z)
-        local count=${#items[@]}
-        local last_index=$((count - 1))
-        for ((i=0; i<count; i++)); do
-            local item="${items[$i]}"
-            local name=$(basename "$item")
-            local connector="├── "
-            local next_indent="│   "
-            if [ $i -eq $last_index ]; then
-                connector="└── "
-                next_indent="    "
-            fi
-            # --
-            local should_print=0
-            if [ -d "$item" ]; then
-                # Always print directories to keep tree structure
-                should_print=1
-            elif [ ${#keywords[@]} -eq 0 ]; then
-                # No keywords: print all files
-                should_print=1
-            else
-                # Keywords exist: print file ONLY if it matches
-                for kw in "${keywords[@]}"; do
-                    if [[ "$name" == *"$kw"* ]]; then
-                        should_print=1
-                        break
-                    fi
-                done
-            fi
-            # --
-            if [ $should_print -eq 1 ]; then
-                echo -e "${indent}${connector}${name}"
-                ((PRINT_COUNT++))
-                # Pagination Check: Prompt every PAGE_LIMIT lines
-                if (( PRINT_COUNT % PAGE_LIMIT == 0 )); then
-                    echo -n $'\n'"--- Press any key to continue (Ctrl+C to exit) ---"$'\n'
-                    # Read from /dev/tty to ensure we get keyboard input
-                    # -n 1: read 1 char, -s: silent, -r: raw                    
-                    if ! read -n 1 -s -r < /dev/tty; then
-                        # Handle Ctrl+C or EOF gracefully
-                        echo ""
-                        _codex_unset
-                        return 1
-                    fi
-                    echo "" # Newline after keypress
-                fi
-            fi
-            # Recurse if directory
-            if [ -d "$item" ]; then
-                _print_tree "$item" "${indent}${next_indent}" || return 1
-            fi
-        done
-    }
-    # Validate input directory
-    if [ ! -d "$dir" ]; then
-        crit_echo "Error: '$dir' is not a valid directory." >&2
-        _codex_unset
-        return 1
-    fi
-    # Print root
-    echo "$(basename "$dir")"
-    ((PRINT_COUNT++))
-    _print_tree "$dir" ""
-    _codex_unset
-}   
 function renameFile {
     source "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 2 ]; then
@@ -839,15 +744,6 @@ function shortcutsReset {
 }
 
 # -- 
-__progress_bar() {
-    local total="$1" value="$2" width="${3:-30}"
-    local bar_len
-    bar_len=$(awk "BEGIN {l=int(($value / $total) * $width); if (l<1 && $value>0) l=1; if (l>$width) l=$width; print l}")
-    local bar=""
-    for ((i=0; i<bar_len; i++)); do bar+="%"; done
-    for ((i=0; i<width-bar_len; i++)); do bar+="."; done
-    printf '%s' "$bar"
-}
 function getVisualStorageUsage {
     source "$_SCRIPT_DIR/_codex.sh"
     local target_dir="${1:-$PWD}"
@@ -873,7 +769,7 @@ function getVisualStorageUsage {
         local name size_kb bar
         name=$(basename "$path")
         size_kb=$(sudo du -sk "$path" 2>/dev/null | cut -f1)
-        bar=$(__progress_bar "$one_third_kb" "$size_kb" "$bar_width")
+        bar=$(PROGRESS_BAR "$one_third_kb" "$size_kb" "$bar_width")
         printf "  \033[%sm%s\033[0m  %8s  %s%s\n" \
             "$color" "$bar" \
             "$(sudo du -sh "$path" 2>/dev/null | cut -f1)" "$name" "$suffix"
@@ -881,6 +777,99 @@ function getVisualStorageUsage {
     for item in "${dirs[@]}";  do _print_item "$item" 32 "/"; done
     for item in "${files[@]}"; do _print_item "$item" 35 "";  done
     echo ""
+    _codex_unset
+}   
+function showFileTree {
+    source "$_SCRIPT_DIR/_codex.sh"
+    if [ $# -eq 0 ]; then
+        ls -a
+        warn_echo "Usage: showFileTree <folder_path>"
+        _codex_unset
+        return 0
+    fi
+    if [ -t 0 ] || [ -c /dev/tty ]; then
+        echo "" 2> /dev/null
+    else
+        crit_echo "Error: non-interactive mode"
+        return 1
+    fi
+    local dir="${1:-.}"
+    shift
+    local keywords=("$@")
+    local PRINT_COUNT=0
+    local PAGE_LIMIT=150
+    local MAX_ITEMS=50          # <-- new
+    _print_tree() {
+        local current_dir="$1"
+        local indent="$2"
+        local items=()
+        local i=0
+        while IFS= read -r -d '' item; do
+            items+=("$item")
+        done < <(find "$current_dir" -maxdepth 1 -mindepth 1 -print0 | sort -z)
+        local count=${#items[@]}
+        local limit=$count
+        local truncated=0
+        if (( count > MAX_ITEMS )); then
+            limit=$MAX_ITEMS
+            truncated=1
+        fi
+        for ((i=0; i<limit; i++)); do
+            local item="${items[$i]}"
+            local name=$(basename "$item")
+            local connector="├── "
+            local next_indent="│   "
+            # Last printed item gets "└──" only if NOT truncated
+            if [ $i -eq $((limit - 1)) ] && [ $truncated -eq 0 ]; then
+                connector="└── "
+                next_indent="    "
+            fi
+
+            local should_print=0
+            if [ -d "$item" ]; then
+                should_print=1
+            elif [ ${#keywords[@]} -eq 0 ]; then
+                should_print=1
+            else
+                for kw in "${keywords[@]}"; do
+                    if [[ "$name" == *"$kw"* ]]; then
+                        should_print=1
+                        break
+                    fi
+                done
+            fi
+
+            if [ $should_print -eq 1 ]; then
+                echo -e "${indent}${connector}${name}"
+                ((PRINT_COUNT++))
+                if (( PRINT_COUNT % PAGE_LIMIT == 0 )); then
+                    echo -n $'\n'"--- Press any key to continue (Ctrl+C to exit) ---"$'\n'
+                    if ! read -n 1 -s -r < /dev/tty; then
+                        echo ""
+                        _codex_unset
+                        return 1
+                    fi
+                    echo ""
+                fi
+            fi
+            if [ -d "$item" ]; then
+                _print_tree "$item" "${indent}${next_indent}" || return 1
+            fi
+        done
+        # Print truncation indicator
+        if [ $truncated -eq 1 ]; then
+            echo -e "${indent}└── ... (${count} items total)"
+            ((PRINT_COUNT++))
+        fi
+    }
+    if [ ! -d "$dir" ]; then
+        crit_echo "Error: '$dir' is not a valid directory." >&2
+        _codex_unset
+        return 1
+    fi
+    echo "$(basename "$dir")"
+    ((PRINT_COUNT++))
+    _print_tree "$dir" ""
     _codex_unset
 }   
 

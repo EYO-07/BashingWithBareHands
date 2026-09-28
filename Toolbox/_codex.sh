@@ -35,7 +35,7 @@ function _codex_unset {
     unset -f save_variables # load_variables
     unset -f is_command_valid all_commands_valid atleastone_command_valid
     unset -f INTERACTIVE_MENU INTERACTIVE_MENU_SINGLE INTERACTIVE_MENU_DELETION_EDIT
-    unset -f INTERACTIVE_FILESELECT_SINGLE INTERACTIVE_FILESELECT_MULT
+    unset -f INTERACTIVE_FILESELECT_SINGLE INTERACTIVE_FILESELECT_MULT PROGRESS_BAR
     unset -f validate_positive_integer validate_non_negative_integer validate_integer_range validate_url validate_restricted_path
     unset -f parse_file_to_string_array
 }
@@ -1001,6 +1001,15 @@ function INTERACTIVE_FILESELECT_MULT { # FN <out_array> <title>
     done
     __ASS_ARR_ICD["$(pwd)"]=$selected
     unset -f _build_list
+}
+function PROGRESS_BAR {
+    local total="$1" value="$2" width="${3:-30}"
+    local bar_len
+    bar_len=$(awk "BEGIN {l=int(($value / $total) * $width); if (l<1 && $value>0) l=1; if (l>$width) l=$width; print l}")
+    local bar=""
+    for ((i=0; i<bar_len; i++)); do bar+="%"; done
+    for ((i=0; i<width-bar_len; i++)); do bar+="."; done
+    printf '%s' "$bar"
 }
 
 # -- validation 
