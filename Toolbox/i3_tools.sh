@@ -325,8 +325,8 @@ function __i3_exit_session {
                 i3-msg "[con_id=$win_id] kill" > /dev/null
             fi
         done
-        # 2. Wait for applications to close (with a 15-second timeout)
-        local timeout=15
+        # 2. Wait for applications to close (with a timeout)
+        local timeout=10
         local elapsed=0
         while (( elapsed < timeout )); do
             local remaining_ids
