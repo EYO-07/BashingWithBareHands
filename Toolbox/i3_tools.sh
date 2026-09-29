@@ -29,6 +29,7 @@ function tools {
         else 
             crit_echo "... __i3_set_a_random_background requires: feh, find, shuf"
         fi 
+        toolbox_item "__i3_exit_session" "safely close all applications and exit i3 session" $width
     else 
         crit_echo "... requires i3 window manager and jq for json manipulation"
     fi
@@ -300,6 +301,59 @@ function __i3_set_a_random_background {
         RANDOM_BACKGROUND="$(find "$BACKGROUND_DIRECTORY" -type f | shuf -n 1)"
         feh --bg-scale "$RANDOM_BACKGROUND"
     fi
+}
+function __i3_exit_session {
+    # If not already running in the background, detach and exit the wrapper
+    if [[ "${_I3_EXIT_DAEMON:-0}" != "1" ]]; then
+        export _I3_EXIT_DAEMON=1
+        nohup bash -c "$(declare -f __i3_exit_session); __i3_exit_session" >/dev/null 2>&1 &
+        return 0
+    fi
+    source "$_SCRIPT_DIR/_codex.sh"
+    notify-send "i3 Session" "Initiating safe session exit..."
+    # 1. Get all application window IDs across all workspaces
+    local ids
+    ids=$(i3-msg -t get_tree | jq -r '
+        .. | objects | 
+        select(.type == "con" and .window != null) | 
+        .id
+    ')
+    if [[ -n "$ids" ]]; then
+        notify-send "i3 Session" "Sending close requests to applications..."
+        echo "$ids" | while read -r win_id; do
+            if [[ -n "$win_id" ]]; then
+                i3-msg "[con_id=$win_id] kill" > /dev/null
+            fi
+        done
+        # 2. Wait for applications to close (with a 15-second timeout)
+        local timeout=15
+        local elapsed=0
+        while (( elapsed < timeout )); do
+            local remaining_ids
+            remaining_ids=$(i3-msg -t get_tree | jq -r '
+                .. | objects | 
+                select(.type == "con" and .window != null) | 
+                .id
+            ')
+            if [[ -z "$remaining_ids" ]]; then
+                break
+            else 
+                notify-send "i3 Session" "... waiting applications to close ($elapsed)"
+            fi
+            sleep 1
+            ((elapsed++))
+        done
+        if (( elapsed >= timeout )); then
+            notify-send -u critical "i3 Session" "Timeout reached. Some windows forced/ignored."
+        else
+            notify-send "i3 Session" "All applications closed successfully."
+        fi
+    else
+        notify-send "i3 Session" "No active applications found."
+    fi
+    # 3. Terminate the i3 session safely
+    i3-msg exit
+    _codex_unset
 }
 
 # END
