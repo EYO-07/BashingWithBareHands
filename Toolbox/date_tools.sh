@@ -12,6 +12,7 @@ function tools {
     toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "getCurrentDate" "display current day and time" $width
     toolbox_item "calculateTime <file_or_folder>" "time since last mod or creation" $width
+    toolbox_item "setTimer" "set a timer in minutes which sends notification" $width
     toolbox_endl
     _codex_unset
 }
@@ -88,5 +89,20 @@ function calculateTime {
 }   
 
 # alias update_clock_time='timedatectl set-ntp true'
+
+function setTimer {
+    local minutes="$1"
+    local name="${2:-...}"
+    if [[ -z "$minutes" || ! "$minutes" =~ ^[0-9]+$ ]]; then
+        echo "Usage: setTimer <minutes> [ <name> ]"
+        return 1
+    fi
+    (
+        sleep $((minutes * 60))
+        notify-send -u critical -t 0 "Timer" "Timer $name expired! ($minutes min)"
+    ) &
+    echo "Timer $name set for $minutes minute(s) (PID: $!)"
+    return 0
+}   
 
 # END
