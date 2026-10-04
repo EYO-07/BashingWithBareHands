@@ -106,6 +106,17 @@ function fileMove {
         fi
         validated_files+=("$abs_src")
     done
+    # -- validation || collision check (abort if destination file exists)
+    for file in "${validated_files[@]}"; do
+        local filename=$(basename "$file")
+        local target_path="$abs_dest/$filename"
+        if [[ -e "$target_path" ]]; then
+            crit_echo "ERROR: Collision detected. Destination already exists: $target_path"
+            crit_echo "Operation aborted to prevent data loss."
+            _codex_unset
+            return 1
+        fi
+    done
     # -- validation || space check 
     local est_size=$(__estimate_size validated_files)
     if ! __has_enough_space "$abs_dest" "$est_size"; then 
@@ -174,6 +185,17 @@ function fileCopy {
             return 1
         fi
         validated_files+=("$abs_src")
+    done
+    # -- validation || collision check (abort if destination file exists)
+    for file in "${validated_files[@]}"; do
+        local filename=$(basename "$file")
+        local target_path="$abs_dest/$filename"
+        if [[ -e "$target_path" ]]; then
+            crit_echo "ERROR: Collision detected. Destination already exists: $target_path"
+            crit_echo "Operation aborted to prevent data loss."
+            _codex_unset
+            return 1
+        fi
     done
     # -- validation || space check 
     local est_size=$(__estimate_size validated_files)
