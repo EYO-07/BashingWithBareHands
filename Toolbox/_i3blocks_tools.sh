@@ -39,46 +39,31 @@ function __i3blocks_get_nvidia_gpu {
     fi
 }
 # -- CPU
-function __i3blocks_get_cpu {
+function __i3blocks_get_cpu_temp_fan {
     local warn="${1:-70}" crit="${2:-90}"
-    # 1. Fast Temperature Check (Uses coretemp or Tctl via sensors)
-    local temp
-    temp=$(sensors 2>/dev/null | grep -E 'Core 0|Tctl' | head -n1 | awk -F'+' '{print $2}' | cut -d'.' -f1)
-    # Fallback if cut fails on certain sensor outputs
-    [[ -z "$temp" ]] && temp=$(sensors 2>/dev/null | grep -E 'Core 0|Tctl' | head -n1 | awk -F'+' '{print $2}' | cut -d' ' -f1)
-    # 2. Fast Instant CPU Usage using /proc/stat (No sleep! Relies on i3blocks interval)
-    # We use awk to grab a quick instant metric or load average alternative.
-    local usage=0
-    if [[ -r /proc/stat ]]; then
-        # Read current CPU ticks and calculate overall idle vs total
-        usage=$(awk '/^cpu / {
-            idle = $5 + $6;
-            total = $2 + $3 + $4 + $5 + $6 + $7 + $8;
-            print total, idle;
-        }' /proc/stat)
-        # To avoid sleep, a common trick for status bars is using 1-minute load average 
-        # or scaling from top, but if you want exact instant usage:
-        read -r total1 idle1 <<< "$usage"
-        # Quick micro-sleep or read from a cached file if absolute delta is needed, 
-        # OR fallback to uptime/loadavg which is instantaneous:
-        local load
-        load=$(awk '{print $1}' /proc/loadavg) # 1-min load average
-        # Alternatively, use top batch mode instant query:
-        usage=$(top -b -n1 2>/dev/null | awk '/^%Cpu\(s\):/ {print int(100 - $8)}')
+    local temp fan
+    local hwmon_dir
+    hwmon_dir=$(find /sys/class/hwmon -maxdepth 2 -name 'name' \
+        -exec grep -l -E 'coretemp|k10temp' {} \; 2>/dev/null \
+        | head -n1 | xargs dirname 2>/dev/null)
+    if [[ -n "$hwmon_dir" ]]; then
+        temp=$(( $(cat "${hwmon_dir}/temp1_input" 2>/dev/null || echo 0) / 1000 ))
+        fan=$(cat "${hwmon_dir}/fan1_input" 2>/dev/null)
+    else
+        local sensors_out
+        sensors_out=$(sensors 2>/dev/null)
+        temp=$(awk '/Core 0|Tctl/ {gsub(/[+ ]/,"",$2); print int($2); exit}' <<< "$sensors_out")
+        fan=$(awk '/fan1/ {print int($3); exit}' <<< "$sensors_out")
     fi
-    [[ -z "$usage" ]] && usage=0
-
-    # 3. Fan speed check
-    local fan
-    fan=$(sensors 2>/dev/null | grep 'fan1' | head -n1 | awk '{print $3}')
-    [[ -z "$fan" ]] && fan="?"
-    local text="CPU ${temp:-?}°C ${usage}% fan:${fan}"
-    # Color coding logic
+    local fantext=""
+    [[ -n "$fan" && "$fan" -gt 0 ]] && fantext=" fan:${fan}"
+    local text="CPU ${temp:-?}°C${fantext}"
     if   (( ${temp:-0} >= crit )); then __i3blocks_echo_red    "$text"
     elif (( ${temp:-0} >= warn )); then __i3blocks_echo_yellow "$text"
     else                                __i3blocks_echo        "$text"
     fi
-}
+}   
+
 # -- Memory 
 function __i3blocks_get_memory {
     local warn="${1:-80}" crit="${2:-95}"
@@ -112,7 +97,7 @@ function __i3blocks_get_connection {
     # Ensure nmcli is available
     if ! command -v nmcli &>/dev/null; then
         __i3blocks_echo_yellow "$icon_off (no nmcli)"
-        return 1
+        return 0
     fi
     local active_conn=""
     local active_type=""
@@ -213,6 +198,20 @@ function __i3blocks_get_mounted_partitions {
     formatted_labels=$(echo "$labels" | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')    
     __i3blocks_echo_green "[ $formatted_labels ]"
 }
+# -- Conditional Display Wrapper
+# Usage: __i3blocks_get_condition <return> <text>
+function __i3blocks_get_condition {
+    local ret="${1:-0}"
+    local text="${2:-}"
+    # If return code is 0 (success), display the text using framework formatting
+    if (( ret == 0 )); then
+        [[ -n "$text" ]] && __i3blocks_echo "$text"
+    else
+        # Display nothing if return value is greater than zero (error)
+        printf ""
+    fi
+}
+
 
 # === guides 
 
