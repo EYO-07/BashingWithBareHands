@@ -16,6 +16,87 @@
 # 10. Divination : Oracle consulting.
 # 11. Library : Official Documentation, Search Engines.
 
+function __SCRIPT_INTEGRITY_CHECK {
+    _save_hash() {
+        local hash_file="$1"
+        local hash="$2"
+        local path="$3"
+        # Unlock if immutable
+        if lsattr -d "$hash_file" 2>/dev/null | awk '{print $1}' | grep -q 'i'; then
+            echo "... unlocking the hash file to register the new hash"
+            sudo chattr -i "$hash_file" 2>/dev/null
+        fi   
+        # Ensure writable
+        chmod u+w "$hash_file" 2>/dev/null
+        echo "$hash  $path" > "$hash_file"
+        # Lock down: read-only + immutable
+        chmod 0444 "$hash_file"
+        sudo chattr +i "$hash_file" 2>/dev/null
+        # Invalidate cached sudo credentials — next sudo will prompt again
+        sudo -k
+    }   
+    if [[ -t 1 ]]; then # --- Colors (disabled if stdout is not a terminal) ---
+        local _RED=$'\e[1;31m'
+        local _GREEN=$'\e[1;32m'
+        local _YELLOW=$'\e[1;33m'
+        local _CYAN=$'\e[1;36m'
+        local _DIM=$'\e[2m'
+        local _NC=$'\e[0m'
+    else
+        local _RED="" _GREEN="" _YELLOW="" _CYAN="" _DIM="" _NC=""
+    fi
+    local hash_dir="$HOME/.config/BashingWithBareHands/hashs"
+    local script_path="${BASH_SOURCE[1]:-}"
+    if [[ -z "$script_path" ]]; then
+        printf '%s⚠ __SCRIPT_INTEGRITY_CHECK: no calling script detected%s\n' \
+            "$_YELLOW" "$_NC" >&2
+        return 1
+    fi
+    script_path="$(realpath "$script_path")"
+    mkdir -p "$hash_dir"
+    if ! lsattr -d "$hash_dir" 2>/dev/null | awk '{print $1}' | grep -q 'a'; then
+        echo "⚠ hash dir not locked, run: sudo chattr +a $hash_dir" >&2
+    fi 
+    local hash_file="$hash_dir/$(echo "$script_path" | tr '/' '_')"
+    local current_hash
+    current_hash="$(sha256sum "$script_path" | awk '{print $1}')"
+    if [[ -f "$hash_file" ]]; then
+        local saved_hash
+        saved_hash="$(awk '{print $1}' "$hash_file")"
+        if [[ "$current_hash" != "$saved_hash" ]]; then
+            printf '\n%s⚠ Script changed:%s %s%s\n' \
+                "$_YELLOW" "$_NC" "$_CYAN" "$script_path"
+            printf '  %sSaved:  %s%s\n' "$_DIM" "$saved_hash" "$_NC"
+            printf '  %sCurrent:%s %s\n' "$_DIM" "$_NC" "$current_hash"
+            printf '%sAccept changes? [y/N] %s' "$_YELLOW" "$_NC"
+            local answer
+            read -r answer
+            if [[ "$answer" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+                _save_hash "$hash_file" "$current_hash" "$script_path"   
+                printf '%s✓ Hash updated.%s\n' "$_GREEN" "$_NC"
+            else
+                printf '%s✗ Changes rejected. Aborting.%s\n' "$_RED" "$_NC"
+                printf '%s⚠ ... please verify manually the changes, beware of malicious script injection%s\n' \
+                    "$_RED" "$_NC" >&2
+                return 1
+            fi
+        fi
+    else
+        _save_hash "$hash_file" "$current_hash" "$script_path"   
+        printf '%s✓ Integrity baseline saved:%s %s%s\n' \
+            "$_GREEN" "$_NC" "$_DIM" "$script_path"
+    fi
+    return 0
+}
+__SCRIPT_INTEGRITY_CHECK || return 1
+#if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
+    #__SCRIPT_INTEGRITY_CHECK || return 1
+#else 
+    #source "$_SCRIPT_DIR/_codex.sh"
+    #__SCRIPT_INTEGRITY_CHECK || return 1
+    #_codex_unset
+#fi 
+
 # >> how to import
 # ... as global variable
 # _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,7 +120,6 @@ function _codex_unset {
     unset -f validate_positive_integer validate_non_negative_integer validate_integer_range validate_url validate_restricted_path
     unset -f parse_file_to_string_array
 }
-
 # -- color echos
 # RED = 31
 # GREEN = 32
@@ -432,11 +512,6 @@ function save_variables {
         return 1
     }
 }
-#function load_variables {
-    #local file="$1"
-    #source "$file"
-#}   
-
 # -- check commands
 function is_command_valid {
     command -v "$1" &>/dev/null
@@ -457,7 +532,6 @@ function atleastone_command_valid {
     done
     return 1
 }
-
 # -- interactive menus
 #function _MENU_EXAMPLE {
     #source "$_SCRIPT_DIR/_codex.sh"
@@ -1011,7 +1085,6 @@ function PROGRESS_BAR {
     for ((i=0; i<width-bar_len; i++)); do bar+="."; done
     printf '%s' "$bar"
 }
-
 # -- validation 
 function validate_positive_integer {
     local value="$1" name="${2:-}"
@@ -1094,7 +1167,6 @@ function validate_restricted_path {
     fi
     return 0
 }   
-
 # -- parse files 
 function parse_file_to_string_array { # parse_file_to_string_array <array_reference> <path>
     local -n arr_ref=$1

@@ -1,6 +1,13 @@
 # BEGIN : ~/Toolbox/net_tools.sh
 # {TextMarker|magenta:turnNetworkOff|cyan:turnOffNetwork}
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
+    __SCRIPT_INTEGRITY_CHECK || return 1
+else 
+    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_INTEGRITY_CHECK || return 1
+    _codex_unset
+fi 
 
 # -- dependencies
 # 1. nmcli NetworkManager 

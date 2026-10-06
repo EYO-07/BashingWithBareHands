@@ -1,4 +1,11 @@
 # BEGIN : Toolbox/_i3blocks_tools.sh
+if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
+    __SCRIPT_INTEGRITY_CHECK || return 1
+else 
+    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_INTEGRITY_CHECK || return 1
+    _codex_unset
+fi 
 
 # ... intended to be used with i3blocks scripts 
 

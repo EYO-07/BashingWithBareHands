@@ -1,6 +1,13 @@
 # BEGIN : ~/Toolbox/pacman_tools.sh
 # ... collection of pacman toplevel terminal functions and aliases for linux
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
+    __SCRIPT_INTEGRITY_CHECK || return 1
+else 
+    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_INTEGRITY_CHECK || return 1
+    _codex_unset
+fi 
 
 # -- dependencies
 # 1. pacman 
@@ -440,6 +447,41 @@ function listManuallyInstalledPackages {
         fi
     fi
     _codex_unset
+}   
+
+function listGuiPackages {
+    local keywords=("$@")
+    local explicit_pkgs
+    explicit_pkgs=$(pacman -Qqe)
+    local result=""
+    while IFS= read -r pkg; do
+        [ -z "$pkg" ] && continue
+        # Find .desktop files shipped by this package
+        local desktop_files
+        desktop_files=$(pacman -Ql "$pkg" 2>/dev/null | grep '\.desktop$')
+        [ -z "$desktop_files" ] && continue
+        # Get the app name and description from the .desktop file
+        local app_name="" desc=""
+        while IFS= read -r df; do
+            local n d
+            n=$(grep -m1 '^Name=' "$df" 2>/dev/null | cut -d= -f2-)
+            d=$(grep -m1 '^Comment=' "$df" 2>/dev/null | cut -d= -f2-)
+            # Prefer the first .desktop that has a Name
+            if [ -n "$n" ]; then
+                app_name="$n"
+                desc="$d"
+                break
+            fi
+        done <<< "$desktop_files"
+        [ -z "$app_name" ] && app_name="$pkg"
+        result+="$pkg # $app_name${desc:+ — $desc}"$'\n'
+    done <<< "$explicit_pkgs"
+    # Keyword filter (AND logic)
+    for kw in "${keywords[@]}"; do
+        result=$(echo "$result" | grep -iE "$kw")
+        [ -z "$result" ] && return 0
+    done
+    echo "$result"
 }   
 
 # END
