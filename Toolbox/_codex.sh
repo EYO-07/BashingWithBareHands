@@ -17,6 +17,17 @@
 # 11. Library : Official Documentation, Search Engines.
 
 function __SCRIPT_INTEGRITY_CHECK {
+    # skip integrity check if stdout is not an interactive terminal (if is piped, redirected, etc.)   
+    if [[ -t 1 ]]; then 
+        local _RED=$'\e[1;31m'
+        local _GREEN=$'\e[1;32m'
+        local _YELLOW=$'\e[1;33m'
+        local _CYAN=$'\e[1;36m'
+        local _DIM=$'\e[2m'
+        local _NC=$'\e[0m'
+    else
+        return 0 # skip integrity check if stdout is not a terminal (piped, redirected, etc.)   
+    fi
     _save_hash() {
         local hash_file="$1"
         local hash="$2"
@@ -36,18 +47,7 @@ function __SCRIPT_INTEGRITY_CHECK {
         sudo chattr +i "$hash_file" || return 1
         # Invalidate cached sudo credentials — next sudo will prompt again
         sudo -k
-    }   
-    if [[ -t 1 ]]; then # --- Colors (disabled if stdout is not a terminal) ---
-        local _RED=$'\e[1;31m'
-        local _GREEN=$'\e[1;32m'
-        local _YELLOW=$'\e[1;33m'
-        local _CYAN=$'\e[1;36m'
-        local _DIM=$'\e[2m'
-        local _NC=$'\e[0m'
-    else
-        return 0 # skips entirely if called from script
-        # local _RED="" _GREEN="" _YELLOW="" _CYAN="" _DIM="" _NC=""
-    fi
+    }
     local hash_dir="$HOME/.config/BashingWithBareHands/hashs"
     local script_path="${BASH_SOURCE[1]:-}"
     if [[ -z "$script_path" ]]; then
