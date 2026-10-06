@@ -27,7 +27,9 @@ function __SCRIPT_INTEGRITY_CHECK {
             sudo chattr -i "$hash_file" || return 1
         fi   
         # Ensure writable
-        chmod u+w "$hash_file" || return 1
+        if [[ -f "$hash_file" ]]; then 
+            chmod u+w "$hash_file" || return 1
+        fi 
         echo "$hash  $path" > "$hash_file" || return 1
         # Lock down: read-only + immutable
         chmod 0444 "$hash_file" || return 1
@@ -43,7 +45,8 @@ function __SCRIPT_INTEGRITY_CHECK {
         local _DIM=$'\e[2m'
         local _NC=$'\e[0m'
     else
-        local _RED="" _GREEN="" _YELLOW="" _CYAN="" _DIM="" _NC=""
+        return 0 # skips entirely if called from script
+        # local _RED="" _GREEN="" _YELLOW="" _CYAN="" _DIM="" _NC=""
     fi
     local hash_dir="$HOME/.config/BashingWithBareHands/hashs"
     local script_path="${BASH_SOURCE[1]:-}"
