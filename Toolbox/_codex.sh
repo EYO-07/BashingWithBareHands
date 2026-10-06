@@ -24,14 +24,14 @@ function __SCRIPT_INTEGRITY_CHECK {
         # Unlock if immutable
         if lsattr -d "$hash_file" 2>/dev/null | awk '{print $1}' | grep -q 'i'; then
             echo "... unlocking the hash file to register the new hash"
-            sudo chattr -i "$hash_file" 2>/dev/null
+            sudo chattr -i "$hash_file" || return 1
         fi   
         # Ensure writable
-        chmod u+w "$hash_file" 2>/dev/null
-        echo "$hash  $path" > "$hash_file"
+        chmod u+w "$hash_file" || return 1
+        echo "$hash  $path" > "$hash_file" || return 1
         # Lock down: read-only + immutable
-        chmod 0444 "$hash_file"
-        sudo chattr +i "$hash_file" 2>/dev/null
+        chmod 0444 "$hash_file" || return 1
+        sudo chattr +i "$hash_file" || return 1
         # Invalidate cached sudo credentials — next sudo will prompt again
         sudo -k
     }   
@@ -72,7 +72,8 @@ function __SCRIPT_INTEGRITY_CHECK {
             local answer
             read -r answer
             if [[ "$answer" =~ ^[Yy]([Ee][Ss])?$ ]]; then
-                _save_hash "$hash_file" "$current_hash" "$script_path"   
+                echo "... updating sha256sum script hash"
+                _save_hash "$hash_file" "$current_hash" "$script_path" || return 1
                 printf '%s✓ Hash updated.%s\n' "$_GREEN" "$_NC"
             else
                 printf '%s✗ Changes rejected. Aborting.%s\n' "$_RED" "$_NC"
@@ -82,7 +83,8 @@ function __SCRIPT_INTEGRITY_CHECK {
             fi
         fi
     else
-        _save_hash "$hash_file" "$current_hash" "$script_path"   
+        echo "... saving first run sha256sum script hash"
+        _save_hash "$hash_file" "$current_hash" "$script_path" || return 1
         printf '%s✓ Integrity baseline saved:%s %s%s\n' \
             "$_GREEN" "$_NC" "$_DIM" "$script_path"
     fi
