@@ -32,6 +32,11 @@ function __SCRIPT_INTEGRITY_CHECK {
         local hash_file="$1"
         local hash="$2"
         local path="$3"
+        # Test sudo access upfront before creating or modifying anything
+        if ! sudo -v; then
+            printf '%s✗ Sudo authentication failed. Aborting.%s\n' "$_RED" "$_NC" >&2
+            return 1
+        fi
         # Unlock if immutable
         if lsattr -d "$hash_file" 2>/dev/null | awk '{print $1}' | grep -q 'i'; then
             echo "... unlocking the hash file to register the new hash"
