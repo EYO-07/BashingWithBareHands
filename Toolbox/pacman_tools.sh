@@ -336,36 +336,109 @@ function listInstalledPackages {
     _codex_unset
 }
 function listManuallyInstalledPackages {
+    _export_installer() {
+        local file="$1"
+        local official="$2"
+        local aur="$3"
+        local aur_helper="${AUR_HELPER:-yay}"
+        {
+            echo '#!/bin/bash'
+            echo "# Generated $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "# Installs all explicitly-installed packages"
+            echo ""
+            echo "set -e"
+            echo ""
+            if [ -n "$official" ]; then
+                echo "# ── Official packages ──────────────────────────────"
+                echo "official_pkgs=("
+                while IFS= read -r line; do
+                    [ -z "$line" ] && continue
+                    local pkg="${line%% #*}"
+                    local desc="${line#*# }"
+                    printf '    "%s"  # %s\n' "$pkg" "$desc"
+                done <<< "$official"
+                echo ")"
+                echo ""
+                echo 'sudo pacman -Syu --needed "${official_pkgs[@]}"'
+                echo ""
+            fi
+            if [ -n "$aur" ]; then
+                echo "# ── AUR packages (via $aur_helper) ─────────────────────"
+                echo "aur_pkgs=("
+                while IFS= read -r line; do
+                    [ -z "$line" ] && continue
+                    local pkg="${line%% #*}"
+                    local desc="${line#*# }"
+                    printf '    "%s"  # %s\n' "$pkg" "$desc"
+                done <<< "$aur"
+                echo ")"
+                echo ""
+                echo "sudo $aur_helper -S --needed \"\${aur_pkgs[@]}\""
+            fi
+        } > "$file"
+        echo "Installer script written to: $file"
+    }
     source "$_SCRIPT_DIR/_codex.sh"
     local keywords=("$@")
-    # Get the set of explicitly (manually) installed package names
-    local explicit_pkgs
-    explicit_pkgs=$(pacman -Qqe)
-    # Generate "Name : Description" only for explicitly installed packages
-    local result
-    result=$(pacman -Qi | awk -v pkgs="$explicit_pkgs" '
-        BEGIN {
-            n = split(pkgs, arr, "\n")
-            for (i = 1; i <= n; i++) explicit[arr[i]] = 1
-        }
-        /^Name/        { name = $3 }
-        /^Description/ { if (name in explicit) print name " : " substr($0, index($0, $3)) }
-    ')
-    # If no keywords, just print the result
-    if [ ${#keywords[@]} -eq 0 ]; then
-        echo "$result"
-        _codex_unset
-        return 0
+    # Detect export mode: single arg ending in .sh
+    local export_file=""
+    if [ ${#keywords[@]} -eq 1 ] && [[ "${keywords[0]}" == *.sh ]]; then
+        export_file="${keywords[0]}"
+        keywords=()
     fi
-    # Apply each keyword as a separate grep filter (AND logic)
+    # Get explicitly-installed packages split by source
+    local official_pkgs aur_pkgs
+    official_pkgs=$(pacman -Qqne)   # native + explicit
+    aur_pkgs=$(pacman -Qqme)         # foreign + explicit
+    # Build "Name # Description" lists for each group
+    local result_official="" result_aur=""
+    if [ -n "$official_pkgs" ]; then
+        result_official=$(pacman -Qi | awk -v pkgs="$official_pkgs" '
+            BEGIN {
+                n = split(pkgs, arr, "\n")
+                for (i = 1; i <= n; i++) explicit[arr[i]] = 1
+            }
+            /^Name/        { name = $3 }
+            /^Description/ { if (name in explicit) print name " # " substr($0, index($0, $3)) }
+        ')
+    fi
+    if [ -n "$aur_pkgs" ]; then
+        result_aur=$(pacman -Qi | awk -v pkgs="$aur_pkgs" '
+            BEGIN {
+                n = split(pkgs, arr, "\n")
+                for (i = 1; i <= n; i++) explicit[arr[i]] = 1
+            }
+            /^Name/        { name = $3 }
+            /^Description/ { if (name in explicit) print name " # " substr($0, index($0, $3)) }
+        ')
+    fi
+    # Apply keyword filters (AND logic) to both lists
     for kw in "${keywords[@]}"; do
-        result=$(echo "$result" | grep -iE "$kw")
-        if [ -z "$result" ]; then
+        if [ -n "$result_official" ]; then
+            result_official=$(echo "$result_official" | grep -iE "$kw")
+        fi
+        if [ -n "$result_aur" ]; then
+            result_aur=$(echo "$result_aur" | grep -iE "$kw")
+        fi
+        if [ -z "$result_official" ] && [ -z "$result_aur" ]; then
             _codex_unset
             return 0
         fi
     done
-    echo "$result"
+    if [ -n "$export_file" ]; then
+        _export_installer "$export_file" "$result_official" "$result_aur"
+    else
+        # Print both sections for display
+        if [ -n "$result_official" ]; then
+            echo "── Official ─────────────────────────────────"
+            echo "$result_official"
+        fi
+        if [ -n "$result_aur" ]; then
+            echo ""
+            echo "── AUR ───────────────────────────────────────"
+            echo "$result_aur"
+        fi
+    fi
     _codex_unset
 }   
 
