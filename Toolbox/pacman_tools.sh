@@ -15,6 +15,7 @@ function tools {
     if is_command_valid "pacman"; then 
         toolbox_item "listInstalledPackages [ <kw1> <kw2> ... ]" "search packages by matching keywords" $width
         toolbox_item 'listInstalledPackages "<kw1>|<kw2>|..."' "search for multiple packages" $width
+        toolbox_item 'listManuallyInstalledPackages' "search for manually installed packages" $width
         toolbox_item "checkInstalledPackages" "check for upgradable packages" $width
         toolbox_item "systemUpdate" "repository sync and update" $width
         toolbox_item "searchPackages <keyword1> [keyword2 ...]" "search packages on official repos" $width
@@ -334,5 +335,38 @@ function listInstalledPackages {
     warn_echo "$result"
     _codex_unset
 }
+function listManuallyInstalledPackages {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local keywords=("$@")
+    # Get the set of explicitly (manually) installed package names
+    local explicit_pkgs
+    explicit_pkgs=$(pacman -Qqe)
+    # Generate "Name : Description" only for explicitly installed packages
+    local result
+    result=$(pacman -Qi | awk -v pkgs="$explicit_pkgs" '
+        BEGIN {
+            n = split(pkgs, arr, "\n")
+            for (i = 1; i <= n; i++) explicit[arr[i]] = 1
+        }
+        /^Name/        { name = $3 }
+        /^Description/ { if (name in explicit) print name " : " substr($0, index($0, $3)) }
+    ')
+    # If no keywords, just print the result
+    if [ ${#keywords[@]} -eq 0 ]; then
+        echo "$result"
+        _codex_unset
+        return 0
+    fi
+    # Apply each keyword as a separate grep filter (AND logic)
+    for kw in "${keywords[@]}"; do
+        result=$(echo "$result" | grep -iE "$kw")
+        if [ -z "$result" ]; then
+            _codex_unset
+            return 0
+        fi
+    done
+    echo "$result"
+    _codex_unset
+}   
 
 # END

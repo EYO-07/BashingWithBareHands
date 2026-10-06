@@ -58,7 +58,7 @@ alias turnOffNetwork='nmcli networking off'
 alias wifiList='nmcli radio wifi on && nmcli device wifi list'
 alias turnWifiOff='nmcli radio wifi off'
 alias turnWifiOn='nmcli radio wifi on'
-function wifiConnect {
+function wifiConnect { # backup
     source "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         echo "Error: SSID required."
@@ -69,6 +69,37 @@ function wifiConnect {
     fi
     # Quotes handle SSIDs with spaces
     nmcli device wifi connect "$1"
+    _codex_unset
+}
+
+function wifiConnect {
+    source "$_SCRIPT_DIR/_codex.sh"
+    local wifi_ssid="$1"
+    if [[ -z "$wifi_ssid" ]]; then
+        echo "Error: SSID required."
+        wifiList
+        echo "Usage: wifiConnect <SSID>"
+        echo "Usage: wifiConnect <SSID> <INTERFACE>"
+        _codex_unset
+        return 1
+    fi   
+    local wifi_device="$2"
+    local connect_status=0
+    if [[ -z "$wifi_device" ]]; then 
+        nmcli device wifi connect "$wifi_ssid"
+        connect_status=$?
+        if (( connect_status != 0 )); then 
+            yn_prompt "Failed to Connect" "Try SSID Authentication?" || { _codex_unset; return 1; }
+            nmcli --ask device wifi connect "$wifi_ssid"
+        fi 
+    else 
+        nmcli device wifi connect "$wifi_ssid" ifname "$wifi_device"
+        connect_status=$?
+        if (( connect_status != 0 )); then 
+            yn_prompt "Failed to Connect" "Try SSID Authentication?" || { _codex_unset; return 1; }
+            nmcli --ask device wifi connect "$wifi_ssid" ifname "$wifi_device"
+        fi 
+    fi 
     _codex_unset
 }
 
