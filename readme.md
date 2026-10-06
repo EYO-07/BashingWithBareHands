@@ -23,4 +23,6 @@ source $TOOLBOX/tools.sh >/dev/null
 
 Just add the script above to your preferred aliases file `.bash_aliases`, source the `.bash_aliases` again or re-open the terminal to import the `tools.sh` script. You can create aliases pointing directly to a specific file or use `bmenu` to select the toolbox interactively.
 
+This tools write some files on `~/.config/BashingWithBareHands`, if you ever want to delete those files, some of them (for instance, the `hashs` folder) are protected with `+a` append only and `+i` immutable flags. You should remove those flags in order to remove them.
+
 ![](bashing_with_bare_hands_pic2.png)
