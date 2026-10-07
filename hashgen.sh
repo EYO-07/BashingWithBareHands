@@ -1,38 +1,38 @@
 # RUN THIS ON THE FIRST USE
 # ... it generates the hash codes to track modifications
-source "./Toolbox/_codex.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/audiobook_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/audio_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/change_mode_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/date_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/display_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/errors_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/filecompressing_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/filesharing_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/filesystem_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/firewall_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/git_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/gpu_nvidia_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/grep_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/grub_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/_i3blocks_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/i3_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/llama_cpp_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/locale_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/mounting_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/move_copy_delete_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/net_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/checklist_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/pacman_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/processes_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/python_env_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/scan_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/screenshot_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/sensor_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/_server_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/services_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/socket_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/usb_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/video_music_download_tools.sh"
-__SCRIPT_INTEGRITY_CHECK "./Toolbox/wine_tools.sh"
+source "./Toolbox/_codex.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/audiobook_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/audio_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/change_mode_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/date_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/display_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/errors_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/filecompressing_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/filesharing_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/filesystem_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/firewall_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/git_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/gpu_nvidia_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/grep_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/grub_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/_i3blocks_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/i3_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/llama_cpp_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/locale_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/mounting_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/move_copy_delete_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/net_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/checklist_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/pacman_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/processes_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/python_env_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/scan_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/screenshot_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/sensor_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/_server_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/services_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/socket_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/usb_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/video_music_download_tools.sh" && \
+    __SCRIPT_INTEGRITY_CHECK "./Toolbox/wine_tools.sh"
