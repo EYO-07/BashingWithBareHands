@@ -16,85 +16,79 @@
 # 10. Divination : Oracle consulting.
 # 11. Library : Official Documentation, Search Engines.
 
-function __SCRIPT_INTEGRITY_CHECK {
+function __SCRIPT_INTEGRITY_CHECK { 
+    # 1. Determine colors if stdout is a terminal
     if [[ -t 1 ]]; then 
-        local _RED=$'\e[1;31m'
-        local _GREEN=$'\e[1;32m'
-        local _YELLOW=$'\e[1;33m'
-        local _CYAN=$'\e[1;36m'
-        local _DIM=$'\e[2m'
-        local _NC=$'\e[0m'
+        local _RED=$'\e[1;31m' _GREEN=$'\e[1;32m' _YELLOW=$'\e[1;33m' _CYAN=$'\e[1;36m' _DIM=$'\e[2m' _NC=$'\e[0m'
     else
         local _RED="" _GREEN="" _YELLOW="" _CYAN="" _DIM="" _NC=""
     fi
+    # 2. System-wide protected storage (requires root to modify)
+    local hash_dir="/var/lib/script_integrity"
+    local script_path="${1:-${BASH_SOURCE[1]:-$0}}"
+    if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+        printf '%s⚠ __SCRIPT_INTEGRITY_CHECK: invalid or missing script path%s\n' "$_YELLOW" "$_NC" >&2
+        return 1
+    fi
+    script_path="$(realpath "$script_path")"
+    # Ensure system hash directory exists and is append-only for security
+    if [[ ! -d "$hash_dir" ]]; then
+        echo "... creating $hash_dir to store the hash sums from scripts"
+        if ! sudo mkdir -p "$hash_dir"; then
+            printf '%s✗ Failed to create system integrity directory.%s\n' "$_RED" "$_NC" >&2
+            return 1
+        fi
+        sudo chmod 755 "$hash_dir"
+        sudo chattr +a "$hash_dir" 2>/dev/null
+    fi
+    local hash_file="$hash_dir/${script_path//\//_}"
+    local current_hash
+    current_hash="$(sha256sum "$script_path" | awk '{print $1}')"
+    # 3. Helper function to securely save/update hashes using root/chattr
     _save_hash() {
-        local hash_file="$1"
-        local hash="$2"
-        local path="$3"
-        # Test sudo access upfront before creating or modifying anything
+        local target_file="$1"
+        local file_hash="$2"
+        local target_path="$3"
         if ! sudo -v; then
             printf '%s✗ Sudo authentication failed. Aborting.%s\n' "$_RED" "$_NC" >&2
             return 1
         fi
         # Unlock if immutable
-        if lsattr -d "$hash_file" 2>/dev/null | awk '{print $1}' | grep -q 'i'; then
-            echo "... unlocking the hash file to register the new hash"
-            sudo chattr -i "$hash_file" || return 1
-        fi   
-        # Ensure writable
-        if [[ -f "$hash_file" ]]; then 
-            chmod u+w "$hash_file" || return 1
-        fi 
-        echo "$hash  $path" > "$hash_file" || return 1
-        # Lock down: read-only + immutable
-        chmod 0444 "$hash_file" || return 1
-        sudo chattr +i "$hash_file" || return 1
+        if lsattr -d "$target_file" 2>/dev/null | awk '{print $1}' | grep -q 'i'; then
+            sudo chattr -i "$target_file" || return 1
+        fi
+        # Write hash and lock down securely
+        echo "$file_hash  $target_path" | sudo tee "$target_file" >/dev/null || return 1
+        sudo chmod 0444 "$target_file" || return 1
+        sudo chattr +i "$target_file" || return 1
     }
-    local hash_dir="$HOME/.config/BashingWithBareHands/hashs"
-    local script_path="$1"
-    [[ -z "$script_path" ]] && script_path="${BASH_SOURCE[1]}"
-    if [[ -z "$script_path" ]]; then
-        printf '%s⚠ __SCRIPT_INTEGRITY_CHECK: no calling script detected%s\n' \
-            "$_YELLOW" "$_NC" >&2
-        return 1
-    fi
-    script_path="$(realpath "$script_path")"
-    mkdir -p "$hash_dir"
-    if ! lsattr -d "$hash_dir" 2>/dev/null | awk '{print $1}' | grep -q 'a'; then
-        echo "⚠ hash dir not locked, run: sudo chattr +a $hash_dir" >&2
-    fi 
-    local hash_file="$hash_dir/$(echo "$script_path" | tr '/' '_')"
-    local current_hash
-    current_hash="$(sha256sum "$script_path" | awk '{print $1}')"
     if [[ -f "$hash_file" ]]; then
         local saved_hash
-        saved_hash="$(awk '{print $1}' "$hash_file")"
+        saved_hash="$(awk '{print $1}' "$hash_file" 2>/dev/null)"
         if [[ "$current_hash" != "$saved_hash" ]]; then
             [[ -t 1 ]] || return 1
-            printf '\n%s⚠ Script changed:%s %s%s\n' \
-                "$_YELLOW" "$_NC" "$_CYAN" "$script_path"
+            printf '\n%s⚠ Script modification detected:%s %s%s\n' "$_YELLOW" "$_NC" "$_CYAN" "$script_path"
             printf '  %sSaved:  %s%s\n' "$_DIM" "$saved_hash" "$_NC"
             printf '  %sCurrent:%s %s\n' "$_DIM" "$_NC" "$current_hash"
-            printf '%sAccept changes? [y/N] %s' "$_YELLOW" "$_NC"
+            printf '%sAccept changes and update baseline? [y/N] %s' "$_YELLOW" "$_NC"
             local answer
             read -r answer
             if [[ "$answer" =~ ^[Yy]([Ee][Ss])?$ ]]; then
-                echo "... updating sha256sum script hash"
+                echo "... updating the script hashsum"
                 _save_hash "$hash_file" "$current_hash" "$script_path" || return 1
-                printf '%s✓ Hash updated.%s\n' "$_GREEN" "$_NC"
+                printf '%s✓ Hash updated successfully.%s\n' "$_GREEN" "$_NC"
             else
-                printf '%s✗ Changes rejected. Aborting.%s\n' "$_RED" "$_NC"
-                printf '%s⚠ ... please verify manually the changes, beware of malicious script injection%s\n' \
-                    "$_RED" "$_NC" >&2
+                printf '%s✗ Changes rejected. Aborting execution.%s\n' "$_RED" "$_NC" >&2
+                printf '%s⚠ Warning: Potential unauthorized modification detected.%s\n' "$_RED" "$_NC" >&2
                 return 1
             fi
         fi
     else
         [[ -t 1 ]] || return 1
-        echo "... saving first run sha256sum script hash"
+        echo "... registering initial script integrity baseline"
         _save_hash "$hash_file" "$current_hash" "$script_path" || return 1
-        printf '%s✓ Integrity baseline saved:%s %s%s\n' \
-            "$_GREEN" "$_NC" "$_DIM" "$script_path"
+        printf '%s✓ Integrity baseline securely saved:%s %s%s\n' "$_GREEN" "$_NC" "$_DIM" "$script_path"
+        echo "... hashs are stored on $hash_dir, if you ever want to delete it you should change locking attributes."
     fi
     return 0
 }
