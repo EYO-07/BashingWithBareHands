@@ -17,7 +17,6 @@
 # 11. Library : Official Documentation, Search Engines.
 
 function __SCRIPT_INTEGRITY_CHECK {
-    # skip integrity check if stdout is not an interactive terminal (if is piped, redirected, etc.)   
     if [[ -t 1 ]]; then 
         local _RED=$'\e[1;31m'
         local _GREEN=$'\e[1;32m'
@@ -26,7 +25,7 @@ function __SCRIPT_INTEGRITY_CHECK {
         local _DIM=$'\e[2m'
         local _NC=$'\e[0m'
     else
-        return 0 # skip integrity check if stdout is not a terminal (piped, redirected, etc.)   
+        return 1
     fi
     _save_hash() {
         local hash_file="$1"
@@ -50,11 +49,10 @@ function __SCRIPT_INTEGRITY_CHECK {
         # Lock down: read-only + immutable
         chmod 0444 "$hash_file" || return 1
         sudo chattr +i "$hash_file" || return 1
-        # Invalidate cached sudo credentials — next sudo will prompt again
-        sudo -k
     }
     local hash_dir="$HOME/.config/BashingWithBareHands/hashs"
-    local script_path="${BASH_SOURCE[1]:-}"
+    local script_path="$1"
+    [[ -z "$script_path" ]] && script_path="${BASH_SOURCE[1]}"
     if [[ -z "$script_path" ]]; then
         printf '%s⚠ __SCRIPT_INTEGRITY_CHECK: no calling script detected%s\n' \
             "$_YELLOW" "$_NC" >&2
