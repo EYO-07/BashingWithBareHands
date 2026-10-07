@@ -25,7 +25,7 @@ function __SCRIPT_INTEGRITY_CHECK {
         local _DIM=$'\e[2m'
         local _NC=$'\e[0m'
     else
-        return 1
+        return 0
     fi
     _save_hash() {
         local hash_file="$1"
