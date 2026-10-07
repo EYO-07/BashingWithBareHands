@@ -25,7 +25,7 @@ function __SCRIPT_INTEGRITY_CHECK {
         local _DIM=$'\e[2m'
         local _NC=$'\e[0m'
     else
-        return 0
+        local _RED="" _GREEN="" _YELLOW="" _CYAN="" _DIM="" _NC=""
     fi
     _save_hash() {
         local hash_file="$1"
@@ -70,6 +70,7 @@ function __SCRIPT_INTEGRITY_CHECK {
         local saved_hash
         saved_hash="$(awk '{print $1}' "$hash_file")"
         if [[ "$current_hash" != "$saved_hash" ]]; then
+            [[ -t 1 ]] || return 1
             printf '\n%s⚠ Script changed:%s %s%s\n' \
                 "$_YELLOW" "$_NC" "$_CYAN" "$script_path"
             printf '  %sSaved:  %s%s\n' "$_DIM" "$saved_hash" "$_NC"
@@ -89,6 +90,7 @@ function __SCRIPT_INTEGRITY_CHECK {
             fi
         fi
     else
+        [[ -t 1 ]] || return 1
         echo "... saving first run sha256sum script hash"
         _save_hash "$hash_file" "$current_hash" "$script_path" || return 1
         printf '%s✓ Integrity baseline saved:%s %s%s\n' \
