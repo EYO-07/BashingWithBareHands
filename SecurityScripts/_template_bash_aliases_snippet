@@ -1,5 +1,10 @@
 # Example snippet inside your ~/.bash_aliases
 
+# -- this part is necessary to load security functions on terminal emulators
+if ! declare -F __SCRIPT_INTEGRITY_CHECK &>/dev/null ; then
+    source "/var/lib/script_security/bwbh_security_core.sh"
+fi
+# -- toolbox loading
 TOOLBOX_DIR="$HOME/Toolbox" # MODIFY ME TO ACTUAL PATH
 # Extra tools ready to use 
 __SCRIPT_SAFE_SOURCE "$TOOLBOX_DIR/filesystem_tools.sh" >/dev/null
