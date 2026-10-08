@@ -1,12 +1,20 @@
 # BEGIN : Toolbox/_llama_cpp.sh 
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- variables
 _CONTEXT_SIZE_LLM=1024
@@ -15,7 +23,7 @@ _GPU_OFFLOAD_LLM=15
 
 # -- load and save config 
 __BWBH_SAVE_CONFIG_llama() {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
     if [[ ! -f "$config_path" ]]; then 
         crit_echo "... config file not found"
@@ -29,9 +37,9 @@ __BWBH_SAVE_CONFIG_llama() {
 
 # -- description 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     local width=7
     toolbox_title "Artificial Inteligence Local Inference Tools"
     toolbox_item "tools" "print this ..." $width
@@ -53,9 +61,9 @@ tools
 
 # -- implementation 
 function lightInteractiveInference {
-    source "${_SCRIPT_DIR}/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "${_SCRIPT_DIR}/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     local model=""
     local gpu_offload_int="$_GPU_OFFLOAD_LLM"
     local device="$_DEVICE_LLM"
@@ -156,7 +164,7 @@ function lightInteractiveInference {
     return $exit_code
 }   
 function setContextSize {
-    source "${_SCRIPT_DIR}/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "${_SCRIPT_DIR}/_codex.sh"
     if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
         _CONTEXT_SIZE_LLM="$1"
         warn_echo "Current LLM Context Size : $_CONTEXT_SIZE_LLM tokens"
@@ -169,7 +177,7 @@ function setContextSize {
     return 1
 }
 function setGpuOffloadLayers {
-    source "${_SCRIPT_DIR}/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "${_SCRIPT_DIR}/_codex.sh"
     if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
         _GPU_OFFLOAD_LLM="$1"
         warn_echo "Current LLM GPU Offload : $_GPU_OFFLOAD_LLM layers"
@@ -182,9 +190,9 @@ function setGpuOffloadLayers {
     return 1
 }
 function lightFileInference {
-    source "${_SCRIPT_DIR}/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "${_SCRIPT_DIR}/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     local arg_count=$#
     local file_path="$1"
     local model="$2"
@@ -280,7 +288,7 @@ function lightFileInference {
     return $exit_code
 }
 function setDeviceLLM {
-    source "${_SCRIPT_DIR}/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "${_SCRIPT_DIR}/_codex.sh"
     if [ "$#" -gt 0 ]; then
         _DEVICE_LLM="$1"
         warn_echo "Current LLM Device : $_DEVICE_LLM"
@@ -299,9 +307,9 @@ __SELECTED_ITEM_LLM=0
 __LLM_MODEL_LIST=("Exit")
 __CURRENT_MODEL_PATH=""
 function __SET_LLM_MODEL {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     INTERACTIVE_MENU_SINGLE __LLM_MODEL_LIST "Select LLM Local Model Path" $__SELECTED_ITEM_LLM
     local rs=$?
     if [[ "$rs" -ne 0 ]]; then 
@@ -311,9 +319,9 @@ function __SET_LLM_MODEL {
     __BWBH_SAVE_CONFIG_llama    
 }
 function addModel {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     local _path="$*"
     if [[ -z "$_path" ]]; then 
         ls -a
@@ -335,9 +343,9 @@ function addModel {
     return 0
 }
 function modelListDelete {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/llama_cpp_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     INTERACTIVE_MENU_DEL() {
         [[ -t 0 && -t 1 ]] || return 0
         (( $# >= 2 )) || return 0
@@ -436,7 +444,7 @@ function modelListDelete {
     _codex_unset
 }
 function modelListReset {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     __SELECTED_ITEM_LLM=0
     __LLM_MODEL_LIST=("Exit")
     good_echo "model list reseted"

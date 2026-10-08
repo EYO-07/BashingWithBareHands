@@ -1,14 +1,21 @@
 # BEGIN : Toolbox/_codex.sh 
 
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 # -- variables
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 # local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
 __SELECTED_ITEM=0 # ~ bmenu 
 __SELECTED_ITEM_FILESYSTEM=0 # ~ bmenuFilesystem
@@ -17,7 +24,7 @@ __SELECTED_ITEM_MISC=0 # ~ bmenuMiscellaneous
 
 # -- load/save config
 __BWBH_SAVE_CONFIG_tools() {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
     if [[ ! -f "$config_path" ]]; then 
         crit_echo "... config file not found"
@@ -31,7 +38,9 @@ __BWBH_SAVE_CONFIG_tools() {
 
 # -- description 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
+    load_variables "$config_path"
     # -- tool print
     local width=4
     toolbox_title "Bashing With Bare Hands"
@@ -50,9 +59,9 @@ tools
 
 # -- implementation
 function bmenu {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # --
     local bmenu_title="Bashing With Bare Hands"
     trap 'tput cnorm; stty echo' RETURN INT TERM # cleanup on function return 
@@ -163,7 +172,7 @@ function bmenu {
                     trap - RETURN INT TERM
                     tput cnorm
                     stty echo
-                    source "$_SCRIPT_DIR/$action"
+                    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/$action"
                 fi
                 break # every action will break 
                 ;;
@@ -174,9 +183,9 @@ function bmenu {
     _codex_unset
 }
 function bmenuFilesystem {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # Define the menu items (indexed array)
     local items=(
         "Files / Filesystem"
@@ -201,25 +210,25 @@ function bmenuFilesystem {
     )
     # -- functions
     _file_mult() {
-        source "$_SCRIPT_DIR/move_copy_delete_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/move_copy_delete_tools.sh"
     }
     _file_comp_back() {
-        source "$_SCRIPT_DIR/filecompressing_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/filecompressing_tools.sh"
     }
     _files() {
-        source "$_SCRIPT_DIR/filesystem_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/filesystem_tools.sh"
     }
     _mount() {
-        source "$_SCRIPT_DIR/mounting_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/mounting_tools.sh"
     }
     _modes() {
-        source "$_SCRIPT_DIR/change_mode_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/change_mode_tools.sh"
     }
     _share() {
-        source "$_SCRIPT_DIR/filesharing_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/filesharing_tools.sh"
     }
     _usb() {
-        source "$_SCRIPT_DIR/usb_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/usb_tools.sh"
     }
     # Call the menu — pass variable *names*, not values
     INTERACTIVE_MENU items actions "Filesystem Tools Menu" $__SELECTED_ITEM_FILESYSTEM
@@ -229,9 +238,9 @@ function bmenuFilesystem {
     _codex_unset
 } 
 function bmenuSystem {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # Define the menu items (indexed array)
     local items=(
         "Errors"
@@ -268,43 +277,43 @@ function bmenuSystem {
     )
     # -- functions
     _grub_tools() {
-        source "$_SCRIPT_DIR/grub_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/grub_tools.sh"
     }
     _firewall() {
-        source "$_SCRIPT_DIR/firewall_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/firewall_tools.sh"
     }
     _virus_mal() {
-        source "$_SCRIPT_DIR/scan_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/scan_tools.sh"
     }
     _errors() {
-        source "$_SCRIPT_DIR/errors_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/errors_tools.sh"
     }
     _internet() {
-        source "$_SCRIPT_DIR/net_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/net_tools.sh"
     }
     _processes() {
-        source "$_SCRIPT_DIR/processes_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/processes_tools.sh"
     }
     _services() {
-        source "$_SCRIPT_DIR/services_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/services_tools.sh"
     }
     _sockets() {
-        source "$_SCRIPT_DIR/socket_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/socket_tools.sh"
     }
     _audio() {
-        source "$_SCRIPT_DIR/audio_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/audio_tools.sh"
     }
     _sensors() {
-        source "$_SCRIPT_DIR/sensor_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/sensor_tools.sh"
     }
     _pacman() {
-        source "$_SCRIPT_DIR/pacman_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/pacman_tools.sh"
     }
     _display_xorg() {
-        source "$_SCRIPT_DIR/display_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/display_tools.sh"
     }
     _i3winmanager() {
-        source "$_SCRIPT_DIR/i3_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/i3_tools.sh"
     }
     # Call the menu — pass variable *names*, not values
     INTERACTIVE_MENU items actions "System Tools Menu" $__SELECTED_ITEM_SYSTEM
@@ -314,9 +323,9 @@ function bmenuSystem {
     _codex_unset
 } 
 function bmenuMiscellaneous {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # Define the menu items (indexed array)
     local items=(
         "Git"
@@ -347,34 +356,34 @@ function bmenuMiscellaneous {
     )
     # -- functions
     _grep_tools() {
-        source "$_SCRIPT_DIR/grep_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/grep_tools.sh"
     }
     _git_tools() {
-        source "$_SCRIPT_DIR/git_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/git_tools.sh"
     }
     _wine_tools() {
-        source "$_SCRIPT_DIR/wine_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/wine_tools.sh"
     }
     _python_env_tools() {
-        source "$_SCRIPT_DIR/python_env_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/python_env_tools.sh"
     }
     _audiobook() {
-        source "$_SCRIPT_DIR/audiobook_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/audiobook_tools.sh"
     }
     _calendar() {
-        source "$_SCRIPT_DIR/date_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/date_tools.sh"
     }
     _local_inf() {
-        source "$_SCRIPT_DIR/llama_cpp_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/llama_cpp_tools.sh"
     }
     _viddown() {
-        source "$_SCRIPT_DIR/video_music_download_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/video_music_download_tools.sh"
     }
     _local_server() {
-        source "$_SCRIPT_DIR/_server_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_server_tools.sh"
     }
     _screenshot() {
-        source "$_SCRIPT_DIR/screenshot_tools.sh"
+        __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/screenshot_tools.sh"
     }
     # Call the menu — pass variable *names*, not values
     INTERACTIVE_MENU items actions "Miscellaneous Tools Menu" $__SELECTED_ITEM_MISC

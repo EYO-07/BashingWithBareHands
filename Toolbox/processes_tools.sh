@@ -1,20 +1,28 @@
 # BEGIN : processes_tools.sh
 # ... tasks, processes, etc
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # linux built-in tools like pid, pidof, ps, pgrep
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Processes/Tasks Tools"
     toolbox_item "tools / inv" "print this ... / show command syntax" $width
@@ -27,7 +35,7 @@ function tools {
 }
 tools 
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Processes/Tasks Tools"
     local width=5
     info_echo "--- general ---"
@@ -46,7 +54,7 @@ function inv {
 
 # -- implementation
 function processTop {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local sort_by="${1:-cpu}"
     info_echo "--- Top 10 Processes by $sort_by ---"
     case "$sort_by" in
@@ -57,7 +65,7 @@ function processTop {
     _codex_unset
 }
 function processInfo {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 1 ]; then
         echo "USAGE: processInfo <pid>" >&2
         _codex_unset
@@ -70,7 +78,7 @@ function processInfo {
     _codex_unset
 }
 function processMatch {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check if exactly one keyword is provided
     if [ "$#" -ne 1 ]; then
         warn_echo "USAGE: processMatch <keyword>" >&2
@@ -98,7 +106,7 @@ function processMatch {
     return 1
 }   
 function forceKillProcess {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check argument count
     if [[ "$#" -ne 1 ]]; then
         echo "USAGE: forceKillProcess <pid>"

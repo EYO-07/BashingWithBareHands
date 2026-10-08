@@ -1,13 +1,20 @@
 # BEGIN : ~/Toolbox/git_tools.sh
-# {TextMarker|magenta:pwd}
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. git ; cli tool 
@@ -16,7 +23,7 @@ fi
 # -- description
 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Git Tools"
     toolbox_item "tools" "show this ..." $width
@@ -53,7 +60,7 @@ tools
 
 # -- implementation 
 function downloadProject {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then 
         echo "Usage: downloadProject <PROJECT_OWNER> <PROJECT_NAME>"
         echo "Usage: downloadProject <URL>"
@@ -76,7 +83,7 @@ function downloadProject {
     _codex_unset
 }
 function projectInfo {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check if inside a git repository
     if [ ! -d .git ]; then
         ls -a
@@ -131,7 +138,7 @@ function projectInfo {
     _codex_unset
 }   
 function gitCommit {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check for arguments
     if [ "$#" -lt 1 ]; then 
         echo "Usage: gitCommit <title> [description]"
@@ -170,7 +177,7 @@ function gitCommit {
     _codex_unset
 }   
 function projectUpdate {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Ensure we are inside a git repository
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         ls -a
@@ -210,7 +217,7 @@ function projectUpdate {
     _codex_unset
 }   
 function gitPullRequest {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # 1. Check for GitHub CLI
     if ! command -v gh &> /dev/null; then
         echo "Error: GitHub CLI (gh) is not installed."
@@ -277,7 +284,7 @@ function gitPullRequest {
     _codex_unset
 }   
 function listBranches {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         ls -a
         echo "Error: Not a git repository."
@@ -303,7 +310,7 @@ function listBranches {
     _codex_unset
 }
 function setBranch {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         echo "Error: Not a git repository."
         _codex_unset
@@ -344,7 +351,7 @@ function setBranch {
     _codex_unset
 }   
 function gitDirectPush {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         echo "Error: Not a git repository."
         _codex_unset
@@ -384,7 +391,7 @@ function gitDirectPush {
     _codex_unset
 }   
 function gitStash {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         ls -a
         echo "Error: Not a git repository."
@@ -461,7 +468,7 @@ function gitStash {
     _codex_unset
 }
 function gitIgnore { # creates or update gitignore
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # dont use templates 
     # USAGE: gitIgnore <file_or_expr1> [ <file_or_expr2> ... ]
     _codex_unset

@@ -1,13 +1,21 @@
 # BEGIN : Toolbox/change_mode_tools.sh 
 # ... aliases and helper function for chmod cli 
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies 
 # Requires: bash, chmod, ls, stat (optional fallback used)
@@ -16,7 +24,7 @@ fi
 # A toolbox for managing file permissions with colored output.
 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Change File Mode Tools"
     toolbox_item "tools" "print this ..." $width
@@ -35,7 +43,7 @@ function tools {
 }
 tools
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "change mode tools"
     local width=6
     inventory_item 1 "chown <USER>:<GROUP> <FILE>" "change file ownership" $width
@@ -46,7 +54,7 @@ function inv {
 
 # -- implementation
 function showAttributes { 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 1 ]; then
         ls -a
         warn_echo "USAGE: showAttributes <file>"
@@ -91,7 +99,7 @@ function showAttributes {
     _codex_unset
 }
 function activate { 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then
         ls -a
         warn_echo "Usage: activate <file1> [file2] ..."
@@ -122,7 +130,7 @@ function activate {
     _codex_unset
 }
 function deactivate { 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then
         ls -a
         warn_echo "Usage: deactivate <file1> [file2] ..."
@@ -152,7 +160,7 @@ function deactivate {
     _codex_unset
 }   
 function setStrictUserPermission {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local target="$1"
     # Check if argument is provided
     if [[ -z "$target" ]]; then
@@ -192,7 +200,7 @@ function setStrictUserPermission {
     _codex_unset
 }
 function takeOwnership {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check if path is provided
     if [ -z "$1" ]; then
         ls -a

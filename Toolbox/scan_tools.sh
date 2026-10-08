@@ -1,19 +1,27 @@
 # BEGIN Toolbox/scan_tools.sh 
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. clamav 
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=6
     toolbox_title "Virus/Malware Scanning Tools"
     toolbox_item "tools" "print this ..." $width
@@ -44,7 +52,7 @@ tools
 
 # -- implementation 
 function virusDefinitionUpdate {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Ensure daemon is running
     if ! systemctl is-active --quiet clamav-daemon; then
         info_echo "Starting clamav-daemon..."
@@ -59,7 +67,7 @@ function virusDefinitionUpdate {
     _codex_unset
 }
 function virusLogView {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local log="${1:-$(ls -t /var/log/clamav/scan-*.log 2>/dev/null | head -1)}"
     if [ -z "$log" ] || [ ! -f "$log" ]; then
         crit_echo "No scan logs found in /var/log/clamav/"
@@ -73,7 +81,7 @@ function virusLogView {
     _codex_unset
 }
 function virusLogCleanup {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local days="${1:-7}"
     # Validate input
     if ! [[ "$days" =~ ^[0-9]+$ ]]; then
@@ -99,7 +107,7 @@ function virusLogCleanup {
     _codex_unset
 }   
 function virusQuarantine {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local target="${1:-}"
     local quarantine_dir="${2:-/var/quarantine/clamav}"
     if [ -z "$target" ]; then
@@ -162,7 +170,7 @@ function virusQuarantine {
     fi
 }
 function virusScanDirectoryList { 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local file="$1"
     if [ ! -f "$file" ]; then
         crit_echo "ERROR: $file not found" >&2

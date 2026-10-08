@@ -1,12 +1,20 @@
 # BEGIN Toolbox/usb_tools.sh 
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- helpers
 _get_base_dev() { # Helper to safely resolve root parent block device (e.g., sdb1 -> sdb, nvme0n1p1 -> nvme0n1)
@@ -62,7 +70,7 @@ _has_active_mounts() {
 }
 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=4
     toolbox_title "Usb Tools"
     toolbox_item "tools" "print this ..." $width
@@ -81,7 +89,7 @@ tools
 
 # -- implementation
 function formatUsbDevice {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local target_path="$1"
     local format_type="${2:-vfat}"
     local base_dev=""
@@ -326,7 +334,7 @@ function formatUsbDevice {
     return 0
 }
 function setUsbDeviceLabel {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local part_path="$1"
     local new_label="$2"
     local base_dev=""
@@ -355,7 +363,7 @@ function setUsbDeviceLabel {
         _codex_unset
         return 1
     fi
-    source "$_SCRIPT_DIR/_codex.sh" # must be sourced again because showUsbDeviceInfo unsource _codex.sh
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh" # must be sourced again because showUsbDeviceInfo unsource _codex.sh
     # 3. Filesystem Detection & Label Utility Validation
     fs_type=$(lsblk -ndo FSTYPE "$part_path" 2>/dev/null)
     if [[ -z "$fs_type" ]]; then
@@ -457,7 +465,7 @@ function setUsbDeviceLabel {
     return 0
 }
 function showUsbDeviceInfo {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local target="$1"
     local found=0
     _print_info() {

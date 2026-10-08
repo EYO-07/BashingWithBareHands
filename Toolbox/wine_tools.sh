@@ -1,12 +1,20 @@
 # BEGIN : Toolbox/wine_tools.sh
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies 
 # 1. wine 
@@ -14,7 +22,7 @@ fi
 
 # -- description 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=6
     toolbox_title "Wine Tools"
     toolbox_item "tools" "print this ..." $width
@@ -41,7 +49,7 @@ function tools {
 }
 tools 
 function readmeWineTools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     echo ""
     warn_echo "=== Wine Tools ==="
     info_echo "this is a collection of bash functions and aliases to handle wineprefixes on terminal."
@@ -100,7 +108,7 @@ function _resolve_wine_context { # _resolve_wine_context [starting_path]
     return 1
 }
 function _showWineEnvVariables {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Helper to print specific Wine & Graphics environment variables if set
     local vars=(
         # Wine Renderers / Backends
@@ -128,7 +136,7 @@ function _showWineEnvVariables {
     _codex_unset
 }
 function _confirmWinetricks {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Helper to prompt user before running winetricks list-installed
     local prefix_path="$1"
     echo ""
@@ -160,7 +168,7 @@ function _confirmWinetricks {
 
 # -- implementation
 function makeWineKissable {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     info_echo ">>> Starting Wine Desktop Cleanup..."
     # 2. Cleanup: Remove existing MIME types
     warn_echo ">> Removing MIME type packages..."
@@ -208,7 +216,7 @@ function makeWineKissable {
     _codex_unset
 }
 function createWineDirectory {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # createWineDirectory <path>
     # 1. Creates a folder based on <path> with a wine prefix folder inside it
     # 2. Creates a tracking file .wineprefix_id to store the absolute wine prefix path
@@ -255,7 +263,7 @@ function createWineDirectory {
     _codex_unset
 }
 function createWineDirectory32bits {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # createWineDirectory32bits <path>
     # 1. Creates a folder based on <path> with a 32-bit wine prefix folder inside it
     # 2. Creates a tracking file .wineprefix_id to store the absolute wine prefix path
@@ -302,7 +310,7 @@ function createWineDirectory32bits {
     _codex_unset
 }
 function wineInstallWinetricksPackage {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then
         crit_echo "Error: Package name required."
         info_echo "Usage: wineInstallWinetricksPackage <package1> [package2...]"
@@ -340,7 +348,7 @@ function wineInstallWinetricksPackage {
 
 # -- implementation | info
 function wineDirectoryInfo {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # --
     local context
     context=$(_resolve_wine_context) || {
@@ -363,7 +371,7 @@ function wineDirectoryInfo {
     _codex_unset
 }
 function wineSessionInfo {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Checks active Wine session variables and environment status.
     local prefix_path
     local is_default=false
@@ -408,7 +416,7 @@ function wineSessionInfo {
 
 # -- implementation | run
 function wineDirectoryRun {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # --
     local context
     context=$(_resolve_wine_context) || {
@@ -440,7 +448,7 @@ function wineDirectoryRun {
     _codex_unset
 }
 function exportWinePrefix {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # --
     local context
     context=$(_resolve_wine_context) || {
@@ -458,7 +466,7 @@ function exportWinePrefix {
     _codex_unset
 }
 function wineDesktop {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ] || [ -z "$2" ]; then
         crit_echo "Error: Missing arguments."
         echo "Usage: wineDesktop <resolution> <name>"
@@ -490,7 +498,7 @@ function wineDesktop {
     _codex_unset
 }
 function gotoWineDirectoryRoot {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # --
     local context
     context=$(_resolve_wine_context) || {
@@ -506,7 +514,7 @@ function gotoWineDirectoryRoot {
     return 0
 }
 function gotoWineDirectoryC {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # --
     local context
     context=$(_resolve_wine_context) || {
@@ -521,7 +529,7 @@ function gotoWineDirectoryC {
     _codex_unset
 }
 function gotoWineDirectoryAppData {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # --
     local context
     context=$(_resolve_wine_context) || {
@@ -538,7 +546,7 @@ function gotoWineDirectoryAppData {
 
 # -- implementation | environment settings
 function exportWineNvidiaSetup {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     info_echo "... Enabling NVIDIA PRIME Render Offload"
     # 1. Direct OpenGL applications to render on the NVIDIA GPU.
     export __NV_PRIME_RENDER_OFFLOAD=1

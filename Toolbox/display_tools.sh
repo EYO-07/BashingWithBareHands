@@ -1,13 +1,21 @@
 # BEGIN : Toolbox/display_tools.sh 
 # ... functions and aliases to manage displays in X(xorg)
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. xorg, it's a xorg tool.
@@ -15,7 +23,7 @@ fi
 # -- description 
 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=10
     toolbox_title "X11/XOrg Display Monitors Tools"
     toolbox_item "tools / inv" "print this ... / command syntax" $width
@@ -41,7 +49,7 @@ function tools {
 }
 tools 
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "XOrg Tools"
     local width=5
     inventory_item 1 "xrandr -q" "information about displays from xorg tools" $width
@@ -63,7 +71,7 @@ function inv {
 
 # -- implementation 
 function listDisplays {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Short list of display monitor names and connection state
     # Dependencies: xrandr (part of x11-xserver-utils)
     if ! command -v xrandr &> /dev/null; then
@@ -79,7 +87,7 @@ function listDisplays {
     return 0
 }
 function listConnectedDisplays { 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Short list of display monitor names and connection state
     # Dependencies: xrandr (part of x11-xserver-utils)
     if ! command -v xrandr &> /dev/null; then
@@ -95,7 +103,7 @@ function listConnectedDisplays {
     return 0
 }
 function extendDisplayRight {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 2 ]; then 
         listConnectedDisplays 
         color_echo 33 "Usage: extendDisplayRight <main_display> <right_display>"
@@ -128,7 +136,7 @@ function extendDisplayRight {
     fi
 }
 function extendDisplayLeft {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 2 ]; then 
         listConnectedDisplays 
         color_echo 33 "Usage: extendDisplayLeft <main_display> <left_display>"
@@ -153,7 +161,7 @@ function extendDisplayLeft {
     _codex_unset
 }
 function mirrorDisplay {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 2 ]; then 
         listConnectedDisplays 
         color_echo 33 "Usage: mirrorDisplay <source_display> <target_display>"
@@ -177,7 +185,7 @@ function mirrorDisplay {
     _codex_unset
 }
 function extendDisplayAbove {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 2 ]; then 
         listConnectedDisplays 
         color_echo 33 "Usage: extendDisplayAbove <main_display> <above_display>"
@@ -201,7 +209,7 @@ function extendDisplayAbove {
     _codex_unset
 }   
 function extendDisplayBelow {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 2 ]; then 
         listConnectedDisplays 
         color_echo 33 "Usage: extendDisplayBelow <main_display> <below_display>"
@@ -225,7 +233,7 @@ function extendDisplayBelow {
     _codex_unset
 }   
 function setProviders {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Sets the provider output source to enable multi-GPU output
     # Usage: setProviders <source_name> <sink_name>
     # Example: setProviders NVIDIA-0 modesetting    
@@ -255,7 +263,7 @@ function setProviders {
     fi
 }
 function setBrightness {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 2 ]; then 
         listConnectedDisplays
         echo ""
@@ -274,7 +282,7 @@ function setBrightness {
     return 0
 }
 function disableScreenSaver {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check if X11 is available
     if [[ -z "$DISPLAY" ]]; then
         crit_echo "Error: DISPLAY variable is not set. Are you running in X11?"
@@ -297,7 +305,7 @@ function disableScreenSaver {
     fi
 }
 function enableScreenSaver {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check if X11 is available
     if [[ -z "$DISPLAY" ]]; then
         crit_echo "Error: DISPLAY variable is not set. Are you running in X11?"
@@ -320,7 +328,7 @@ function enableScreenSaver {
     fi
 }
 function setPrimaryDisplay {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # -- display 
     local display_name="$1"
     local xrandr_output=$(xrandr --query)
@@ -343,7 +351,7 @@ function setPrimaryDisplay {
     xrandr --output "$display_name" --primary "$display_mode" || return 1
 }
 function turnOffDisplay {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local display_name="$1"
     local xrandr_output=$(xrandr --query)
     if ! echo "$xrandr_output" | grep -q "^$display_name connected"; then

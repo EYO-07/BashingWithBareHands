@@ -1,42 +1,27 @@
 # BEGIN : Toolbox/firewall_tools.sh 
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. ufw firewall 
 
-# Inventory [ Firewall basics ] { Linux Bash }
-# 1. apt install ufw ; install uncomplicated firewall
-# 2. ufw enable ; enable firewall
-# 3. ufw disable ; disable firewall
-# 4. ufw status ; show firewall status
-# 5. ufw status verbose ; detailed status
-# 6. ufw allow PORT ; allow port (example: 22)
-# 7. ufw deny PORT ; deny port
-# 8. ufw allow SERVICE ; allow service (example: ssh)
-# 9. ufw delete allow PORT ; remove rule
-# 10. ufw reset ; reset all rules
-# 11. ufw default deny incoming ; block incoming by default
-# 12. ufw default allow outgoing ; allow outgoing by default
-# 13. ufw allow from IP ; allow specific IP
-# 14. ufw allow from IP to any port PORT ; allow IP to port
-# 15. iptables -L ; list iptables rules
-# 16. iptables -F ; flush iptables rules
-# 17. nft list ruleset ; list nftables rules
-# 18. ss -tuln ; list listening ports
-# 19. netstat -tuln ; list open ports (legacy)
-# 20. systemctl enable ufw ; enable firewall at boot
-# sudo ufw allow in on proton0 from any to any
-
 # -- description 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Firewall Tools"
     toolbox_item "tools / inv" "print this ... / show command syntax" $width
@@ -56,7 +41,7 @@ function tools {
 }
 tools
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=4
     inventory_title "Firewall Tools { ufw }"
     info_echo "... may require admin. privileges"
@@ -70,18 +55,18 @@ function inv {
 
 # -- implementation 
 function firewallStatusVerbose {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     auto_escalate ufw status verbose
     _codex_unset
 }
 function firewallReset {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     token_prompt "Confirmation" "this will reset the firewall to default settings" || { _codex_unset; return 1; }
     sudo ufw reset && sudo ufw default deny incoming && sudo ufw default allow outgoing && sudo ufw enable 
     _codex_unset
 }
 function firewallAllowPort {
-    source "$_SCRIPT_DIR/_codex.sh"   
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"   
     local port="$1"
     if [[ -z "$port" ]]; then 
         warn_echo "Usage: firewallAllowPort <port> [ <protocol> ]"
@@ -103,7 +88,7 @@ function firewallAllowPort {
     _codex_unset
 }
 function firewallNumberedList {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local filter="${1:-}"
     if [[ -n "$filter" ]]; then
         toolbox_title "Active UFW Rules (Numbered) [Filter: '$filter']"
@@ -116,7 +101,7 @@ function firewallNumberedList {
     _codex_unset
 }
 function firewallLogs {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local lines="${1:-20}"
     toolbox_title "Recent UFW Firewall Logs (Last $lines entries)"
     if command -v journalctl &>/dev/null; then
@@ -131,7 +116,7 @@ function firewallLogs {
     _codex_unset
 }
 function firewallBindInterface {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local interface="$1"
     local action="${2:-allow}"
     local port="${3:-}"
@@ -166,7 +151,7 @@ function firewallBindInterface {
     _codex_unset
 }
 function firewallDeleteRule {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local rule_num="$1"   
     if [[ -z "$rule_num" ]]; then
         warn_echo "Usage: firewallDeleteRule <rule_number>"
@@ -187,37 +172,4 @@ function firewallDeleteRule {
     _codex_unset
 }
 
-# END 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# END

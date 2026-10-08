@@ -1,12 +1,20 @@
 # BEGIN : Toolbox/services_tools.sh 
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. systemctl cli tool 
@@ -14,7 +22,7 @@ fi
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=9
     toolbox_title "Services Management Tools"
     toolbox_item "tools" "print this ..." $width
@@ -69,7 +77,7 @@ function serviceStatus {
     sudo systemctl status "$1"
 }
 function serviceRestart {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
         warn_echo "Usage: serviceRestart <unit_name>"
         listRunningServices
@@ -80,7 +88,7 @@ function serviceRestart {
     _codex_unset
 }
 function serviceReload {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then
         warn_echo "Usage: serviceReload <unit_name>"
         listRunningServices
@@ -91,7 +99,7 @@ function serviceReload {
     _codex_unset
 }
 function serviceEnable {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
         warn_echo "Usage: serviceEnable <unit_name>"
         listActiveServices
@@ -102,7 +110,7 @@ function serviceEnable {
     _codex_unset
 }
 function serviceDisable {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
         warn_echo "Usage: serviceDisable <unit_name>"
         listActiveServices
@@ -113,7 +121,7 @@ function serviceDisable {
     _codex_unset
 }
 function serviceActivate {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Enables the service for boot AND starts it immediately
     if [ $# -ne 1 ]; then 
         warn_echo "Usage: serviceActivate <unit_name>"
@@ -125,7 +133,7 @@ function serviceActivate {
     _codex_unset
 }
 function serviceDeactivate {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Enables the service for boot AND starts it immediately
     if [ $# -ne 1 ]; then 
         warn_echo "Usage: serviceDeactivate <unit_name>"
@@ -169,24 +177,24 @@ function showFailed {
     systemctl --failed --no-pager --no-legend
 }   
 function listRunningServices {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     _list_services_by_state "running" "$@"
     _codex_unset
 }
 function listActiveServices {
     # Lists services that are 'active' (includes running, waiting, and exited).
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     _list_services_by_state "active" "$@"
     _codex_unset
 }
 function listFailedServices {
     # Lists services that have failed to start or crashed.
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     _list_services_by_state "failed" "$@"
     _codex_unset
 }
 function listServices {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local -a cmd=(systemctl list-unit-files --type=service --no-pager --no-legend)
     if [ $# -eq 0 ]; then
         if yn_prompt "This will show all units" "are you sure to display all unit files?"; then 

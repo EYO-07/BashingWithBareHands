@@ -1,20 +1,27 @@
 # BEGIN : ~/Toolbox/net_tools.sh
-# {TextMarker|magenta:turnNetworkOff|cyan:turnOffNetwork}
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. nmcli NetworkManager 
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Networking Tools"
     toolbox_item "tools / inv" "print this ... / show command syntax" $width
@@ -41,7 +48,7 @@ function tools {
 }
 tools
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "todo"
     local width=9
     inventory_item 1 "..." "..." $width
@@ -66,7 +73,7 @@ alias wifiList='nmcli radio wifi on && nmcli device wifi list'
 alias turnWifiOff='nmcli radio wifi off'
 alias turnWifiOn='nmcli radio wifi on'
 function wifiConnect { # backup
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         echo "Error: SSID required."
         wifiList
@@ -80,7 +87,7 @@ function wifiConnect { # backup
 }
 
 function wifiConnect {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local wifi_ssid="$1"
     if [[ -z "$wifi_ssid" ]]; then
         echo "Error: SSID required."
@@ -112,7 +119,7 @@ function wifiConnect {
 
 # Delete a connection profile permanently
 function deleteConnection {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local conn="$*"
     if [[ -z "$conn" ]]; then
         crit_echo "Error: Connection name required."
@@ -134,7 +141,7 @@ function deleteConnection {
     return 0
 }
 function turnDownConnection {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         crit_echo "Error: Connection name required."
         warn_echo "Usage: turnDownConnection <CONNECTION_NAME>"
@@ -146,7 +153,7 @@ function turnDownConnection {
     _codex_unset
 }
 function turnDeviceDown {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ -z "$1" ]]; then
         crit_echo "Error: internet interface device name required."
         warn_echo "Usage: turnDeviceDown <CONNECTION_NAME>"
@@ -158,7 +165,7 @@ function turnDeviceDown {
     _codex_unset
 }
 function disable_ipv6 {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local conn="$*"
     if [[ -z "$conn" ]]; then
         echo "Error: Connection name required."
@@ -175,7 +182,7 @@ function disable_ipv6 {
     _codex_unset
 }
 function enable_ipv6 {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local conn="$*"
     if [[ -z "$conn" ]]; then
         echo "Error: Connection name required."
@@ -197,7 +204,7 @@ _get_conn_name() {
     nmcli -g GENERAL.CONNECTION device show "$1" 2>/dev/null
 }
 function listConnectionPreferences {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     echo "Current Routing Preference (Lowest Metric = Preferred):"
     # Parse 'ip route' correctly:
     # Format: default via <GW> dev <DEV> ... metric <METRIC>
@@ -214,7 +221,7 @@ function listConnectionPreferences {
     _codex_unset
 }   
 function setConnectionMetric {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # setConnectionMetric <interface_name> <metric_value>
     local dev="$1"
     local metric="$2"
@@ -264,7 +271,7 @@ function setConnectionMetric {
 
 # --
 function shareConnection {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Validate argument count
     if [ $# -lt 2 ] || [ $# -gt 3 ]; then
         warn_echo "USAGE: shareConnection <interface_type> <interface_name> [ <connection_name> ]"
@@ -295,7 +302,7 @@ function shareConnection {
 }
 function connectionInfo {
     # Source the helper script for utility functions like showConnections and _codex_unset
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check if a connection name was provided
     local conn_name="$*"
     if [[ -z "$conn_name" ]]; then
@@ -327,7 +334,7 @@ function connectionInfo {
     return 0
 }   
 function turnConnectionUp {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local target="$*"
     if [[ -z "$target" ]]; then
         crit_echo "Error: Connection or device name required."
@@ -353,7 +360,7 @@ function turnConnectionUp {
     return 1
 }
 function renameConnection {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # 1. Validate arguments (still need at least 2)
     if [[ -z "$1" || -z "$2" ]]; then
         crit_echo "Error: Current name and new name required."
@@ -384,7 +391,7 @@ function renameConnection {
 # NEW FUNCTIONS >>>
 __SELECTED_ITEM_NET=0
 function bmenuInternet {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local items=(
         "showNetworkDevices"
         "connectionInfo"
@@ -407,14 +414,14 @@ function bmenuInternet {
         ["listConnectionPreferences"]="_list_conn_pre"
         ["connectionInfo"]="_conn_inf"
     )
-    _show_net_dev(){ showNetworkDevices; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
-    _show_conn(){ showConnections; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
+    _show_net_dev(){ showNetworkDevices; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"; return 1; }
+    _show_conn(){ showConnections; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"; return 1; }
     _turn_net_on(){ turnNetworkOn; }
     _turn_net_off(){ turnOffNetwork; }
     _turn_wifi_on(){ turnWifiOn; }
     _turn_wifi_off(){ turnWifiOff; }
-    _list_conn_pre(){ listConnectionPreferences; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
-    _conn_inf(){ connectionInfo; source "$_SCRIPT_DIR/_codex.sh"; return 1; }
+    _list_conn_pre(){ listConnectionPreferences; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"; return 1; }
+    _conn_inf(){ connectionInfo; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"; return 1; }
     INTERACTIVE_MENU items actions "Internet Tools Menu" $__SELECTED_ITEM_NET
     __SELECTED_ITEM_NET=$?
     unset -f _show_net_dev _show_conn _turn_net_on _turn_net_off _turn_wifi_on _turn_wifi_off _list_conn_pre _conn_inf

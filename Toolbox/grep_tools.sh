@@ -1,23 +1,30 @@
 # BEGIN : Toolbox/grep_tools.sh
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. grep cli tool
 
 # -- description 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Standart Output Filtering Tools { Grep }"
     toolbox_item "tools" "print this ..." $width
-    #toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "<command> | smartGrep" "apply filters on output of command using pre-defined filters" $width
     toolbox_item 'setMatches "keyword1|keyword2|..."' "set positive filter matches" $width
     toolbox_item 'addMatch <keyword>' "increment one string/keyword to the filter" $width
@@ -29,20 +36,10 @@ function tools {
     _codex_unset
 }
 tools
-function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
-    #inventory_title "7z {File Compression}"
-    #local width=9
-    #inventory_item 1 "7z x" "extracts a compressed file preserving the folder structure" $width
-    #inventory_item 2 "7z e <archive> <path_in_archive> -o<out_dir>" "extracts a single file from compressed archive" $width
-    #inventory_item 3 "7z t" "test file integrity" $width
-    #inventory_endl 
-    _codex_unset
-}
 
 # -- implementations 
 function setMatches {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local input="$1"
     if [[ -z "$input" ]]; then # Allow clearing the variable with no argument
         _matches=""
@@ -56,7 +53,7 @@ function setMatches {
     return 0
 }
 function setFilters {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local input="$1"
     if [[ -z "$input" ]]; then # Allow clearing the variable with no argument
         _filters=""
@@ -70,7 +67,7 @@ function setFilters {
     return 0
 }
 function smartGrep {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local output=""
     local has_data=false
     # Check if stdin is a pipe (not a terminal)
@@ -108,7 +105,7 @@ function smartGrep {
     fi
 }
 function addMatch {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local input="$1"
     # Validate input is not empty
     if [[ -z "$input" ]]; then
@@ -127,7 +124,7 @@ function addMatch {
     return 0
 }
 function addFilter {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local input="$1"
     # Validate input is not empty
     if [[ -z "$input" ]]; then
@@ -146,7 +143,7 @@ function addFilter {
     return 0
 }   
 function saveSmartGrep {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
         ls -a
         warn_echo "USAGE: saveSmartGrep <filename>"
@@ -174,7 +171,7 @@ function saveSmartGrep {
     return 0
 }
 function loadSmartGrep {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
         ls -a 
         warn_echo "USAGE: loadSmartGrep <filename>"

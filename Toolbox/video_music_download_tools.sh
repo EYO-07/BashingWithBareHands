@@ -1,23 +1,30 @@
 # BEGIN : video_download_yt_dlp.sh
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. yt-dlp cli tool for download youtube videos 
-
 
 # -- variables
 __YTDLP_RESOLUTION=360
 __YTDLP_FORMAT="webm"
 
 __BWBH_SAVE_CONFIG_ytdlp_video() {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/video_music_download_tools.conf"
     if [[ ! -f "$config_path" ]]; then 
         crit_echo "... config file not found"
@@ -29,9 +36,9 @@ __BWBH_SAVE_CONFIG_ytdlp_video() {
 
 # -- description 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/video_music_download_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     local width=4
     toolbox_title "Video Download Tools"
     toolbox_item "tools" "print this ..." $width
@@ -48,7 +55,7 @@ function tools {
 }
 tools 
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Video Download Tools"
     local width=3
     inventory_item 1 "..." "..." $width
@@ -59,9 +66,9 @@ function inv {
 
 # -- implementation 
 function downloadVideos {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/video_music_download_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     local video_url_list="$1"
     if [[ -z "$video_url_list" ]]; then 
         warn_echo "Usage: downloadVideos <file>"
@@ -92,7 +99,7 @@ function downloadVideos {
     _codex_unset
 }
 function setVideoResolution {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local res="$1"
     if [[ -z "$res" ]]; then 
         echo "Current Resolution: $__YTDLP_RESOLUTION"
@@ -106,7 +113,7 @@ function setVideoResolution {
     _codex_unset
 }
 function setVideoFormat {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local video_format="$1"
     if [[ -z "$video_format" ]]; then 
         echo "Current Format: $__YTDLP_FORMAT"

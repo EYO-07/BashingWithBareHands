@@ -1,20 +1,27 @@
 # BEGIN Toolbox/audiobook_tools.sh
-# {TextMarker|cyan:|magenta:}
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. gtts-cli ; 2. vlc ; 3. pdftotext
 
 # -- description 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Audiobook Tools"
     toolbox_item "tools" "print this ..." $width
@@ -51,7 +58,7 @@ _play_stream() {
     cvlc --play-and-exit --no-loop -
 }
 _play_text_stream() {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if is_command_valid "gtts-cli"; then 
         gtts-cli -f - | _play_stream
         _codex_unset
@@ -82,7 +89,7 @@ _extract_text() {
 
 # -- implementation
 function textReader {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Usage: textReader <text_or_file>
     # Usage: <text_or_file> | textReader
     # Check if input is piped (stdin is not a terminal)
@@ -105,7 +112,7 @@ function textReader {
     return 0
 }
 function pdfAudiobookReader {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local storage_path="$HOME/.local/state/BashingWithBareHands/"
     # Usage: pdfAudiobookReader <pdf> [start_page] [pause_chunk] [language]
     if [ $# -lt 1 ]; then
@@ -208,7 +215,7 @@ function pdfAudiobookReader {
     return 0
 }   
 function pdfAudiobookReaderSleep {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local storage_path="$HOME/.local/state/BashingWithBareHands/"
     # Define the player function locally (or source it if defined in _codex.sh)
     # Usage: pdfAudiobookReaderSleep <pdf> [start_page_or_chunk] [language]
@@ -306,7 +313,7 @@ function pdfAudiobookReaderSleep {
     return 0
 }   
 function webpageReader {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Helper: Extract text from a single URL using w3m (preferred) or lynx
     # w3m -dump: Renders HTML to text and outputs to stdout
     # -T text/html: Ensures correct parsing if piped
@@ -386,13 +393,12 @@ function loadSafe_LLM_READER {
         _codex_unset
         return 1
     fi
-    source "$config_file"
-    info_echo "Configuration loaded from $config_file"
+    load_variables "$config_file" && info_echo "Configuration loaded from $config_file"
     _codex_unset
     return 0
 }
 function tgptReader {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Default to koboldai if not overridden
     local llm_provider="${_LLM_READER_PROVIDER:-koboldai}"
     if [ "$#" -eq 0 ]; then

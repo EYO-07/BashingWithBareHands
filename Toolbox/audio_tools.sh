@@ -1,12 +1,20 @@
 # BEGIN : Toolbox/audio_tools.sh
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies 
 # 1. wpctl cli command
@@ -15,7 +23,7 @@ fi
 # A toolbox for managing audio devices with colored output.
 
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=4
     toolbox_title "Audio Tools"
     toolbox_item "tools / inv" "print this ... / show command syntax" $width
@@ -34,7 +42,7 @@ function tools {
 }
 tools
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Audio Tools"
     local width=3
     inventory_item 1 "alsamixer" "terminal interface for audio settings" $width
@@ -44,11 +52,11 @@ function inv {
 
 # -- implementation
 function showAudioDevices {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     wpctl status
 }
 function showVolume {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local vol_str
     vol_str=$(wpctl get-volume @DEFAULT_SINK@)
     local vol_float
@@ -69,7 +77,7 @@ function showVolume {
     _codex_unset
 }
 function setAudioSink {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 1 ]; then
         showAudioDevices
         echo "USAGE : setAudioSink <number>"
@@ -94,7 +102,7 @@ function setAudioSink {
     _codex_unset
 }
 function setVolumePercentage {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -ne 1 ]; then
         showVolume
         echo "USAGE : setVolumePercentage <number>"
@@ -120,7 +128,7 @@ function setVolumePercentage {
     _codex_unset
 }
 function increaseVolume {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local step=5
     if [ "$#" -eq 1 ]; then
         step=$1
@@ -149,7 +157,7 @@ function increaseVolume {
     _codex_unset
 }
 function decreaseVolume {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local step=5
     if [ "$#" -eq 1 ]; then
         step=$1

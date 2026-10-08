@@ -16,91 +16,6 @@
 # 10. Divination : Oracle consulting.
 # 11. Library : Official Documentation, Search Engines.
 
-function __SCRIPT_INTEGRITY_CHECK { 
-    # 1. Determine colors if stdout is a terminal
-    if [[ -t 1 ]]; then 
-        local _RED=$'\e[1;31m' _GREEN=$'\e[1;32m' _YELLOW=$'\e[1;33m' _CYAN=$'\e[1;36m' _DIM=$'\e[2m' _NC=$'\e[0m'
-    else
-        local _RED="" _GREEN="" _YELLOW="" _CYAN="" _DIM="" _NC=""
-    fi
-    # 2. System-wide protected storage (requires root to modify)
-    local hash_dir="/var/lib/script_integrity"
-    local script_path="${1:-${BASH_SOURCE[1]:-$0}}"
-    if [[ -z "$script_path" || ! -f "$script_path" ]]; then
-        printf '%s⚠ __SCRIPT_INTEGRITY_CHECK: invalid or missing script path%s\n' "$_YELLOW" "$_NC" >&2
-        return 1
-    fi
-    script_path="$(realpath "$script_path")"
-    # Ensure system hash directory exists and is append-only for security
-    if [[ ! -d "$hash_dir" ]]; then
-        echo "... creating $hash_dir to store the hash sums from scripts"
-        if ! sudo mkdir -p "$hash_dir"; then
-            printf '%s✗ Failed to create system integrity directory.%s\n' "$_RED" "$_NC" >&2
-            return 1
-        fi
-        sudo chmod 755 "$hash_dir"
-        sudo chattr +a "$hash_dir" 2>/dev/null
-    fi
-    local hash_file="$hash_dir/${script_path//\//_}"
-    local current_hash
-    current_hash="$(sha256sum "$script_path" | awk '{print $1}')"
-    # 3. Helper function to securely save/update hashes using root/chattr
-    _save_hash() {
-        local target_file="$1"
-        local file_hash="$2"
-        local target_path="$3"
-        if ! sudo -v; then
-            printf '%s✗ Sudo authentication failed. Aborting.%s\n' "$_RED" "$_NC" >&2
-            return 1
-        fi
-        # Unlock if immutable
-        if lsattr -d "$target_file" 2>/dev/null | awk '{print $1}' | grep -q 'i'; then
-            sudo chattr -i "$target_file" || return 1
-        fi
-        # Write hash and lock down securely
-        echo "$file_hash  $target_path" | sudo tee "$target_file" >/dev/null || return 1
-        sudo chmod 0444 "$target_file" || return 1
-        sudo chattr +i "$target_file" || return 1
-    }
-    if [[ -f "$hash_file" ]]; then
-        local saved_hash
-        saved_hash="$(awk '{print $1}' "$hash_file" 2>/dev/null)"
-        if [[ "$current_hash" != "$saved_hash" ]]; then
-            [[ -t 1 ]] || return 1
-            printf '\n%s⚠ Script modification detected:%s %s%s\n' "$_YELLOW" "$_NC" "$_CYAN" "$script_path"
-            printf '  %sSaved:  %s%s\n' "$_DIM" "$saved_hash" "$_NC"
-            printf '  %sCurrent:%s %s\n' "$_DIM" "$_NC" "$current_hash"
-            printf '%sAccept changes and update baseline? [y/N] %s' "$_YELLOW" "$_NC"
-            local answer
-            read -r answer
-            if [[ "$answer" =~ ^[Yy]([Ee][Ss])?$ ]]; then
-                echo "... updating the script hashsum"
-                _save_hash "$hash_file" "$current_hash" "$script_path" || return 1
-                printf '%s✓ Hash updated successfully.%s\n' "$_GREEN" "$_NC"
-            else
-                printf '%s✗ Changes rejected. Aborting execution.%s\n' "$_RED" "$_NC" >&2
-                printf '%s⚠ Warning: Potential unauthorized modification detected.%s\n' "$_RED" "$_NC" >&2
-                return 1
-            fi
-        fi
-    else
-        [[ -t 1 ]] || return 1
-        echo "... registering initial script integrity baseline"
-        _save_hash "$hash_file" "$current_hash" "$script_path" || return 1
-        printf '%s✓ Integrity baseline securely saved:%s %s%s\n' "$_GREEN" "$_NC" "$_DIM" "$script_path"
-        echo "... hashs are stored on $hash_dir, if you ever want to delete it you should change locking attributes."
-    fi
-    return 0
-}
-__SCRIPT_INTEGRITY_CHECK || return 1
-#if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    #__SCRIPT_INTEGRITY_CHECK || return 1
-#else 
-    #source "$_SCRIPT_DIR/_codex.sh"
-    #__SCRIPT_INTEGRITY_CHECK || return 1
-    #_codex_unset
-#fi 
-
 # >> how to import
 # ... as global variable
 # _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -110,6 +25,20 @@ __SCRIPT_INTEGRITY_CHECK || return 1
 # _codex_unset
 #
 # ... suggestion : tools to print the toolbox, inv to print inventories
+
+# -- 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 function _codex_unset {
     unset -f color_echo warn_echo crit_echo info_echo good_echo
     unset -f toolbox_title toolbox_item toolbox_endl 
@@ -117,7 +46,7 @@ function _codex_unset {
     unset -f token_prompt yn_prompt auto_escalate
     unset -f get_tracking_file save_to_tracking_file parse_variable_from_tracking_file
     unset -f get_abs_path create_intermediate_dirs
-    unset -f save_variables # load_variables
+    unset -f save_variables load_variables
     unset -f is_command_valid all_commands_valid atleastone_command_valid
     unset -f INTERACTIVE_MENU INTERACTIVE_MENU_SINGLE INTERACTIVE_MENU_DELETION_EDIT
     unset -f INTERACTIVE_FILESELECT_SINGLE INTERACTIVE_FILESELECT_MULT PROGRESS_BAR
@@ -515,6 +444,70 @@ function save_variables {
         rm -f "$temp_file"
         return 1
     }
+}
+function load_variables {
+    local __file="$1"
+    [[ -f "$__file" ]] || { echo "Config File not found: $__file" >&2; return 0; }
+    # Enable extended globbing to support *([[:space:]]) patterns
+    shopt -s extglob
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line//[[:space:]]/}" ]] && continue
+        local temp="$line"
+        # 1. Strip leading 'declare' if present
+        [[ "$temp" == declare* ]] && temp="${temp#declare}"
+        # 2. Strip leading spaces and options one by one until clean
+        while true; do
+            temp="${temp#"${temp%%[![:space:]]*}"}" # trim leading space
+            if [[ "$temp" == --* ]]; then
+                temp="${temp#--}"
+            elif [[ "$temp" == -* ]]; then
+                temp="${temp#-[a-zA-Z0-9]*([[:space:]])}"
+            else
+                break
+            fi
+        done
+        temp="${temp#"${temp%%[![:space:]]*}"}" # final trim of leading spaces
+        # Ensure there is an assignment operator
+        [[ "$temp" == *=* ]] || continue
+        local var_name="${temp%%=*}"
+        local var_val="${temp#*=}"
+        # Trim any residual whitespace around var_name
+        var_name="${var_name//[[:space:]]/}"
+        # Protect critical internal Bash variables
+        case "$var_name" in
+            IFS|PATH|UID|EUID|PPID|RANDOM|REPLY) continue ;;
+        esac
+        # Validate variable name
+        [[ "$var_name" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || continue
+        # 3. Handle Scalars (enclosed in double quotes)
+        if [[ "$var_val" == \"*\" ]]; then
+            var_val="${var_val#\"}"
+            var_val="${var_val%\"}"
+            var_val="${var_val//\\\"/\"}" # Unescape quotes
+            if [[ "$var_val" != *\$[\(\{]* && "$var_val" != *\`* ]]; then
+                declare -g "$var_name=$var_val"
+            fi
+        # 4. Handle Indexed Arrays (starts with '(')
+        elif [[ "$var_val" == \(* ]]; then
+            unset -n _target_arr 2>/dev/null
+            declare -g -a "$var_name=()"
+            local -n _target_arr="$var_name"
+            local raw_array_data="$var_val"
+            while [[ "$raw_array_data" =~ \"(([^\"\\]|\\.)*)\" ]]; do
+                local val_part="${BASH_REMATCH[1]}"
+                val_part="${val_part//\\\"/\"}"
+                if [[ "$val_part" != *\$[\(\{]* && "$val_part" != *\`* ]]; then
+                    _target_arr+=("$val_part")
+                fi
+                raw_array_data="${raw_array_data#*\"}"
+                raw_array_data="${raw_array_data#*\"}"
+            done
+        fi
+    done < "$__file"
+    # Optionally restore previous glob state if needed, though usually safe to leave on
+    shopt -u extglob
 }
 # -- check commands
 function is_command_valid {

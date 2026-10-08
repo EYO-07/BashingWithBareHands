@@ -1,12 +1,20 @@
 # BEGIN : Toolbox/i3_tools.sh
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # i3 window manager
@@ -14,7 +22,7 @@ fi
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=6
     toolbox_title "i3 Window Manager Tools"
     toolbox_item "tools" "print this ..." $width
@@ -44,19 +52,10 @@ function tools {
     _codex_unset
 }
 tools 
-#function inv {
-    #source "$_SCRIPT_DIR/_codex.sh"
-    #inventory_title "i3 Window Manager Tools"
-    #local width=3
-    #inventory_item 1 "..." "..." $width
-    #inventory_endl 
-    #_codex_unset
-    #return 0
-#}
 
 # -- implementation 
 function toggleAllWindowsFloatMode {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # 1. Identify the currently focused workspace name
     local current_ws
     current_ws=$(i3-msg -t get_workspaces | jq -r '.[] | select(.focused == true) | .name')
@@ -95,7 +94,7 @@ function toggleAllWindowsFloatMode {
     return 0
 }   
 function transferApplications {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # ... | $target_ws
     if [[ -z "$1" ]]; then
         warn_echo "Usage: transferApplications <workspace_label>"
@@ -147,7 +146,7 @@ function transferApplications {
 function closeApplications {
     # Usage: closeApplications <workspace_label>
     # Sends a safe closing message (SIGTERM) to all applications in the specified workspace.
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local target_ws="$1"
     # Fallback to current workspace if argument is missing but user called it
     if [[ -z "$target_ws" ]]; then
@@ -190,18 +189,16 @@ function closeApplications {
     return 0
 }
 function listApplications {
-    source "$_SCRIPT_DIR/_codex.sh"    
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"    
     local target_ws="$1"
     local tree
     tree=$(i3-msg -t get_tree)
-
     # Determine output header based on argument
     if [[ -n "$target_ws" ]]; then
         info_echo "Applications on Workspace '$target_ws':"
     else
         info_echo "Active Workspaces & Windows:"
     fi
-
     # Optimized jq query using recursive descent (.. | objects) 
     # to catch both tiling and floating nodes.
     local query='
@@ -228,7 +225,6 @@ function listApplications {
       .[] | 
       "Workspace: \(.ws_name)\n" + (.windows | map("  -> " + .) | join("\n"))
     '
-
     # Execute query
     local result
     result=$(echo "$tree" | jq -r "$query")
@@ -316,7 +312,7 @@ function __i3_exit_session {
         nohup bash -c "$(declare -f __i3_exit_session); __i3_exit_session" >/dev/null 2>&1 &
         return 0
     fi
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     notify-send "i3 Session" "Initiating safe session exit..."
     # 1. Get all application window IDs across all workspaces
     local ids

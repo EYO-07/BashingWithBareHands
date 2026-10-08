@@ -1,12 +1,20 @@
 # BEGIN : ~/Toolbox/screenshot_tools.sh
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. scrot 
@@ -14,7 +22,7 @@ fi
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Screeshot Tools"
     toolbox_item "tools" "print this ..." $width
@@ -31,7 +39,7 @@ tools
 
 # -- implementation
 function takeScreenshot {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then 
         xrandr --listmonitors
         echo "Usage: takeScreenshot <MONITOR_NUMBER> [ <delay_seconds> ]"
@@ -51,7 +59,7 @@ function takeScreenshot {
     _codex_unset
 }
 function takeAppshot {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Ensure output directory exists
     mkdir -p "$HOME/Pictures/Screenshots"
     local filename="$HOME/Pictures/Screenshots/app_$(date +%s).png"

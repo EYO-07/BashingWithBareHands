@@ -1,18 +1,26 @@
 # BEGIN
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=7
     toolbox_title "Date and Time Tools"
     toolbox_item "tools" "print this ..." $width
@@ -25,7 +33,7 @@ function tools {
 }
 tools 
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Date and Time Tools"
     local width=2
     inventory_item 1 "cal" "display a small calendar" $width
@@ -37,13 +45,13 @@ function inv {
 
 # -- implementation
 function getCurrentDate {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Get system date and time in format: "Weekday, YYYY-MM-DD HH:MM:SS"
     date +"%A, %Y-%m-%d %H:%M:%S" | good_echo
     _codex_unset
 }   
 function calculateTime {
-    source "$_SCRIPT_DIR/_codex.sh"    
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"    
     # USAGE : calculateTime <file_or_folder>
     if [ -z "$1" ]; then
         ls -a

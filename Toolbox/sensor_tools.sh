@@ -1,19 +1,27 @@
 # BEGIN : sensor_tools.sh
 # ... script to list sensor files 
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=5
     toolbox_title "Sensor Virtual File Tools"
     info_echo "... script to find information about sensor virtual files"
@@ -27,7 +35,7 @@ function tools {
 }
 tools 
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Sensor Virtual File Tools"
     local width=2
     inventory_item 1 "cat" "display the contents of regular file on terminal output. Similar commands: head, tail." $width
@@ -39,7 +47,7 @@ function inv {
 
 # -- implementation
 function searchGeneralSensorFiles {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     echo '-- /sys/class/hwmon'
     if [ -d '/sys/class/hwmon' ]; then
         for hwmon_link in /sys/class/hwmon/hwmon*; do
@@ -62,7 +70,7 @@ function searchGeneralSensorFiles {
     _codex_unset
 }    
 function searchGPUSensorFiles {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # 3. Sensores e Uso da GPU (DRM)
     echo '-- /sys/class/drm'
     if [ -d '/sys/class/drm' ]; then

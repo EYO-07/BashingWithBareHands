@@ -1,36 +1,30 @@
 # BEGIN : ~/Toolbox/mounting_tools.sh
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. udisksctl
 
 # -- description
 function tools {
-    if [[ "$#" -eq 1 ]]; then
-        local import_tool="$1"
-        if [[ "$import_tool" == "files" ]]; then
-            source "$_SCRIPT_DIR/filesystem_tools.sh"
-            return 0
-        fi 
-        if [[ "$import_tool" == "share" ]]; then
-            source "$_SCRIPT_DIR/filesharing_tools.sh"
-            return 0
-        fi 
-    fi 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=6
     toolbox_title "Mounting Tools"
     toolbox_item "tools" "print this ..." $width
-    #toolbox_item "tools files" "import filesystem tools" $width
-    #toolbox_item "tools share" "import filesharing tools" $width
-    #toolbox_item "inv" "print built-in commands ..." $width
     toolbox_item "showLabelsMounted" "show ONLY mounted storage device labels" $width
     toolbox_item "storageDeviceLabels" "show the storage device labels" $width
     toolbox_item "gotoMountedStorage" "go to default path mounted storage by label" $width
@@ -53,20 +47,12 @@ function tools {
     _codex_unset
 }
 tools
-#function inv {
-    #source "$_SCRIPT_DIR/_codex.sh"
-    #inventory_title "todo"
-    #local width=9
-    #inventory_item 1 "..." "..." $width
-    #inventory_endl 
-    #_codex_unset
-#}
 
 # -- implementation
 alias showMountPoints='sudo lsblk -l'
 alias showStorageDevicesInfo='(sudo blkid && sudo fdisk -l) | tee ~/storage_devices.txt'
 function mountIsoFile {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local file_path="$1"
     if [[ ! -e "$file_path" ]]; then 
         [[ -z "$file_path" ]] || crit_echo "invalid path: $file_path"
@@ -80,7 +66,7 @@ function mountIsoFile {
     _codex_unset
 }
 function safelyRemoveUsb { # BACKUP
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then
         echo "USAGE: safelyRemoveUsb <LABEL>"
         storageDeviceLabels
@@ -121,7 +107,7 @@ function safelyRemoveUsb { # BACKUP
     _codex_unset
 }   
 function safelyRemoveUsb { # safely unmount and power-off usb storage by label
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then
         echo "USAGE: safelyRemoveUsb <LABEL>"
         storageDeviceLabels
@@ -172,7 +158,7 @@ function safelyRemoveUsb { # safely unmount and power-off usb storage by label
     _codex_unset
 }
 function unmountStorageDevice { # unmount storage device by label
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then
         echo "USAGE: unmountStorageDevice <LABEL>"
         storageDeviceLabels
@@ -209,7 +195,7 @@ function unmountStorageDevice { # unmount storage device by label
     _codex_unset
 }
 function storageDeviceLabels { # show storage device labels 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local LABEL_DIR="/dev/disk/by-label"
     if [[ ! -d "$LABEL_DIR" ]]; then
         echo "Error: Directory $LABEL_DIR does not exist."
@@ -228,7 +214,7 @@ function storageDeviceLabels { # show storage device labels
     _codex_unset
 }
 function mountStorageDevice { # mount storage device by label 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then
         echo "USAGE: mount_storage_device <LABEL>"
         storageDeviceLabels
@@ -260,7 +246,7 @@ function mountStorageDevice { # mount storage device by label
     _codex_unset
 }
 function gotoMountedStorage { # goto default mounted storage by label
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then
         showLabelsMounted
         echo "USAGE: gotoMountedStorage <LABEL>"
@@ -288,7 +274,7 @@ function gotoMountedStorage { # goto default mounted storage by label
     _codex_unset
 }
 function showLabelsMounted { # show ONLY mounted storage device labels 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Use findmnt to list all mounted filesystems, outputting only the LABEL column
     # -n: No headings
     # -r: Raw output (easier to parse)
@@ -306,7 +292,7 @@ function showLabelsMounted { # show ONLY mounted storage device labels
     _codex_unset
 }
 function checkFilesystemErrors {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -eq 0 ]; then 
         warn_echo "Usage: checkFilesystemErrors <label>"
         storageDeviceLabels

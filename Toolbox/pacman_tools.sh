@@ -1,13 +1,21 @@
 # BEGIN : ~/Toolbox/pacman_tools.sh
 # ... collection of pacman toplevel terminal functions and aliases for linux
+
+# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. pacman 
@@ -15,7 +23,7 @@ fi
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=9
     toolbox_title "Pacman Package Manager Tools"
     toolbox_item "tools / inv" "print this ... / show command syntax" $width
@@ -41,7 +49,7 @@ function tools {
 }
 tools
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Package Managers { Arch-Linux }"
     local width=4
     inventory_item 1 "yay -Qu" "check update status for AUR and official packages" $width
@@ -60,7 +68,7 @@ function inv {
 
 # -- implementations 
 function checkInstalledPackages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local sync_time="Desconhecida"
     local latest_time=0
     local db_file
@@ -113,12 +121,12 @@ function checkInstalledPackages {
     _codex_unset
 }
 function systemUpdate {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     sudo pacman -Syu "$@"
     _codex_unset
 }
 function searchPackages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then 
         echo "USAGE: searchPackages <keyword1> [keyword2 ...]"
         _codex_unset
@@ -173,7 +181,7 @@ function searchPackages {
     _codex_unset
 }
 function installPackage {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ "$#" -eq 0 ]; then 
         echo "USAGE: installPackage <package1> [package2 ...]"
         _codex_unset
@@ -210,14 +218,14 @@ function installPackage {
 }
 alias packageInfo='pacman -Si'
 function listOrphanPackages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     pacman -Qdt | warn_echo
     _codex_unset
 }
 alias removePackage='sudo pacman -R'
 alias purgePackage='sudo pacman -Rn'
 function cleanPackageCache {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local cache_dir="/var/cache/pacman/pkg"
     local current_size
     local choice
@@ -267,7 +275,7 @@ function cleanPackageCache {
     fi
 }
 function packageRelations {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Check argument count
     if [ "$#" -ne 1 ]; then 
         echo "USAGE: showPackageRelations <package_name>"
@@ -311,7 +319,7 @@ function packageRelations {
     return 0
 }   
 function listInstalledPackages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local keywords=("$@")
     # Base command: Generate "Name : Description" for all installed packages
     # We use a function or a subshell to start the pipeline
@@ -385,7 +393,7 @@ function listManuallyInstalledPackages {
         } > "$file"
         echo "Installer script written to: $file"
     }
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local keywords=("$@")
     # Detect export mode: single arg ending in .sh
     local export_file=""

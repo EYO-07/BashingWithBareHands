@@ -1,20 +1,27 @@
 # BEGIN : Toolbox/errors_tools.sh
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
-# {TextMarker|red:|cyan:}
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # Requires: dmesg (util-linux), journalctl (systemd)
 
 __BWBH_SAVE_CONFIG_errors() {
-    source "$_SCRIPT_DIR/_codex.sh"
-    local config_path="$HOME/.config/BashingWithBareHands/error_tools.conf"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
+    local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
     if [[ ! -f "$config_path" ]]; then 
         crit_echo "... config file not found"
         good_echo "... creating config file"
@@ -27,7 +34,7 @@ __BWBH_SAVE_CONFIG_errors() {
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=11
     toolbox_title "Error/Issues Tools"
     toolbox_item "tools / inv" "print this ... / show command syntax" $width
@@ -53,7 +60,7 @@ function tools {
 }
 tools
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "Errors"
     local width=8
     inventory_item '' "loginctl list-sessions" "list active sessions" $width
@@ -135,9 +142,9 @@ _gpu_drivers="nvidia|nouveau|amdgpu|radeon|i915|xe|drm|vgaarb|gpu"
 _gpu_errors="error|fail|corrupt|reset|timeout|hang|fallback|vram|flip_done|crtc|invalid"
 # functions
 function getSystemErrorMessages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # USAGE: getSystemErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -164,9 +171,9 @@ function getSystemErrorMessages {
     return 0
 }
 function getDeviceErrorMessages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # USAGE: getDeviceErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -188,9 +195,9 @@ function getDeviceErrorMessages {
     return 0
 }
 function getDriverErrorMessages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # USAGE: getDriverErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -212,9 +219,9 @@ function getDriverErrorMessages {
     return 0
 }
 function getUserErrorMessages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # USAGE: getApplicationErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -244,7 +251,7 @@ function getUserErrorMessages {
     return 0
 }
 function systemInformation {    
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # show a short system hardware and operational system info
     # to constraint the solution based on current system 
     echo "=== System Information ==="
@@ -303,9 +310,9 @@ function systemInformation {
     _codex_unset
 }   
 function getX11ErrorMessages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # USAGE: getX11ErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -351,9 +358,9 @@ function getX11ErrorMessages {
     return 0
 }
 function getGraphicCardErrorMessages {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/errors_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # USAGE: getGraphicCardErrorMessages [ <keyword> [<fileoutput>] ]
     local keyword="$1"
     local outfile="$2"
@@ -387,7 +394,7 @@ function getGraphicCardErrorMessages {
     return 0
 }
 function queryMessagesByUnit {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then
         echo "Usage: queryMessagesByUnit <unit_name>"
         _codex_unset
@@ -398,7 +405,7 @@ function queryMessagesByUnit {
 }
 __SELECTED_ITEM_ERRORS=0
 function bmenuErrors {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Define the menu items (indexed array)
     local items=(
         "System Info"
@@ -422,13 +429,13 @@ function bmenuErrors {
         ["XOrg/X11 Errors"]="__xorg_errors"
     )
     # Define the functions that each action calls
-    __system_info() { systemInformation ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
-    __system_errors() { getSystemErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
-    __dev_errors() { getDeviceErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
-    __driv_errors() { getDriverErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
-    __grap_errors() { getGraphicCardErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
-    __user_errors() { getUserErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
-    __xorg_errors() { getX11ErrorMessages ; source "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __system_info() { systemInformation ; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __system_errors() { getSystemErrorMessages ; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __dev_errors() { getDeviceErrorMessages ; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __driv_errors() { getDriverErrorMessages ; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __grap_errors() { getGraphicCardErrorMessages ; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __user_errors() { getUserErrorMessages ; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh" ; return 1; }
+    __xorg_errors() { getX11ErrorMessages ; __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh" ; return 1; }
     # Call the menu — pass variable *names*, not values
     INTERACTIVE_MENU items actions "Error Menu" $__SELECTED_ITEM_ERRORS
     __SELECTED_ITEM_ERRORS=$?

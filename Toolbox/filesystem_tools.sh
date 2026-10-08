@@ -1,16 +1,24 @@
 # BEGIN : ~/Toolbox/filesystem_tools.sh 
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- load/save config
 __BWBH_SAVE_CONFIG_filesystem() {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
     if [[ ! -f "$config_path" ]]; then 
         crit_echo "... config file not found"
@@ -24,23 +32,10 @@ __BWBH_SAVE_CONFIG_filesystem() {
 
 # -- description
 function tools {
-    if [[ "$#" -eq 1 ]]; then
-        local import_tool="$1"
-        if [[ "$import_tool" == "mount" ]]; then
-            source "$_SCRIPT_DIR/mounting_tools.sh"
-            return 0
-        fi 
-        if [[ "$import_tool" == "share" ]]; then
-            source "$_SCRIPT_DIR/filesharing_tools.sh"
-            return 0
-        fi 
-    fi 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=8
     toolbox_title "Files/Filesystem Tools"
     toolbox_item "tools" "print this ..." $width
-    #toolbox_item "tools mount" "import mounting tools" $width
-    #toolbox_item "tools share" "import filesharing tools" $width
     toolbox_item "icd" "simple interactive version of cd (change dir)" $width
     toolbox_item "gotoShortcut / addShortcut" "go to custom path / add path to shortcuts" $width
     toolbox_item "shortcutsDelete / shortcutsReset" "delete / reset goto path shortcuts" $width
@@ -69,22 +64,10 @@ function tools {
     _codex_unset
 }
 tools
-#function inv {
-    #source "$_SCRIPT_DIR/_codex.sh"
-    #inventory_title "File/Filesystem Tools"
-    #local width=9
-    #inventory_item 1 "7z x" "extracts a compressed file preserving the folder structure" $width
-    #inventory_item 2 "7z e <archive> <path_in_archive> -o<out_dir>" "extracts a single file from compressed archive" $width
-    #inventory_item 3 "7z t" "test file integrity" $width
-    #inventory_item 4 "touch FILENAME" "creates a regular empty file" $width
-    #inventory_item 5 "mkdir -p PATH" "creates a directory" $width
-    #inventory_endl 
-    #_codex_unset
-#}
 
 # -- implementation
 function getSize { # estimate or get metadata of filesize of folder or file 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # estimate or get metadata of filesize of folder or file 
     # Usage: getFileSize <path>
     if [[ "$#" -ne 1 ]]; then
@@ -124,7 +107,7 @@ function getSize { # estimate or get metadata of filesize of folder or file
     _codex_unset
 }
 function getHashInfo { # sha256 and other useful hashs for a file
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # sha256 and other useful hashes for a file
     # Usage: getHashInfo <filename>
     if [[ "$#" -ne 1 ]]; then
@@ -163,7 +146,7 @@ function getHashInfo { # sha256 and other useful hashs for a file
     _codex_unset
 }
 function showMetadata { # show metadata info for file or folder
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # show metadata info for file or folder
     # Usage: showMetadata <path>
     if [[ "$#" -ne 1 ]]; then
@@ -201,7 +184,7 @@ function showMetadata { # show metadata info for file or folder
     _codex_unset
 }
 function renameFile {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 2 ]; then
         ls -a
         warn_echo "Usage: renameFile <current_filename> <new_filename>"
@@ -243,7 +226,7 @@ function renameFile {
     return 0
 }
 function createFile {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
         ls -a
         warn_echo "Usage: createFile <filename>"
@@ -274,7 +257,7 @@ function createFile {
     fi
 }   
 function createFolder {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 1 ]; then 
         ls -a
         warn_echo "Usage: createFolder <foldername>"
@@ -306,7 +289,7 @@ function createFolder {
     fi
 }
 function deleteFolder { 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # USAGE: deleteFolder <path>
     # Recursively deletes a folder after confirming with a random token.
     local target_path="${1:-}"
@@ -349,7 +332,7 @@ function deleteFolder {
     fi
 }
 function deleteFile { 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local target_path="${1:-}"
     if [ -z "$target_path" ]; then
         ls -a
@@ -388,7 +371,7 @@ function deleteFile {
     fi
 }   
 function createFromTemplate { 
-    source "$_SCRIPT_DIR/_codex.sh"    
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"    
     # Validate arguments
     if [[ "$#" -ne 2 ]]; then
         info_echo "Available Templates (~/Templates): "
@@ -441,7 +424,7 @@ function createFromTemplate {
     return 0
 } 
 function createLink {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -ne 2 ]; then 
         ls -a
         warn_echo "Usage: createLink <original_path> <link_name>"
@@ -467,7 +450,7 @@ function createLink {
     _codex_unset
 }
 function showLabelsMounted { # show ONLY mounted storage device labels 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # Use findmnt to list all mounted filesystems, outputting only the LABEL column
     # -n: No headings
     # -r: Raw output (easier to parse)
@@ -485,7 +468,7 @@ function showLabelsMounted { # show ONLY mounted storage device labels
     _codex_unset
 }
 function gotoMountedStorage { # goto default mounted storage by label
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ "$#" -ne 1 ]]; then
         showLabelsMounted
         echo "USAGE: gotoMountedStorage <LABEL>"
@@ -513,7 +496,7 @@ function gotoMountedStorage { # goto default mounted storage by label
     _codex_unset
 }
 function icd {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [[ ! -v __ASS_ARR_ICD ]]; then 
         declare -gA __ASS_ARR_ICD
     fi
@@ -604,9 +587,9 @@ function icd {
 __SELECTED_ITEM_GOTO=0
 __GOTO_SHORTCUTS=("$HOME" "/etc" "$HOME/.config" "$HOME/.local/bin")
 function gotoShortcut {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     # -- functions
     INTERACTIVE_MENU_CD() {
         [[ -t 0 && -t 1 ]] || return 0
@@ -711,9 +694,9 @@ function gotoShortcut {
     _codex_unset
 }
 function addShortcut {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     local _path="$*"
     if [[ -z "$_path" ]]; then 
         warn_echo "Usage: addShortcut <path>"
@@ -733,16 +716,16 @@ function addShortcut {
     fi 
 }
 function shortcutsDelete {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local config_path="$HOME/.config/BashingWithBareHands/filesystem_tools.conf"
-    [[ -f "$config_path" ]] && source "$config_path"
+    load_variables "$config_path"
     INTERACTIVE_MENU_DELETION_EDIT __GOTO_SHORTCUTS "Delete Shortcut Path [ Q | Enter ]" $__SELECTED_ITEM_GOTO
     __SELECTED_ITEM_GOTO=$?
     __BWBH_SAVE_CONFIG_filesystem
     _codex_unset
 }
 function shortcutsReset {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     __SELECTED_ITEM_GOTO=0
     __GOTO_SHORTCUTS=("$HOME" "/etc" "$HOME/.config" "$HOME/.local/bin")
     good_echo "goto shortcuts reseted"
@@ -752,7 +735,7 @@ function shortcutsReset {
 
 # -- 
 function getVisualStorageUsage {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local target_dir="${1:-$PWD}"
     if [[ ! -d "$target_dir" ]]; then
         crit_echo "Error: '$target_dir' is not a valid directory."
@@ -787,7 +770,7 @@ function getVisualStorageUsage {
     _codex_unset
 }   
 function showFileTree {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ $# -eq 0 ]; then
         ls -a
         warn_echo "Usage: showFileTree <folder_path>"

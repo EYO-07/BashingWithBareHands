@@ -1,12 +1,20 @@
 # BEGIN : Toolbox/filecompressing_tools.sh 
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- load/save config
 __BWBH_SAVE_CONFIG_filecompressing() {
@@ -15,7 +23,7 @@ __BWBH_SAVE_CONFIG_filecompressing() {
 
 # -- description
 function tools {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=8
     toolbox_title "File Compressing Tools"
     toolbox_item "tools / inv" "print this ... / command syntax" $width
@@ -32,7 +40,7 @@ function tools {
 }
 tools
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     inventory_title "File/Filesystem Tools"
     local width=9
     inventory_item 1 "7z x" "extracts a compressed file preserving the folder structure" $width
@@ -44,7 +52,7 @@ function inv {
 
 # -- implementation
 function createBackup { # create a compressed backup file for file or folder naming with datetime stamp
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
         ls -a
         warn_echo "Usage: createBackup <path_to_file_or_folder>"
@@ -76,7 +84,7 @@ function createBackup { # create a compressed backup file for file or folder nam
     fi
 }
 function restoreBackup { # extract the contents of a backup file 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
         ls -a
         warn_echo "Usage: restoreBackup <archive_file.7z> [output_directory]"
@@ -108,7 +116,7 @@ function restoreBackup { # extract the contents of a backup file
     fi
 }
 function viewBackupContents { # view the contents of a compressed archive
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     if [ -z "$1" ]; then
         ls -la | grep -iE "zip|7z|tar" 
         warn_echo "Usage: viewBackupContents <archive_file>"

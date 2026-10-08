@@ -1,12 +1,20 @@
 # BEGIN : Toolbox/filesharing_tools.sh
+
+# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ "$(type -t __SCRIPT_INTEGRITY_CHECK 2>/dev/null)" == "function" ]]; then
-    __SCRIPT_INTEGRITY_CHECK || return 1
-else 
-    source "$_SCRIPT_DIR/_codex.sh"
-    __SCRIPT_INTEGRITY_CHECK || return 1
-    _codex_unset
-fi 
+if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
+    __SCRIPT_SAFE_SOURCE() {
+        local script_path="${1:-}"
+        if [[ -z "$script_path" || ! -f "$script_path" ]]; then
+            printf '\033[1;31m✗ Error: Invalid or missing script path for sourcing.\033[0m\n' >&2
+            return 1
+        fi
+        printf '\033[1;33m⚠ Warning: Security core absent. Sourcing without integrity check\033[0m\n' >&2
+        # Proceed with standard sourcing
+        source "$script_path"
+    }
+fi
 
 # -- dependencies
 # 1. avahi
@@ -16,23 +24,10 @@ fi
 
 # -- description 
 function tools {
-    if [[ "$#" -eq 1 ]]; then
-        local import_tool="$1"
-        if [[ "$import_tool" == "mount" ]]; then
-            source "$_SCRIPT_DIR/mounting_tools.sh"
-            return 0
-        fi 
-        if [[ "$import_tool" == "files" ]]; then
-            source "$_SCRIPT_DIR/filesystem_tools.sh"
-            return 0
-        fi 
-    fi 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=15
     toolbox_title "File Sharing Tools"
     toolbox_item "tools" "show this ..." $width
-    #toolbox_item "tools files" "import filesystem tools" $width
-    #toolbox_item "tools mount" "import mounting tools" $width
     toolbox_item "inv" "useful commands syntax" $width
     if all_commands_valid "avahi-daemon" "avahi-resolve" "ip" "ssh" "grep" "rsync" ; then 
         toolbox_item "checkLocalFileSharingBridge" "check the connection between local network machines" $width
@@ -55,7 +50,7 @@ function tools {
 }
 tools
 function inv {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     local width=3
     inventory_title "todo"
     inventory_item 1 "..." "..." $width
@@ -65,7 +60,7 @@ function inv {
 
 # -- implementation 
 function checkLocalFileSharingBridge {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # USAGE: checkLocalFileSharingBridge <remotehostname> [ <username> ]
     # 1. check the name resolution
     # 2. prompt for username if not provided
@@ -171,7 +166,7 @@ function checkLocalFileSharingBridge {
     return 0
 }
 function remoteShell {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # USAGE: remoteShell <remoteusername> <remotehostname>
     # Opens an interactive remote terminal session
     local ssh_user="${1:-}"
@@ -215,7 +210,7 @@ function remoteShell {
     return $exit_code
 }   
 function leftload { 
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     # USAGE: leftload <remoteusername> <remotehostname> <remotepath> [ <localpath> ] 
     # 1. leftload <remoteusername> <remotehostname> <remotepath> 
     #    -> Lists remote files (Dry Run / Preview)
@@ -309,7 +304,7 @@ function leftload {
     return $exit_code
 }   
 function activateFileSharingServices {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     warn_echo "--- filesharing services ---"
     color_echo 36 "... note those units are not exclusive for filesharing"
     systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"   
@@ -334,7 +329,7 @@ function activateFileSharingServices {
     fi
 }
 function deactivateFileSharingServices {
-    source "$_SCRIPT_DIR/_codex.sh"
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
     warn_echo "--- filesharing services ---"
     color_echo 36 "... note those units are not exclusive for filesharing"
     systemctl list-unit-files --type=service --no-legend --no-pager | grep -iE "avahi-daemon.service|sshd.service" | grep -iE "enabled|disabled"
