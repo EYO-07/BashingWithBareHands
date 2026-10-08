@@ -29,7 +29,7 @@ To protect your shell toolbox against unauthorized modification or tampering, yo
 
 #### Component Installation & Setup
 
-1. **Security Core:** Place the core security script into protected system storage (e.g., `/var/lib/script_security/bwbh_security_core.sh`).
+1. **Security Core:** Place the core security script into protected system storage (e.g., `/var/lib/script_security/bwbh_security_core.sh`). You should create it first it absent and update the paths on those scripts if putting elsewhere.
 
 **You should read those files at least once, before putting anything on protected system folders. They are well commented, so any one could read and verify. Or you can inspect those files with LLMs.**
 
