@@ -1,0 +1,7 @@
+# Example snippet inside your ~/.bash_aliases
+
+TOOLBOX_DIR="$HOME/Toolbox" # MODIFY ME TO ACTUAL PATH
+# Extra tools ready to use 
+__SCRIPT_SAFE_SOURCE "$TOOLBOX_DIR/filesystem_tools.sh" >/dev/null
+# Check and source the main toolbox
+__SCRIPT_SAFE_SOURCE "$TOOLBOX_DIR/tools.sh" >/dev/null
