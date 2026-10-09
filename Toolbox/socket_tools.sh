@@ -1,7 +1,8 @@
 # BEGIN : Toolbox/socket_tools.sh 
+# ==============================================================================
+# DEPENDENCIES: systemctl, sort, coreutils
+# ==============================================================================
 # ... for sockets instead of services 
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
 
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
     __SCRIPT_SAFE_SOURCE() {
@@ -15,9 +16,6 @@ if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
         source "$script_path"
     }
 fi
-
-# -- dependencies
-# 1. systemctl cli command {systemd}
 
 # -- description 
 function tools {

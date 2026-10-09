@@ -1,6 +1,7 @@
 # BEGIN : Toolbox/python_env_tools.sh 
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: python3, venv, rm, mkdir, coreutils
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then

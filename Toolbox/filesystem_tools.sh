@@ -1,6 +1,8 @@
-# BEGIN : ~/Toolbox/filesystem_tools.sh 
-
-# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# BEGIN : Toolbox/filesystem_tools.sh 
+# ==============================================================================
+# DEPENDENCIES: coreutils (cp, touch, rm, mkdir, ls, df, du, cut, wc, stat, sort, readlink),
+#               findutils (find), util-linux (findmnt), file, sha256sum, tput, stty, awk
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then

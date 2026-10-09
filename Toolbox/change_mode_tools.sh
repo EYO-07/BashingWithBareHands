@@ -1,7 +1,8 @@
 # BEGIN : Toolbox/change_mode_tools.sh 
+# ==============================================================================
+# DEPENDENCIES: chmod, ls, stat, coreutils, bash, sudo
+# ==============================================================================
 # ... aliases and helper function for chmod cli 
-
-# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then

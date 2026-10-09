@@ -1,6 +1,7 @@
 # BEGIN : ~/Toolbox/net_tools.sh
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: nmcli (NetworkManager), ip, grep, awk, coreutils
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
@@ -15,9 +16,6 @@ if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
         source "$script_path"
     }
 fi
-
-# -- dependencies
-# 1. nmcli NetworkManager 
 
 # -- description
 function tools {

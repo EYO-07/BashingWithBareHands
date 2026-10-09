@@ -1,6 +1,7 @@
 # BEGIN ~/Toolbox/move_copy_delete_tools.sh 
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: cp, rm, du, df, notify-send (libnotify), coreutils, awk
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then

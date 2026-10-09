@@ -1,6 +1,7 @@
 # BEGIN : Toolbox/services_tools.sh 
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: systemctl, grep, coreutils, awk
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
@@ -15,10 +16,6 @@ if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
         source "$script_path"
     }
 fi
-
-# -- dependencies
-# 1. systemctl cli tool 
-# 2. sudo privileges
 
 # -- description
 function tools {

@@ -1,6 +1,7 @@
 # BEGIN : ~/Toolbox/screenshot_tools.sh
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: scrot, xrandr, mkdir, date, coreutils
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
@@ -15,10 +16,6 @@ if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
         source "$script_path"
     }
 fi
-
-# -- dependencies
-# 1. scrot 
-# 2. xrandr ~ x11 environment
 
 # -- description
 function tools {

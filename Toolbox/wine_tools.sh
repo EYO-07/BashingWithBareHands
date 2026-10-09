@@ -1,6 +1,8 @@
 # BEGIN : Toolbox/wine_tools.sh
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: wine, winetricks, wineboot, winecfg, update-mime-database,
+#               update-desktop-database, rm, mkdir, find, grep, sed, coreutils, awk
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
@@ -15,10 +17,6 @@ if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
         source "$script_path"
     }
 fi
-
-# -- dependencies 
-# 1. wine 
-# 2. winetricks
 
 # -- description 
 function tools {

@@ -1,7 +1,7 @@
 # BEGIN : ~/Toolbox/pacman_tools.sh
-# ... collection of pacman toplevel terminal functions and aliases for linux
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: pacman, pactree (pacman-contrib), paccache, stat, date, grep, awk, sed, coreutils
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
@@ -16,10 +16,6 @@ if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
         source "$script_path"
     }
 fi
-
-# -- dependencies
-# 1. pacman 
-# 2. pacman-contrib : showPackageRelations
 
 # -- description
 function tools {

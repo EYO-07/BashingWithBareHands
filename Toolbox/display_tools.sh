@@ -1,7 +1,8 @@
 # BEGIN : Toolbox/display_tools.sh 
+# ==============================================================================
+# DEPENDENCIES: xrandr, xset, xwininfo, xprop, xlsclients, xinput, xev, awk, grep
+# ==============================================================================
 # ... functions and aliases to manage displays in X(xorg)
-
-# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then

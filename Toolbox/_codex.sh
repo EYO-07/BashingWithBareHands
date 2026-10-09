@@ -1,8 +1,11 @@
 # BEGIN : Toolbox/_codex.sh
+# ==============================================================================
+# DEPENDENCIES: tput, stty, coreutils (tr, head, sort, mkdir, touch, mv, rm), awk
+# ==============================================================================
 # ... this file is the framework for bashing with bare hands.
 # ... those functions are intended to be called inside functions.
 # ... source the script inside the function scope to prevent namespace pollution.
-# ... why is called _codex ?
+
 # Spellcrafting Paradigm : Concept Mapping 
 # 1. Spellcasting : Spell is a function and casting is the use of the appropriate syntax.
 # 2. Oracles : Are the LLM's, a wizard should use it to craft new spells or consulting.

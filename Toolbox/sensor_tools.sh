@@ -1,7 +1,8 @@
-# BEGIN : sensor_tools.sh
+# BEGIN : Toolbox/sensor_tools.sh
+# ==============================================================================
+# DEPENDENCIES: cat, readlink, ls, grep, sed, coreutils, awk
+# ==============================================================================
 # ... script to list sensor files 
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then

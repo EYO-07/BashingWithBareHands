@@ -1,6 +1,9 @@
 # BEGIN Toolbox/usb_tools.sh 
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: lsblk, udevadm, jq, umount, wipefs, parted, partprobe,
+#               mkfs.vfat/ntfs/exfat/ext4, fatlabel, ntfslabel, tune.exfat/exfatlabel,
+#               e2label, coreutils, awk, sed
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then

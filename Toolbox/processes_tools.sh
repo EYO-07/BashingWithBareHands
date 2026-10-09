@@ -1,7 +1,8 @@
-# BEGIN : processes_tools.sh
+# BEGIN : Toolbox/processes_tools.sh
+# ==============================================================================
+# DEPENDENCIES: ps, awk, kill, coreutils
+# ==============================================================================
 # ... tasks, processes, etc
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
@@ -16,9 +17,6 @@ if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
         source "$script_path"
     }
 fi
-
-# -- dependencies
-# linux built-in tools like pid, pidof, ps, pgrep
 
 # -- description
 function tools {

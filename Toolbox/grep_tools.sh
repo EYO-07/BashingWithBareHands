@@ -1,6 +1,7 @@
 # BEGIN : Toolbox/grep_tools.sh
-
-# {TextMarker|red:source|cyan:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: grep, coreutils, date
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then

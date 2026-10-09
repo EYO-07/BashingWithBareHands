@@ -1,5 +1,8 @@
 # BEGIN : Toolbox/_i3blocks_tools.sh
-
+# ==============================================================================
+# DEPENDENCIES: nvidia-smi, find, grep, sensors, free, df, nmcli, pamixer,
+#               amixer, setxkbmap, localectl, date, findmnt, coreutils, awk
+# ==============================================================================
 # ... intended to be used with i3blocks scripts 
 
 # -- Color helpers 

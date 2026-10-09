@@ -1,6 +1,8 @@
 # BEGIN Toolbox/scan_tools.sh 
-
-# {TextMarker|red:source|white:__SCRIPT_SAFE_SOURCE|blue:load_variables}
+# ==============================================================================
+# DEPENDENCIES: clamav-daemon, freshclam, clamscan, clamdscan, unhide, unhide-tcp,
+#               systemctl, grep, find, wc, xargs, date, coreutils, awk
+# ==============================================================================
 
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
@@ -15,9 +17,6 @@ if ! declare -F "__SCRIPT_SAFE_SOURCE" >/dev/null; then
         source "$script_path"
     }
 fi
-
-# -- dependencies
-# 1. clamav 
 
 # -- description
 function tools {
