@@ -49,7 +49,7 @@ __SCRIPT_INTEGRITY_CHECK() {
         printf '  \033[2mFile:   %s\033[0m\n' "$script_path" >&2
         printf '  \033[2mSaved:  %s\033[0m\n' "$saved_hash" >&2
         printf '  \033[2mCurrent:%s\033[0m\n' "$current_hash" >&2
-        printf '\033[1;33mℹ To update the baseline hash, run: sudo __SCRIPT_BASELINE_UPDATE "%s"\033[0m\n' "$script_path" >&2
+        printf '\033[1;33mℹ To update the baseline hash, run: __SCRIPT_BASELINE_UPDATE "%s"\033[0m\n' "$script_path" >&2
         return 1 # Return a failure code to block downstream actions
     fi
     
