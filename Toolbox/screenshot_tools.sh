@@ -29,6 +29,11 @@ function tools {
     else 
         crit_echo "... those tools require scrot and xorg environment"
     fi
+    if all_commands_valid "qrencode" "convert"; then 
+        toolbox_item "generateQR" "generate QR from url with optional text label" $width
+    else 
+        crit_echo "... generateQR requires qrencode and ImageMagick"
+    fi 
     toolbox_endl
     _codex_unset
 }
@@ -73,6 +78,48 @@ function takeAppshot {
         _codex_unset
         return 1
     fi
+    _codex_unset
+    return 0
+}   
+function generateQR {
+    __SCRIPT_SAFE_SOURCE "$_SCRIPT_DIR/_codex.sh"
+    local url="${1:-}"
+    local outfile="${2:-}"
+    local qrlabel="${3:-}"
+    if [[ -z "$url" || -z "$outfile" ]]; then
+        echo "Usage: generateQR <URL> <OUTPUT_FILE> [LABEL]" >&2
+        _codex_unset
+        return 1
+    fi
+    if ! command -v qrencode &>/dev/null; then
+        echo "Error: qrencode is not installed." >&2
+        _codex_unset
+        return 1
+    fi
+    local tmp_qr
+    tmp_qr="$(mktemp /tmp/qr_XXXXXX.png)"
+    trap 'rm -f "$tmp_qr"' RETURN
+    # Generate QR with high error correction (room for label)
+    qrencode -l H -s 8 -m 2 -o "$tmp_qr" "$url"
+    if [[ -n "$qrlabel" ]]; then
+        if ! command -v convert &>/dev/null; then
+            echo "Error: ImageMagick (convert) required for labels." >&2
+            _codex_unset
+            return 1
+        fi
+        local tmp_label
+        tmp_label="$(mktemp /tmp/qrlabel_XXXXXX.png)"
+        trap 'rm -f "$tmp_qr" "$tmp_label"' RETURN
+        # Render text label
+        convert -size 400x40 xc:white -pointsize 20 -gravity center \
+            -fill black -draw "text 0,0 '$qrlabel'" "$tmp_label"
+        # Append label below QR
+        convert -append "$tmp_qr" "$tmp_label" "$outfile"
+        rm -f "$tmp_label"
+    else
+        mv "$tmp_qr" "$outfile"
+    fi
+    echo "QR code saved to: $outfile"
     _codex_unset
     return 0
 }   
