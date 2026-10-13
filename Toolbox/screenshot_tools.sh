@@ -29,7 +29,7 @@ function tools {
     else 
         crit_echo "... those tools require scrot and xorg environment"
     fi
-    if all_commands_valid "qrencode" "convert"; then 
+    if all_commands_valid "qrencode" "magick"; then 
         toolbox_item "generateQR" "generate QR from url with optional text label" $width
     else 
         crit_echo "... generateQR requires qrencode and ImageMagick"
@@ -86,6 +86,7 @@ function generateQR {
     local url="${1:-}"
     local outfile="${2:-}"
     local qrlabel="${3:-}"
+
     if [[ -z "$url" || -z "$outfile" ]]; then
         echo "Usage: generateQR <URL> <OUTPUT_FILE> [LABEL]" >&2
         _codex_unset
@@ -96,32 +97,43 @@ function generateQR {
         _codex_unset
         return 1
     fi
+    if ! command -v magick &>/dev/null; then
+        echo "Error: ImageMagick 7 (magick) is required." >&2
+        _codex_unset
+        return 1
+    fi
+
     local tmp_qr
     tmp_qr="$(mktemp /tmp/qr_XXXXXX.png)"
     trap 'rm -f "$tmp_qr"' RETURN
-    # Generate QR with high error correction (room for label)
+
+    # Generate QR code
     qrencode -l H -s 8 -m 2 -o "$tmp_qr" "$url"
+
     if [[ -n "$qrlabel" ]]; then
-        if ! command -v convert &>/dev/null; then
-            echo "Error: ImageMagick (convert) required for labels." >&2
-            _codex_unset
-            return 1
-        fi
+        # Dynamically get the exact width of the generated QR code
+        local qr_width
+        qr_width="$(magick identify -format "%w" "$tmp_qr")"
+
         local tmp_label
         tmp_label="$(mktemp /tmp/qrlabel_XXXXXX.png)"
         trap 'rm -f "$tmp_qr" "$tmp_label"' RETURN
-        # Render text label
-        convert -size 400x40 xc:white -pointsize 20 -gravity center \
-            -fill black -draw "text 0,0 '$qrlabel'" "$tmp_label"
-        # Append label below QR
-        convert -append "$tmp_qr" "$tmp_label" "$outfile"
+
+        # Create a label canvas matching the exact width of the QR code
+        magick -size "${qr_width}x50" xc:white -font DejaVu-Sans-Mono \
+            -pointsize 18 -gravity center -fill black \
+            -draw "text 0,0 '$qrlabel'" "$tmp_label"
+
+        # Stack them vertically with matching widths for perfect alignment
+        magick "$tmp_qr" "$tmp_label" -append "$outfile"
         rm -f "$tmp_label"
     else
         mv "$tmp_qr" "$outfile"
     fi
+
     echo "QR code saved to: $outfile"
     _codex_unset
     return 0
-}   
+}
 
 # END 
